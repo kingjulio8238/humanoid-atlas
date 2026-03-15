@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
 import { companies, relationships, componentCategories } from './data';
 import './App.css';
@@ -301,6 +301,14 @@ export default function App() {
   const [chainFocus, setChainFocus] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<CountryGroup>(null);
   const [cutCountries, setCutCountries] = useState<Set<string>>(new Set());
+  const [viewCount, setViewCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/views', { method: 'POST' })
+      .then((r) => r.json())
+      .then((d) => setViewCount(d.views))
+      .catch(() => {});
+  }, []);
 
   const selectedComponent = useMemo(
     () => (activeTab !== 'skeleton' ? componentCategories.find((c) => c.id === activeTab) : null),
@@ -463,7 +471,7 @@ export default function App() {
         </main>
 
         <footer className="footer">
-          <span>Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a></span>
+          <span>Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} views</span>}</span>
         </footer>
       </div>
     );
@@ -892,7 +900,7 @@ export default function App() {
         <span>
           {oems.reduce((s, c) => s + (c.robotSpecs?.shipments2025 || 0), 0).toLocaleString()} units shipped (2025)
         </span>
-        <span className="footer-right">Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a></span>
+        <span className="footer-right">Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} views</span>}</span>
       </footer>
     </div>
   );
