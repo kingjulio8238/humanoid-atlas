@@ -79,11 +79,11 @@ const ACTUATOR_INFO = {
 
 const COMPONENT_KEYWORDS: Record<string, string[]> = {
   motors: ['bldc motors', 'motors', 'servo motors'],
-  reducers: ['harmonic reducer', 'strain wave reducer'],
+  reducers: ['harmonic reducer', 'strain wave reducer', 'cycloidal reducer'],
   compute: ['jetson', 'nvidia gpu', 'cpu', 'soc', 'n97', 'ai chips', 'ai/ml models'],
-  sensors_general: ['lidar', 'image sensors'],
+  sensors_general: ['lidar', 'image sensors', 'depth cameras', 'imu'],
   end_effectors: ['dexterous hands'],
-  pcbs: ['motor drivers', 'analog ics', 'power semiconductors', 'mlcc', 'passive components', 'chip fabrication'],
+  pcbs: ['motor drivers', 'analog ics', 'power semiconductors', 'mlcc', 'passive components', 'chip fabrication', 'mems'],
   batteries: ['battery cells', 'battery pack'],
   bearings: ['cross-roller bearings', 'ball bearings', 'bearings'],
   actuators_rotary: ['actuator modules', 'servo actuators'],
@@ -111,6 +111,8 @@ function getComponentChain(componentId: string) {
     upstream: upstreamIds.map((id) => companies.find((c) => c.id === id)).filter(Boolean),
     suppliers: supplierIds.map((id) => companies.find((c) => c.id === id)).filter(Boolean),
     oems: oemIds.map((id) => companies.find((c) => c.id === id)).filter(Boolean),
+    rels,
+    upstreamRels,
   };
 }
 
@@ -118,6 +120,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('skeleton');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
+  const [chainFocus, setChainFocus] = useState<string | null>(null);
 
   const selectedComponent = useMemo(
     () => (activeTab !== 'skeleton' ? componentCategories.find((c) => c.id === activeTab) : null),
@@ -138,6 +141,23 @@ export default function App() {
   }, [activeTab, actuatorType]);
 
   const oems = companies.filter((c) => c.type === 'oem');
+
+  // Compute which entities are connected to the focused entity in the chain
+  const connectedIds = useMemo(() => {
+    if (!chainFocus || !chain) return null;
+    const ids = new Set<string>();
+    ids.add(chainFocus);
+    // If focused entity is a supplier, find its OEMs and upstream
+    chain.rels.forEach((r) => {
+      if (r.from === chainFocus) ids.add(r.to);
+      if (r.to === chainFocus) ids.add(r.from);
+    });
+    chain.upstreamRels.forEach((r) => {
+      if (r.from === chainFocus) ids.add(r.to);
+      if (r.to === chainFocus) ids.add(r.from);
+    });
+    return ids;
+  }, [chainFocus, chain]);
 
   const handleSelectCompany = (id: string) => {
     setCompanyId(id);
@@ -279,7 +299,7 @@ export default function App() {
             <button
               key={t.id}
               className={`component-btn ${activeTab === t.id ? 'component-btn--active' : ''}`}
-              onClick={() => setActiveTab(t.id)}
+              onClick={() => { setActiveTab(t.id); setChainFocus(null); }}
             >
               {t.label}
               {comp?.bottleneck && (
@@ -393,13 +413,31 @@ export default function App() {
 
             {chain && (chain.upstream.length > 0 || chain.suppliers.length > 0 || chain.oems.length > 0) && (
               <div className="supply-chain">
-                <h3 className="section-title">Supply Chain</h3>
+                <div className="supply-chain__header">
+                  <h3 className="section-title">Supply Chain</h3>
+                  {chainFocus && (
+                    <button className="chain-clear" onClick={() => setChainFocus(null)}>
+                      Clear filter
+                    </button>
+                  )}
+                </div>
                 <div className="chain-flow">
                   {chain.upstream.length > 0 && (
                     <div className="chain-tier">
                       <div className="chain-tier-label">Raw Materials</div>
                       {chain.upstream.map((c) => c && (
-                        <button key={c.id} className="chain-entity" onClick={() => handleSelectCompany(c.id)}>
+                        <button
+                          key={c.id}
+                          className={`chain-entity ${connectedIds && !connectedIds.has(c.id) ? 'chain-entity--dim' : ''} ${chainFocus === c.id ? 'chain-entity--focused' : ''}`}
+                          onMouseEnter={() => !chainFocus && setChainFocus(c.id)}
+                          onMouseLeave={() => !chainFocus && setChainFocus(null)}
+                          onClick={(e) => {
+                            if (chainFocus === c.id) { setChainFocus(null); }
+                            else if (chainFocus) { setChainFocus(c.id); }
+                            else { e.stopPropagation(); handleSelectCompany(c.id); }
+                          }}
+                          onDoubleClick={() => handleSelectCompany(c.id)}
+                        >
                           <span className="chain-name">{c.name}</span>
                           <span className="chain-country">{c.country}</span>
                         </button>
@@ -413,7 +451,17 @@ export default function App() {
                     <div className="chain-tier">
                       <div className="chain-tier-label">Suppliers</div>
                       {chain.suppliers.map((c) => c && (
-                        <button key={c.id} className="chain-entity" onClick={() => handleSelectCompany(c.id)}>
+                        <button
+                          key={c.id}
+                          className={`chain-entity ${connectedIds && !connectedIds.has(c.id) ? 'chain-entity--dim' : ''} ${chainFocus === c.id ? 'chain-entity--focused' : ''}`}
+                          onMouseEnter={() => !chainFocus && setChainFocus(c.id)}
+                          onMouseLeave={() => !chainFocus && setChainFocus(null)}
+                          onClick={() => {
+                            if (chainFocus === c.id) { setChainFocus(null); }
+                            else { setChainFocus(c.id); }
+                          }}
+                          onDoubleClick={() => handleSelectCompany(c.id)}
+                        >
                           <span className="chain-name">{c.name}</span>
                           <span className="chain-country">{c.country}</span>
                           {c.marketShare && <span className="chain-share">{c.marketShare}</span>}
@@ -428,7 +476,17 @@ export default function App() {
                     <div className="chain-tier">
                       <div className="chain-tier-label">OEMs</div>
                       {chain.oems.map((c) => c && (
-                        <button key={c.id} className="chain-entity" onClick={() => handleSelectCompany(c.id)}>
+                        <button
+                          key={c.id}
+                          className={`chain-entity ${connectedIds && !connectedIds.has(c.id) ? 'chain-entity--dim' : ''} ${chainFocus === c.id ? 'chain-entity--focused' : ''}`}
+                          onMouseEnter={() => !chainFocus && setChainFocus(c.id)}
+                          onMouseLeave={() => !chainFocus && setChainFocus(null)}
+                          onClick={() => {
+                            if (chainFocus === c.id) { setChainFocus(null); }
+                            else { setChainFocus(c.id); }
+                          }}
+                          onDoubleClick={() => handleSelectCompany(c.id)}
+                        >
                           <span className="chain-name">{c.name}</span>
                           <span className="chain-country">{c.country}</span>
                         </button>

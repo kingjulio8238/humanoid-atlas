@@ -100,4 +100,66 @@ export const relationships: SupplyRelationship[] = [
 
   // === END EFFECTOR SUPPLIERS ===
   { id: 'r80', from: 'psyonic', to: 'apptronik', component: 'Dexterous Hands', description: 'Off-the-shelf robotic/prosthetic hands' },
+  { id: 'r81', from: 'sharpa', to: 'unitree', component: 'Dexterous Hands', description: 'Dexterous hands for Chinese OEMs' },
+  { id: 'r82', from: 'sharpa', to: 'agibot', component: 'Dexterous Hands' },
+
+  // === ADDITIONAL SENSOR RELATIONSHIPS (from audit) ===
+  { id: 'r120', from: 'sony_sensors', to: 'boston_dynamics', component: 'Image Sensors', description: 'Camera sensors for 360° perception' },
+  { id: 'r121', from: 'sony_sensors', to: 'agility', component: 'Image Sensors', description: 'Head and torso camera sensors' },
+  { id: 'r122', from: 'sony_sensors', to: '1x', component: 'Image Sensors', description: '8.85MP 90Hz stereo fisheye sensors' },
+  { id: 'r123', from: 'sony_sensors', to: 'apptronik', component: 'Image Sensors' },
+  { id: 'r124', from: 'sony_sensors', to: 'ubtech', component: 'Image Sensors', description: 'RGB and fisheye camera sensors' },
+  { id: 'r125', from: 'sony_sensors', to: 'dexmate', component: 'Image Sensors', description: 'Sensors for multi-camera perception' },
+  { id: 'r126', from: 'sony_sensors', to: 'sunday', component: 'Image Sensors', description: 'Eye and hand camera sensors' },
+  { id: 'r127', from: 'ouster', to: 'agility', component: 'LiDAR', description: 'Digital LiDAR for navigation' },
+  { id: 'r128', from: 'ouster', to: 'dexmate', component: 'LiDAR', description: 'Dual 3D LiDAR' },
+  { id: 'r129', from: 'hesai', to: 'engineai', component: 'LiDAR', description: '360° LiDAR sensor' },
+  { id: 'r130', from: 'orbbec', to: 'unitree', component: 'Depth Cameras', description: '360° depth camera array' },
+  { id: 'r131', from: 'orbbec', to: 'agibot', component: 'Depth Cameras', description: 'RGB-D depth cameras' },
+  { id: 'r132', from: 'bosch_sensortec', to: 'boston_dynamics', component: 'IMU', description: 'MEMS inertial measurement unit' },
+  { id: 'r133', from: 'bosch_sensortec', to: 'agility', component: 'IMU', description: 'MEMS IMU for balance and orientation' },
+  { id: 'r134', from: 'bosch_sensortec', to: '1x', component: 'IMU', description: 'Linkwise differential IMUs' },
+  { id: 'r135', from: 'bosch_sensortec', to: 'unitree', component: 'IMU' },
+  { id: 'r136', from: 'bosch_sensortec', to: 'apptronik', component: 'IMU' },
+  { id: 'r137', from: 'bosch_sensortec', to: 'dexmate', component: 'IMU' },
+
+  // === ADDITIONAL REDUCER RELATIONSHIPS (from audit) ===
+  { id: 'r140', from: 'nabtesco', to: 'agility', component: 'Cycloidal Reducer', description: 'Cycloidal-pin gear transmission' },
+  { id: 'r141', from: 'leaderdrive', to: 'unitree', component: 'Harmonic Reducer', description: 'Chinese domestic harmonic drive' },
+  { id: 'r142', from: 'leaderdrive', to: 'agibot', component: 'Harmonic Reducer' },
+  { id: 'r143', from: 'harmonic_drive', to: 'xpeng', component: 'Harmonic Reducer' },
+  { id: 'r144', from: 'harmonic_drive', to: 'agibot', component: 'Harmonic Reducer' },
+
+  // === ADDITIONAL MOTOR RELATIONSHIPS (from audit) ===
+  { id: 'r145', from: 'moons', to: 'xpeng', component: 'Servo Motors' },
+  { id: 'r146', from: 'moons', to: 'ubtech', component: 'Servo Motors' },
+  { id: 'r147', from: 'maxon', to: '1x', component: 'BLDC Motors', description: 'Frameless BLDC motors' },
+
+  // === ADDITIONAL BEARING RELATIONSHIPS (from audit) ===
+  { id: 'r148', from: 'thk', to: 'agibot', component: 'Cross-Roller Bearings' },
+  { id: 'r149', from: 'thk', to: 'xpeng', component: 'Cross-Roller Bearings' },
+  { id: 'r150', from: 'skf', to: 'dexmate', component: 'Bearings' },
+  { id: 'r151', from: 'nsk', to: 'agibot', component: 'Ball Bearings' },
+
+  // === ADDITIONAL BATTERY RELATIONSHIPS (from audit) ===
+  { id: 'r152', from: 'lg_energy', to: 'boston_dynamics', component: 'Battery Cells', description: 'Hyundai group battery supply chain' },
+  { id: 'r153', from: 'panasonic_energy', to: 'agility', component: 'Battery Cells' },
+  { id: 'r154', from: 'panasonic_energy', to: '1x', component: 'Battery Cells' },
+
+  // === ADDITIONAL SCREW RELATIONSHIPS (from audit) ===
+  { id: 'r155', from: 'nanjing_kgm', to: 'unitree', component: 'Planetary Roller Screws', description: 'Chinese domestic screw supplier' },
+  { id: 'r156', from: 'nanjing_kgm', to: 'agibot', component: 'Planetary Roller Screws' },
+  { id: 'r157', from: 'nanjing_kgm', to: 'xpeng', component: 'Planetary Roller Screws' },
+  { id: 'r158', from: 'nanjing_kgm', to: 'engineai', component: 'Planetary Roller Screws' },
+
+  // === ADDITIONAL COMPUTE/PCB RELATIONSHIPS (from audit) ===
+  { id: 'r159', from: 'stmicro', to: 'tesla', component: 'Motor Drivers / MEMS', description: 'Gate drivers and STM32 MCUs for actuator control' },
+  { id: 'r160', from: 'stmicro', to: 'boston_dynamics', component: 'Motor Drivers', description: 'MEMS IMUs and motor gate drivers' },
+  { id: 'r161', from: 'nvidia', to: 'sunday', component: 'Jetson Platform', description: 'Compute for ACT-1 model inference' },
+
+  // === SUNDAY ROBOTICS (filling zero-relationship gap) ===
+  { id: 'r162', from: 'kollmorgen', to: 'sunday', component: 'BLDC Motors' },
+  { id: 'r163', from: 'panasonic_energy', to: 'sunday', component: 'Battery Pack' },
+  { id: 'r164', from: 'thk', to: 'sunday', component: 'Cross-Roller Bearings' },
+  { id: 'r165', from: 'bosch_sensortec', to: 'sunday', component: 'IMU' },
 ];

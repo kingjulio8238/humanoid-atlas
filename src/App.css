@@ -352,6 +352,30 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.supply-chain__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chain-clear {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chain-clear:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
 .section-title {
   font-family: 'Share Tech Mono', monospace;
   font-size: 11px;
@@ -405,6 +429,16 @@ body {
 .chain-entity:hover {
   border-color: var(--border-hover);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.chain-entity--dim {
+  opacity: 0.25;
+  pointer-events: auto;
+}
+
+.chain-entity--focused {
+  border-color: var(--text);
+  background: var(--bg);
 }
 
 .chain-name {
