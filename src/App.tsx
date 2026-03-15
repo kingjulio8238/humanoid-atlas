@@ -471,7 +471,7 @@ export default function App() {
         </main>
 
         <footer className="footer">
-          <span>Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} views</span>}</span>
+          <span>Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
         </footer>
       </div>
     );
@@ -900,7 +900,7 @@ export default function App() {
         <span>
           {oems.reduce((s, c) => s + (c.robotSpecs?.shipments2025 || 0), 0).toLocaleString()} units shipped (2025)
         </span>
-        <span className="footer-right">Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} views</span>}</span>
+        <span className="footer-right">Data: Humanity's Last Machine + RoboStrategy · Maintained by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
       </footer>
     </div>
   );
