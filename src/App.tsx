@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
+import SupplyChainGraph from './components/SupplyChainGraph';
 import { companies, relationships, componentCategories } from './data';
 import './App.css';
 
@@ -10,6 +11,7 @@ const TABS = [
   { id: 'skeleton', label: 'Skeleton' },
   { id: 'all_oems', label: 'All OEMs' },
   { id: 'geopolitics', label: 'Geopolitics' },
+  { id: 'network', label: 'Network' },
   { id: 'sensors_general', label: 'Sensors' },
   { id: 'compute', label: 'Compute' },
   { id: 'batteries', label: 'Battery' },
@@ -800,7 +802,7 @@ export default function App() {
         })}
       </nav>
 
-      <main className={activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'geopolitics' ? 'geo-view' : 'component-view'}>
+      <main className={activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'geopolitics' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className="skeleton-center">
@@ -1192,8 +1194,18 @@ export default function App() {
           );
         })()}
 
+        {/* Network tab */}
+        {activeTab === 'network' && (
+          <div className="network-view">
+            <SupplyChainGraph
+              onNodeSelect={handleSelectCompany}
+              countryFilter={countryFilter}
+            />
+          </div>
+        )}
+
         {/* Component tab */}
-        {activeTab !== 'skeleton' && activeTab !== 'all_oems' && activeTab !== 'geopolitics' && selectedComponent && (
+        {activeTab !== 'skeleton' && activeTab !== 'all_oems' && activeTab !== 'geopolitics' && activeTab !== 'network' && selectedComponent && (
           <>
             <div className="component-top">
               <div className="component-model">

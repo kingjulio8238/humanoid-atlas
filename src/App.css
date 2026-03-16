@@ -2057,3 +2057,212 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========== NETWORK GRAPH (ReactFlow Supply Chain) ========== */
+
+/* 1. Outer container */
+.network-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+/* 2. Filter bar above graph */
+.network-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+/* 3. Small label */
+.network-controls__label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 4. Vertical separator */
+.network-controls__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+/* 5. ReactFlow wrapper */
+.graph-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--bg);
+}
+
+/* 6. ReactFlow light-theme overrides */
+.react-flow__background {
+  background: var(--bg) !important;
+}
+
+.react-flow__edge-path {
+  stroke: var(--border);
+}
+
+.react-flow__controls button {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-bottom: none;
+}
+
+.react-flow__controls button:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.react-flow__controls button:hover {
+  background: var(--bg);
+}
+
+.react-flow__controls button svg {
+  fill: var(--text);
+}
+
+.react-flow__minimap {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* 7. Custom node */
+.graph-node {
+  background: var(--bg-card);
+  border: 2px solid;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  min-width: 100px;
+  max-width: 180px;
+}
+
+/* 8. Node hover */
+.graph-node:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 9. OEM node */
+.graph-node--oem {
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* 10. Dimmed node */
+.graph-node--dim {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* 11. Selected node */
+.graph-node--selected {
+  box-shadow: 0 0 0 2px var(--accent), 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* 12. Node label */
+.graph-node__label {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 13. Node secondary info */
+.graph-node__meta {
+  font-size: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* 14. Country dot */
+.graph-node__country-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* 15. Type label */
+.graph-node__type {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+/* 16. Handle overrides */
+.graph-node .react-flow__handle {
+  width: 6px;
+  height: 6px;
+  border: none;
+  background: var(--border);
+}
+
+/* 17. Legend */
+.graph-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(245, 242, 237, 0.9);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+/* 18. Legend entry */
+.graph-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 19. Legend dot */
+.graph-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ========== NETWORK GRAPH TABLET (max-width: 768px) ========== */
+@media (max-width: 768px) {
+  .network-controls {
+    padding: 6px 16px;
+  }
+
+  .graph-node {
+    padding: 6px 8px;
+  }
+
+  .graph-node__label {
+    font-size: 10px;
+  }
+}
