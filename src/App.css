@@ -2817,3 +2817,25 @@ body {
     font-size: 11px;
   }
 }
+
+/* ========== AI SUMMARY ========== */
+.ai-summary {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.ai-summary__text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.ai-summary__loading {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}

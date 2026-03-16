@@ -643,6 +643,9 @@ export default function App() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const summaryCache = useRef<Map<string, string>>(new Map());
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Hash routing — update URL on state change
@@ -698,6 +701,41 @@ export default function App() {
       .then((d) => setViewCount(d.views))
       .catch(() => {});
   }, []);
+
+  // Fetch AI summary when scenario cuts change
+  useEffect(() => {
+    if (cutCountries.size === 0 && cutCompanies.size === 0) {
+      setAiSummary(null);
+      return;
+    }
+    const cacheKey = [...cutCompanies].sort().join(',') + '|' + [...cutCountries].sort().join(',');
+    if (summaryCache.current.has(cacheKey)) {
+      setAiSummary(summaryCache.current.get(cacheKey)!);
+      return;
+    }
+    const impact = getUnifiedImpact(cutCountries, cutCompanies);
+    if (!impact) { setAiSummary(null); return; }
+
+    setAiLoading(true);
+    fetch('/api/scenario-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenarios: SCENARIOS.filter((s) => activeScenarios.has(s.id)).map((s) => s.label),
+        componentImpacts: impact.componentImpacts,
+        oemImpacts: impact.oemImpacts,
+        cascadeChains: impact.cascadeChains,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const text = d.summary || null;
+        if (text) summaryCache.current.set(cacheKey, text);
+        setAiSummary(text);
+      })
+      .catch(() => setAiSummary(null))
+      .finally(() => setAiLoading(false));
+  }, [cutCountries, cutCompanies, activeScenarios]);
 
   const selectedComponent = useMemo(
     () => (activeTab !== 'skeleton' ? componentCategories.find((c) => c.id === activeTab) : null),
@@ -1444,6 +1482,17 @@ export default function App() {
                           ))}
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {(aiLoading || aiSummary) && (
+                  <div className="ai-summary">
+                    <h4 className="cut-subtitle">AI Analysis</h4>
+                    {aiLoading ? (
+                      <p className="ai-summary__loading">Generating analysis...</p>
+                    ) : (
+                      <p className="ai-summary__text">{aiSummary}</p>
                     )}
                   </div>
                 )}
