@@ -645,6 +645,8 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [nlQuery, setNlQuery] = useState('');
+  const [nlParsing, setNlParsing] = useState(false);
   const summaryCache = useRef<Map<string, string>>(new Map());
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -1398,6 +1400,42 @@ export default function App() {
                     ) : null}
                   </div>
                 )}
+
+                <div className="nl-query-wrapper">
+                  <input
+                    className="nl-query-input"
+                    type="text"
+                    placeholder="Describe a scenario... e.g. &quot;What if Japan bans reducer exports?&quot;"
+                    value={nlQuery}
+                    onChange={(e) => setNlQuery(e.target.value)}
+                    disabled={nlParsing}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') { setNlQuery(''); }
+                      if (e.key === 'Enter' && nlQuery.trim() && !nlParsing) {
+                        setNlParsing(true);
+                        setActiveScenarios(new Set());
+                        fetch('/api/scenario-parse', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            query: nlQuery.trim(),
+                            companies: companies.map((c) => ({ id: c.id, name: c.name, country: c.country, type: c.type })),
+                          }),
+                        })
+                          .then((r) => r.json())
+                          .then((d) => {
+                            if (d.cutCompanies || d.cutCountries) {
+                              setCutCompanies(new Set(d.cutCompanies || []));
+                              setCutCountries(new Set(d.cutCountries || []));
+                            }
+                          })
+                          .catch(() => {})
+                          .finally(() => setNlParsing(false));
+                      }
+                    }}
+                  />
+                  {nlParsing && <span className="nl-query-status">Parsing...</span>}
+                </div>
 
                 <div className="scenario-or">or manually</div>
 

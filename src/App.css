@@ -2818,6 +2818,49 @@ body {
   }
 }
 
+/* ========== NL SCENARIO QUERY ========== */
+.nl-query-wrapper {
+  position: relative;
+  margin: 12px 0 4px;
+}
+
+.nl-query-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  font-size: 13px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.nl-query-input:focus {
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.nl-query-input::placeholder {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.nl-query-input:disabled {
+  opacity: 0.6;
+}
+
+.nl-query-status {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 /* ========== AI SUMMARY ========== */
 .ai-summary {
   margin-top: 16px;
