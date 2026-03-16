@@ -1654,3 +1654,106 @@ body {
     font-size: 12px;
   }
 }
+
+/* ========== SCENARIO MODELING (Cut the Wire) ========== */
+.scenario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.scenario-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 6px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.scenario-btn:hover {
+  border-color: var(--border-hover);
+  background: #faf8f5;
+}
+
+.scenario-btn--active {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+}
+
+.scenario-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.scenario-cascade {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+.scenario-cascade__arrow {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.scenario-cascade__node {
+  background: #faf8f5;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.scenario-cascade__node--cut {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.scenario-cascade__node--affected {
+  background: #fff3e0;
+  border-color: #d69e2e;
+  color: #92600a;
+}
+
+.scenario-or {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 4px 0;
+}
+
+/* ========== SCENARIO MODELING TABLET (max-width: 768px) ========== */
+@media (max-width: 768px) {
+  .scenario-presets {
+    gap: 6px;
+  }
+
+  .scenario-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
+
+/* ========== SCENARIO MODELING PHONE (max-width: 480px) ========== */
+@media (max-width: 480px) {
+  .scenario-btn {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+}

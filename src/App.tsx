@@ -215,16 +215,119 @@ function getOemNationalityData() {
   });
 }
 
-function getCutWireImpact(cutSet: Set<string>) {
-  if (cutSet.size === 0) return null;
+// Named scenarios for Cut the Wire
+const SCENARIOS = [
+  {
+    id: 'taiwan_strait',
+    label: 'Taiwan Strait Crisis',
+    description: 'TSMC goes offline — NVIDIA and Intel lose chip fabrication, cascading to nearly every humanoid OEM.',
+    cutCompanies: ['tsmc'],
+    cutCountries: [] as string[],
+  },
+  {
+    id: 'harmonic_shortage',
+    label: 'Harmonic Drive Shortage',
+    description: 'Japan\'s Harmonic Drive Systems cannot ship — the single most expensive actuator component disappears from 9 OEMs.',
+    cutCompanies: ['harmonic_drive'],
+    cutCountries: [],
+  },
+  {
+    id: 'china_export_ban',
+    label: 'China Export Ban',
+    description: 'All Chinese suppliers cut off — batteries, motors, LiDAR, depth sensors, and rare earth magnets disrupted.',
+    cutCompanies: [],
+    cutCountries: ['CN'],
+  },
+  {
+    id: 'rare_earth_embargo',
+    label: 'Rare Earth Embargo',
+    description: 'All rare earth suppliers disrupted — every BLDC motor in every humanoid depends on NdFeB magnets.',
+    cutCompanies: ['mp_materials', 'lynas', 'jl_mag'],
+    cutCountries: [],
+  },
+  {
+    id: 'nvidia_blacklist',
+    label: 'NVIDIA Blacklist',
+    description: 'NVIDIA cut from supply chain — 9 OEMs lose their primary compute platform. Only Tesla (proprietary) and XPeng (Horizon) are unaffected.',
+    cutCompanies: ['nvidia'],
+    cutCountries: [],
+  },
+];
 
+// Unified impact calculator: supports country-level AND company-level cuts with cascade
+function getUnifiedImpact(cutCountries: Set<string>, cutCompanyIds: Set<string>) {
+  if (cutCountries.size === 0 && cutCompanyIds.size === 0) return null;
+
+  const oemIds = new Set(companies.filter((c) => c.type === 'oem').map((c) => c.id));
+
+  // Build the full set of disrupted supplier IDs (direct + cascade)
+  const disruptedIds = new Set<string>();
+  const cascadeChains: { source: string; sourceName: string; affected: { id: string; name: string }[] }[] = [];
+
+  // 1. Country-level cuts: mark all non-OEM companies from cut countries
+  companies.forEach((c) => {
+    if (!oemIds.has(c.id) && cutCountries.has(getCountryGroup(c.country))) {
+      disruptedIds.add(c.id);
+    }
+  });
+
+  // 2. Company-level cuts: mark directly cut companies
+  cutCompanyIds.forEach((id) => disruptedIds.add(id));
+
+  // 3. Cascade: for each disrupted company, find downstream companies that depend on them
+  //    and may be effectively disrupted (if they lose a critical upstream supplier)
+  const directCuts = new Set(disruptedIds);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    companies.forEach((c) => {
+      if (disruptedIds.has(c.id) || oemIds.has(c.id)) return;
+      // Check if ALL suppliers for any critical input are disrupted
+      const incomingRels = relationships.filter((r) => r.to === c.id);
+      if (incomingRels.length === 0) return;
+      // Group by component
+      const byComponent = new Map<string, string[]>();
+      incomingRels.forEach((r) => {
+        const list = byComponent.get(r.component) || [];
+        list.push(r.from);
+        byComponent.set(r.component, list);
+      });
+      // If ALL suppliers for ANY component are disrupted, this company is disrupted
+      for (const [, supplierIds] of byComponent) {
+        if (supplierIds.every((sid) => disruptedIds.has(sid))) {
+          disruptedIds.add(c.id);
+          changed = true;
+          return;
+        }
+      }
+    });
+  }
+
+  // Build cascade chains for display
+  directCuts.forEach((cutId) => {
+    const cutCompany = companies.find((c) => c.id === cutId);
+    if (!cutCompany) return;
+    // Find non-OEM companies that became disrupted because of this cut
+    const affected = companies.filter((c) => {
+      if (c.id === cutId || oemIds.has(c.id) || directCuts.has(c.id)) return false;
+      if (!disruptedIds.has(c.id)) return false;
+      // Check if this company has a relationship from the cut company
+      return relationships.some((r) => r.to === c.id && r.from === cutId);
+    });
+    if (affected.length > 0) {
+      cascadeChains.push({
+        source: cutId,
+        sourceName: cutCompany.name,
+        affected: affected.map((a) => ({ id: a.id, name: a.name })),
+      });
+    }
+  });
+
+  // Compute OEM impacts
   const oemList = companies.filter((c) => c.type === 'oem');
   const oemImpacts = oemList.map((oem) => {
     const allRels = relationships.filter((r) => r.to === oem.id);
-    const cutRels = allRels.filter((r) => {
-      const supplier = companies.find((c) => c.id === r.from);
-      return supplier && cutSet.has(getCountryGroup(supplier.country));
-    });
+    const cutRels = allRels.filter((r) => disruptedIds.has(r.from));
     return {
       id: oem.id,
       name: oem.name,
@@ -237,7 +340,7 @@ function getCutWireImpact(cutSet: Set<string>) {
   }).filter((o) => o.lostSuppliers > 0)
     .sort((a, b) => b.pctLost - a.pctLost);
 
-  // Component categories affected
+  // Compute component category impacts
   const componentImpacts = SOVEREIGNTY_COMPONENTS.map((compId) => {
     const keywords = COMPONENT_KEYWORDS[compId] || [];
     const category = componentCategories.find((c) => c.id === compId);
@@ -246,10 +349,7 @@ function getCutWireImpact(cutSet: Set<string>) {
     );
     const supplierIds = [...new Set(rels.map((r) => r.from))];
     const totalSuppliers = supplierIds.length;
-    const remainingSuppliers = supplierIds.filter((id) => {
-      const s = companies.find((c) => c.id === id);
-      return s && !cutSet.has(getCountryGroup(s.country));
-    }).length;
+    const remainingSuppliers = supplierIds.filter((id) => !disruptedIds.has(id)).length;
 
     return {
       id: compId,
@@ -262,7 +362,7 @@ function getCutWireImpact(cutSet: Set<string>) {
     };
   }).filter((c) => c.lostCount > 0);
 
-  return { oemImpacts, componentImpacts };
+  return { oemImpacts, componentImpacts, cascadeChains };
 }
 
 function getComponentChain(componentId: string) {
@@ -427,6 +527,8 @@ export default function App() {
   const [chainFocus, setChainFocus] = useState<string | null>(null);
   const [countryFilter, setCountryFilter] = useState<CountryGroup>(null);
   const [cutCountries, setCutCountries] = useState<Set<string>>(new Set());
+  const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
   const [viewCount, setViewCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -681,7 +783,7 @@ export default function App() {
           const sovereignty = getSovereigntyData();
           const oemNationality = getOemNationalityData();
           const scoreboard = getScoreboardData();
-          const cutImpact = getCutWireImpact(cutCountries);
+          const cutImpact = getUnifiedImpact(cutCountries, cutCompanies);
           const { spofRows } = getSPOFData();
           return (
             <div className="geo-content">
@@ -831,7 +933,39 @@ export default function App() {
               </section>
 
               <section className="geo-section">
-                <h3 className="section-title">Cut the Wire — Sanction Simulator</h3>
+                <h3 className="section-title">Supply Chain Simulator</h3>
+
+                <div className="scenario-presets">
+                  {SCENARIOS.map((s) => (
+                    <button
+                      key={s.id}
+                      className={`scenario-btn ${activeScenario === s.id ? 'scenario-btn--active' : ''}`}
+                      onClick={() => {
+                        if (activeScenario === s.id) {
+                          setActiveScenario(null);
+                          setCutCompanies(new Set());
+                          setCutCountries(new Set());
+                        } else {
+                          setActiveScenario(s.id);
+                          setCutCompanies(new Set(s.cutCompanies));
+                          setCutCountries(new Set(s.cutCountries));
+                        }
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                {activeScenario && (() => {
+                  const scenario = SCENARIOS.find((s) => s.id === activeScenario);
+                  return scenario ? (
+                    <div className="scenario-desc">{scenario.description}</div>
+                  ) : null;
+                })()}
+
+                <div className="scenario-or">or manually</div>
+
                 <div className="cut-controls">
                   <span className="cut-label">Remove suppliers from:</span>
                   {(['US', 'CN', 'OTHER'] as const).map((g) => (
@@ -839,21 +973,46 @@ export default function App() {
                       key={g}
                       className={`cut-toggle ${cutCountries.has(g) ? 'cut-toggle--active' : ''}`}
                       onClick={() => {
+                        setActiveScenario(null);
                         const next = new Set(cutCountries);
                         if (next.has(g)) next.delete(g); else next.add(g);
                         setCutCountries(next);
+                        setCutCompanies(new Set());
                       }}
                     >
                       {g === 'US' ? 'US' : g === 'CN' ? 'China' : 'Other'}
                     </button>
                   ))}
-                  {cutCountries.size > 0 && (
-                    <button className="cut-reset" onClick={() => setCutCountries(new Set())}>Reset</button>
+                  {(cutCountries.size > 0 || cutCompanies.size > 0) && (
+                    <button className="cut-reset" onClick={() => {
+                      setCutCountries(new Set());
+                      setCutCompanies(new Set());
+                      setActiveScenario(null);
+                    }}>Reset</button>
                   )}
                 </div>
 
                 {cutImpact && (
                   <div className="cut-impact">
+                    {cutImpact.cascadeChains.length > 0 && (
+                      <div className="cut-subsection">
+                        <h4 className="cut-subtitle">Disruption Cascade</h4>
+                        {cutImpact.cascadeChains.map((chain) => (
+                          <div key={chain.source} className="scenario-cascade">
+                            <span className="scenario-cascade__node scenario-cascade__node--cut">
+                              {chain.sourceName}
+                            </span>
+                            <span className="scenario-cascade__arrow">&rarr;</span>
+                            {chain.affected.map((a) => (
+                              <span key={a.id} className="scenario-cascade__node scenario-cascade__node--affected">
+                                {a.name}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {cutImpact.componentImpacts.length > 0 && (
                       <div className="cut-subsection">
                         <h4 className="cut-subtitle">Component Impact</h4>
@@ -898,8 +1057,8 @@ export default function App() {
                   </div>
                 )}
 
-                {cutCountries.size > 0 && !cutImpact && (
-                  <p className="cut-no-impact">No impact — no suppliers from the selected region(s) in the dataset.</p>
+                {(cutCountries.size > 0 || cutCompanies.size > 0) && !cutImpact && (
+                  <p className="cut-no-impact">No impact — no suppliers affected in the dataset.</p>
                 )}
               </section>
             </div>
