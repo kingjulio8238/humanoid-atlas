@@ -1424,3 +1424,233 @@ body {
   .metric-label { font-size: 10px; }
   .metric-value { font-size: 11px; }
 }
+
+/* ========== SINGLE POINTS OF FAILURE (SPOF) ========== */
+.spof-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.spof-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.spof-row:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.spof-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.spof-badge {
+  display: inline-block;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.spof-badge--high {
+  background: var(--red);
+  color: #ffffff;
+}
+
+.spof-badge--medium {
+  background: #d69e2e;
+  color: #ffffff;
+}
+
+.spof-badge--low {
+  background: var(--green);
+  color: #ffffff;
+}
+
+.spof-name {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.spof-country {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.spof-component {
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.spof-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spof-bar {
+  flex: 1;
+  height: 6px;
+  background: #e8e5e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.spof-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.spof-bar__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 72px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.spof-alts {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.spof-alts strong,
+.spof-alts b {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.spof-alts--none {
+  color: var(--red);
+}
+
+.spof-oems {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.spof-tier2 {
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #faf8f5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spof-tier2__title {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.5px;
+}
+
+.spof-tier2__name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.spof-tier2__desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ========== SPOF TABLET (max-width: 768px) ========== */
+@media (max-width: 768px) {
+  .spof-list {
+    grid-template-columns: 1fr;
+  }
+
+  .spof-row {
+    padding: 12px 14px;
+  }
+
+  .spof-row__header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .spof-bar__label {
+    font-size: 10px;
+    min-width: 60px;
+  }
+
+  .spof-tier2 {
+    padding: 12px;
+  }
+}
+
+/* ========== SPOF PHONE (max-width: 480px) ========== */
+@media (max-width: 480px) {
+  .spof-row {
+    padding: 10px 12px;
+    border-radius: 6px;
+  }
+
+  .spof-row__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .spof-country {
+    margin-left: 0;
+  }
+
+  .spof-bar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .spof-bar__label {
+    text-align: left;
+    min-width: unset;
+  }
+
+  .spof-tier2 {
+    padding: 10px;
+  }
+
+  .spof-tier2__title {
+    font-size: 12px;
+  }
+
+  .spof-tier2__name {
+    font-size: 12px;
+  }
+}

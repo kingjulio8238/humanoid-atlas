@@ -294,6 +294,132 @@ function getCountryGroup(country: string): 'US' | 'CN' | 'OTHER' {
   return 'OTHER';
 }
 
+// Map supplier → component category label based on what they supply
+const SUPPLIER_COMPONENT_LABEL: Record<string, string> = {
+  nvidia: 'Compute', intel: 'Compute', horizon_robotics: 'Compute',
+  harmonic_drive: 'Reducers', nabtesco: 'Reducers', leaderdrive: 'Reducers',
+  maxon: 'Motors', kollmorgen: 'Motors', cubemars: 'Motors', nidec: 'Motors', estun: 'Motors', moons: 'Motors',
+  sony_sensors: 'Sensors', hesai: 'Sensors', ouster: 'Sensors', orbbec: 'Sensors', bosch_sensortec: 'IMU',
+  thk: 'Bearings', skf: 'Bearings', nsk: 'Bearings',
+  rollvis: 'Screws', ewellix: 'Screws', nanjing_kgm: 'Screws',
+  catl: 'Batteries', panasonic_energy: 'Batteries', byd_battery: 'Batteries', lg_energy: 'Batteries', samsung_sdi: 'Batteries',
+  tsmc: 'Chip Fab', texas_instruments: 'PCBs', infineon: 'PCBs', samsung_electro: 'PCBs', stmicro: 'PCBs',
+  psyonic: 'Hands', sharpa: 'Hands',
+  google_deepmind: 'AI/ML',
+  mp_materials: 'Rare Earths', lynas: 'Rare Earths', jl_mag: 'Rare Earths',
+};
+
+// Component categories that are bottlenecks (from componentCategories data)
+const BOTTLENECK_COMPONENTS = new Set(['Reducers', 'Screws']);
+
+function getSPOFData() {
+  const oemList = companies.filter((c) => c.type === 'oem');
+  const totalOems = oemList.length;
+  const oemIds = new Set(oemList.map((c) => c.id));
+
+  // For each non-OEM company, find direct OEM relationships
+  const supplierList = companies.filter((c) => c.type !== 'oem');
+
+  const spofRows = supplierList.map((supplier) => {
+    // Direct relationships where this supplier feeds an OEM
+    const directRels = relationships.filter(
+      (r) => r.from === supplier.id && oemIds.has(r.to)
+    );
+    const dependentOemIds = [...new Set(directRels.map((r) => r.to))];
+    const dependentOems = dependentOemIds
+      .map((id) => companies.find((c) => c.id === id))
+      .filter(Boolean) as typeof companies;
+
+    const componentLabel = SUPPLIER_COMPONENT_LABEL[supplier.id] || 'Other';
+    const isBottleneck = BOTTLENECK_COMPONENTS.has(componentLabel);
+
+    // Find alternative suppliers: other companies that supply the same component label and have OEM relationships
+    const alternatives = supplierList.filter((s) => {
+      if (s.id === supplier.id) return false;
+      if (SUPPLIER_COMPONENT_LABEL[s.id] !== componentLabel) return false;
+      // Must have at least one direct OEM relationship
+      return relationships.some((r) => r.from === s.id && oemIds.has(r.to));
+    });
+
+    const oemFraction = totalOems > 0 ? dependentOemIds.length / totalOems : 0;
+    const altScarcity = 1 / (1 + alternatives.length);
+    const bottleneckMultiplier = isBottleneck ? 1.5 : 1;
+    const rawScore = oemFraction * altScarcity * bottleneckMultiplier;
+    // Normalize: max possible is 1.0 * 1.0 * 1.5 = 1.5
+    const score = Math.round((rawScore / 1.5) * 100);
+
+    const level: 'HIGH' | 'MEDIUM' | 'LOW' =
+      score >= 25 ? 'HIGH' : score >= 12 ? 'MEDIUM' : 'LOW';
+
+    return {
+      id: supplier.id,
+      name: supplier.name,
+      country: supplier.country,
+      componentLabel,
+      isBottleneck,
+      oemCount: dependentOemIds.length,
+      totalOems,
+      dependentOems,
+      alternatives: alternatives.map((a) => ({ id: a.id, name: a.name, country: a.country })),
+      score,
+      level,
+    };
+  })
+    .filter((row) => row.oemCount >= 2)
+    .sort((a, b) => b.score - a.score || b.oemCount - a.oemCount)
+    .slice(0, 6);
+
+  // Tier 2 chokepoints: suppliers that don't supply OEMs directly but supply critical suppliers
+  const tier2 = supplierList
+    .filter((s) => {
+      const directOemCount = relationships.filter(
+        (r) => r.from === s.id && oemIds.has(r.to)
+      ).length;
+      if (directOemCount > 2) return false; // Already in the main list
+      // Find suppliers this company feeds
+      const downstreamSuppliers = relationships
+        .filter((r) => r.from === s.id && !oemIds.has(r.to))
+        .map((r) => r.to);
+      if (downstreamSuppliers.length === 0) return false;
+      // Count how many OEMs those downstream suppliers reach
+      const cascadeOemIds = new Set<string>();
+      downstreamSuppliers.forEach((dsId) => {
+        relationships
+          .filter((r) => r.from === dsId && oemIds.has(r.to))
+          .forEach((r) => cascadeOemIds.add(r.to));
+      });
+      return cascadeOemIds.size >= 5; // Significant cascade
+    })
+    .map((s) => {
+      const downstreamSuppliers = relationships
+        .filter((r) => r.from === s.id && !oemIds.has(r.to))
+        .map((r) => {
+          const ds = companies.find((c) => c.id === r.to);
+          return ds ? { id: ds.id, name: ds.name } : null;
+        })
+        .filter(Boolean) as { id: string; name: string }[];
+
+      const cascadeOemIds = new Set<string>();
+      downstreamSuppliers.forEach((ds) => {
+        relationships
+          .filter((r) => r.from === ds.id && oemIds.has(r.to))
+          .forEach((r) => cascadeOemIds.add(r.to));
+      });
+
+      return {
+        id: s.id,
+        name: s.name,
+        country: s.country,
+        componentLabel: SUPPLIER_COMPONENT_LABEL[s.id] || 'Other',
+        feedsInto: downstreamSuppliers,
+        cascadeOemCount: cascadeOemIds.size,
+        totalOems,
+      };
+    });
+
+  return { spofRows, tier2 };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('skeleton');
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -556,6 +682,7 @@ export default function App() {
           const oemNationality = getOemNationalityData();
           const scoreboard = getScoreboardData();
           const cutImpact = getCutWireImpact(cutCountries);
+          const { spofRows } = getSPOFData();
           return (
             <div className="geo-content">
               <section className="geo-section">
@@ -627,6 +754,49 @@ export default function App() {
                   <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--other" /> Other</span>
                   <span className="sovereignty-legend__item sovereignty-legend__count">Count = total suppliers</span>
                 </div>
+              </section>
+
+              <section className="geo-section">
+                <h3 className="section-title">Critical Suppliers — Single Points of Failure</h3>
+                <div className="spof-list">
+                  {spofRows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="spof-row"
+                      onClick={() => handleSelectCompany(row.id)}
+                    >
+                      <div className="spof-row__header">
+                        <span className={`spof-badge spof-badge--${row.level.toLowerCase()}`}>
+                          {row.level}
+                        </span>
+                        <span className="spof-name">{row.name}</span>
+                        <span className="spof-country">{row.country}</span>
+                        <span className="spof-component">
+                          {row.componentLabel}
+                          {row.isBottleneck && <span className="sovereignty-bottleneck">!</span>}
+                        </span>
+                      </div>
+                      <div className="spof-bar-row">
+                        <div className="spof-bar">
+                          <div
+                            className="spof-bar__fill"
+                            style={{ width: `${(row.oemCount / row.totalOems) * 100}%` }}
+                          />
+                        </div>
+                        <span className="spof-bar__label">{row.oemCount}/{row.totalOems} OEMs</span>
+                      </div>
+                      <div className={`spof-alts ${row.alternatives.length === 0 ? 'spof-alts--none' : ''}`}>
+                        Alts: {row.alternatives.length === 0
+                          ? 'None in dataset — sole supplier'
+                          : row.alternatives.map((a) => `${a.name} (${a.country})`).join(', ')}
+                      </div>
+                      <div className="spof-oems">
+                        Customers: {row.dependentOems.map((o) => o.name).join(', ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
               </section>
 
               <section className="geo-section">
