@@ -643,6 +643,8 @@ export default function App() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [smartAnswer, setSmartAnswer] = useState<{ answer: string; companyIds: string[] } | null>(null);
+  const [smartLoading, setSmartLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [nlQuery, setNlQuery] = useState('');
@@ -685,9 +687,15 @@ export default function App() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  // Search results
+  // Detect if query is a natural language question
+  const isNlQuery = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return q.includes('?') || q.startsWith('which') || q.startsWith('who') || q.startsWith('what') || q.startsWith('how') || q.startsWith('list') || q.startsWith('show') || q.startsWith('find') || q.includes('suppliers with') || q.includes('oems that') || q.includes('companies that');
+  }, [searchQuery]);
+
+  // Simple search results (client-side, instant)
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery.trim() || isNlQuery) return [];
     const q = searchQuery.toLowerCase();
     return companies.filter((c) =>
       c.name.toLowerCase().includes(q) ||
@@ -695,7 +703,15 @@ export default function App() {
       c.type.toLowerCase().includes(q) ||
       (c.ticker && c.ticker.toLowerCase().includes(q))
     ).slice(0, 10);
-  }, [searchQuery]);
+  }, [searchQuery, isNlQuery]);
+
+  // Smart search results (companies from AI answer)
+  const smartCompanies = useMemo(() => {
+    if (!smartAnswer) return [];
+    return smartAnswer.companyIds
+      .map((id) => companies.find((c) => c.id === id))
+      .filter(Boolean) as typeof companies;
+  }, [smartAnswer]);
 
   useEffect(() => {
     fetch('/api/views', { method: 'POST' })
@@ -1031,24 +1047,60 @@ export default function App() {
             type="text"
             placeholder="Search the atlas..."
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSearchOpen(true);
+              setSmartAnswer(null);
+            }}
             onFocus={() => setSearchOpen(true)}
             onKeyDown={(e) => {
-              if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
-              if (e.key === 'Enter' && searchResults.length > 0) {
-                handleSelectCompany(searchResults[0].id);
+              if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); setSmartAnswer(null); }
+              if (e.key === 'Enter') {
+                if (isNlQuery && searchQuery.trim() && !smartLoading) {
+                  setSmartLoading(true);
+                  setSmartAnswer(null);
+                  fetch('/api/smart-search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      query: searchQuery.trim(),
+                      companies: companies.map((c) => ({ id: c.id, name: c.name, country: c.country, type: c.type, marketShare: c.marketShare })),
+                      relationships: relationships.map((r) => ({ from: r.from, to: r.to, component: r.component })),
+                    }),
+                  })
+                    .then((r) => r.json())
+                    .then((d) => { if (d.answer) setSmartAnswer(d); })
+                    .catch(() => {})
+                    .finally(() => setSmartLoading(false));
+                } else if (searchResults.length > 0) {
+                  handleSelectCompany(searchResults[0].id);
+                }
               }
             }}
           />
           {searchOpen && searchQuery.trim() && (
             <div className="search-dropdown">
-              {searchResults.length > 0 ? (
+              {smartLoading ? (
+                <div className="search-empty">Searching...</div>
+              ) : smartAnswer ? (
+                <>
+                  <div className="search-answer">{smartAnswer.answer}</div>
+                  {smartCompanies.map((c) => (
+                    <div key={c.id} className="search-result" onClick={() => handleSelectCompany(c.id)}>
+                      <span className="search-result__name">{c.name}</span>
+                      <span className="search-result__meta">
+                        <span>{c.country}</span>
+                        <span>&middot;</span>
+                        <span className="search-result__type">{TYPE_DISPLAY[c.type] || c.type}</span>
+                      </span>
+                    </div>
+                  ))}
+                </>
+              ) : isNlQuery ? (
+                <div className="search-empty">Press Enter to search</div>
+              ) : searchResults.length > 0 ? (
                 searchResults.map((c) => (
-                  <div
-                    key={c.id}
-                    className="search-result"
-                    onClick={() => handleSelectCompany(c.id)}
-                  >
+                  <div key={c.id} className="search-result" onClick={() => handleSelectCompany(c.id)}>
                     <span className="search-result__name">{c.name}</span>
                     <span className="search-result__meta">
                       <span>{c.country}</span>
