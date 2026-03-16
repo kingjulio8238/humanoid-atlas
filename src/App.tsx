@@ -218,7 +218,17 @@ function getOemNationalityData() {
   });
 }
 
+// Pre-computed OEM list (static data, no need to recompute per render)
+const oems = companies.filter((c) => c.type === 'oem');
+
 // Named scenarios for Cut the Wire
+// Compute dynamic OEM counts for scenario descriptions
+const _totalOems = oems.length;
+const _oemIds = new Set(oems.map((c) => c.id));
+function _countOemCustomers(supplierId: string) {
+  return [...new Set(relationships.filter((r) => r.from === supplierId && _oemIds.has(r.to)).map((r) => r.to))].length;
+}
+
 const SCENARIOS = [
   {
     id: 'taiwan_strait',
@@ -230,7 +240,7 @@ const SCENARIOS = [
   {
     id: 'harmonic_shortage',
     label: 'Harmonic Drive Shortage',
-    description: 'Japan\'s Harmonic Drive Systems cannot ship — the single most expensive actuator component disappears from 9 of 16 OEMs.',
+    description: `Japan's Harmonic Drive Systems cannot ship — the single most expensive actuator component disappears from ${_countOemCustomers('harmonic_drive')} of ${_totalOems} OEMs.`,
     cutCompanies: ['harmonic_drive'],
     cutCountries: [],
   },
@@ -251,7 +261,7 @@ const SCENARIOS = [
   {
     id: 'nvidia_blacklist',
     label: 'NVIDIA Blacklist',
-    description: 'NVIDIA cut from supply chain — 11 OEMs lose their primary compute platform. Only Tesla (proprietary), XPeng (Horizon), and Kepler are unaffected.',
+    description: `NVIDIA cut from supply chain — ${_countOemCustomers('nvidia')} of ${_totalOems} OEMs lose their primary compute platform.`,
     cutCompanies: ['nvidia'],
     cutCountries: [],
   },
@@ -478,7 +488,7 @@ function getTimelineData() {
   });
 
   // "Now" marker position
-  const now = 2026.21; // ~March 2026
+  const now = new Date().getFullYear() + new Date().getMonth() / 12;
   const nowPct = ((now - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100;
 
   return { lanes, shipmentsByGroup, totalShipments, nowPct, maxShipments };
@@ -604,55 +614,7 @@ function getSPOFData() {
     .sort((a, b) => b.score - a.score || b.oemCount - a.oemCount)
     .slice(0, 6);
 
-  // Tier 2 chokepoints: suppliers that don't supply OEMs directly but supply critical suppliers
-  const tier2 = supplierList
-    .filter((s) => {
-      const directOemCount = relationships.filter(
-        (r) => r.from === s.id && oemIds.has(r.to)
-      ).length;
-      if (directOemCount > 2) return false; // Already in the main list
-      // Find suppliers this company feeds
-      const downstreamSuppliers = relationships
-        .filter((r) => r.from === s.id && !oemIds.has(r.to))
-        .map((r) => r.to);
-      if (downstreamSuppliers.length === 0) return false;
-      // Count how many OEMs those downstream suppliers reach
-      const cascadeOemIds = new Set<string>();
-      downstreamSuppliers.forEach((dsId) => {
-        relationships
-          .filter((r) => r.from === dsId && oemIds.has(r.to))
-          .forEach((r) => cascadeOemIds.add(r.to));
-      });
-      return cascadeOemIds.size >= 5; // Significant cascade
-    })
-    .map((s) => {
-      const downstreamSuppliers = relationships
-        .filter((r) => r.from === s.id && !oemIds.has(r.to))
-        .map((r) => {
-          const ds = companies.find((c) => c.id === r.to);
-          return ds ? { id: ds.id, name: ds.name } : null;
-        })
-        .filter(Boolean) as { id: string; name: string }[];
-
-      const cascadeOemIds = new Set<string>();
-      downstreamSuppliers.forEach((ds) => {
-        relationships
-          .filter((r) => r.from === ds.id && oemIds.has(r.to))
-          .forEach((r) => cascadeOemIds.add(r.to));
-      });
-
-      return {
-        id: s.id,
-        name: s.name,
-        country: s.country,
-        componentLabel: SUPPLIER_COMPONENT_LABEL[s.id] || 'Other',
-        feedsInto: downstreamSuppliers,
-        cascadeOemCount: cascadeOemIds.size,
-        totalOems,
-      };
-    });
-
-  return { spofRows, tier2 };
+  return { spofRows };
 }
 
 export default function App() {
@@ -690,8 +652,6 @@ export default function App() {
     }
     return getComponentChain(activeTab);
   }, [activeTab, actuatorType]);
-
-  const oems = companies.filter((c) => c.type === 'oem');
 
   // Compute which entities are connected to the focused entity in the chain
   const connectedIds = useMemo(() => {
@@ -1374,9 +1334,6 @@ export default function App() {
                   </div>
                 )}
 
-                {(cutCountries.size > 0 || cutCompanies.size > 0) && !cutImpact && (
-                  <p className="cut-no-impact">No impact — no suppliers affected in the dataset.</p>
-                )}
               </section>
 
             </div>

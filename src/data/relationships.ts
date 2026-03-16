@@ -181,6 +181,10 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r191', from: 'sony_sensors', to: 'sanctuary_ai', component: 'Image Sensors' },
   { id: 'r192', from: 'bosch_sensortec', to: 'sanctuary_ai', component: 'IMU' },
 
+  // === SAMSUNG SDI (filling zero-relationship gap) ===
+  { id: 'r210', from: 'samsung_sdi', to: 'boston_dynamics', component: 'Battery Cells', description: 'Hyundai group battery supply chain' },
+  { id: 'r211', from: 'samsung_sdi', to: 'figure', component: 'Battery Cells', description: 'High energy density cylindrical cells' },
+
   // === EXPANDING EXISTING SUPPLIERS (high-confidence) ===
   { id: 'r200', from: 'horizon_robotics', to: 'ubtech', component: 'AI Chips', description: 'Chinese domestic compute alternative' },
   { id: 'r201', from: 'horizon_robotics', to: 'agibot', component: 'AI Chips', description: 'Domestic compute qualification' },
