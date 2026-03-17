@@ -162,8 +162,8 @@ export const companies: Company[] = [
     id: '1x',
     name: '1X (Neo)',
     type: 'oem',
-    country: 'NO',
-    description: 'Norwegian company making the most radical hardware bet in the space: tendon-driven actuation throughout the entire body, eliminating heavy gearboxes entirely. The result is the lightest humanoid at just 30 kg — half the weight of competitors — and the fastest at 6.2 m/s running speed. The soft 3D-lattice polymer body with a machine-washable nylon suit is designed for home environments where humans need physical safety around robots. At $20K purchase or $499/month lease, 1X is pricing for the consumer market, not enterprise.',
+    country: 'US',
+    description: 'Originally founded in Norway, 1X is now a US-based company manufacturing robots in the Bay Area, making the most radical hardware bet in the space: tendon-driven actuation throughout the entire body, eliminating heavy gearboxes entirely. The result is the lightest humanoid at just 30 kg — half the weight of competitors — and the fastest at 6.2 m/s running speed. The soft 3D-lattice polymer body with a machine-washable nylon suit is designed for home environments where humans need physical safety around robots. At $20K purchase or $499/month lease, 1X is pricing for the consumer market, not enterprise.',
     plyModel: '/models/skeleton.ply',
     robotImage: '/models/robo5_1x.png',
     robotSpecs: {
