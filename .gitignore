@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.env*
+!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -23,7 +25,3 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
-
-# Video recordings
-recordings
-public/clips

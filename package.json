@@ -1,37 +1,22 @@
 {
   "name": "humanoid-terminal",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "record": "npx tsx scripts/record/run.ts",
-    "record:teaser": "npx tsx scripts/record/teaser-15s.ts",
-    "record:hero": "npx tsx scripts/record/hero-30s.ts",
-    "record:deep": "npx tsx scripts/record/deep-dive-45s.ts",
-    "render": "npx tsx scripts/record/render.ts",
-    "render:clips": "npx tsx scripts/record/render.ts clips",
-    "render:video": "npx tsx scripts/record/render.ts video",
-    "studio": "npx remotion studio src/video/index.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
-    "@remotion/bundler": "^4.0.435",
-    "@remotion/cli": "^4.0.435",
-    "@remotion/player": "^4.0.435",
-    "@remotion/renderer": "^4.0.435",
-    "@remotion/transitions": "^4.0.435",
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.10.1",
     "gsap": "^3.14.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "remotion": "^4.0.435",
     "three": "^0.183.2"
   },
   "devDependencies": {
@@ -46,8 +31,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
-    "playwright": "^1.58.2",
-    "sharp": "^0.34.5",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.0"
