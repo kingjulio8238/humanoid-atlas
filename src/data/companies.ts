@@ -9,7 +9,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'Austin-based startup spun out of UT Austin\'s Human Centered Robotics Lab. Apollo is designed around modularity — swappable legs and wheel bases let it adapt to different facility layouts. Their bet on partnering with Google DeepMind rather than building AI in-house lets them focus entirely on hardware, but locks them into an external dependency for intelligence. At $150K-$250K per unit, they\'re targeting enterprise logistics customers who can justify the ROI against $80K/year warehouse labor costs.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo1_apptronik.png',
+    robotImage: '/models/robo1_apptronik.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Aug 2023',
@@ -47,7 +47,7 @@ export const companies: Company[] = [
     description: 'The only humanoid OEM with an existing autonomous driving stack to repurpose. Tesla is applying the same camera-only perception, custom silicon, and neural network architecture from FSD to Optimus — a massive software leverage play. Currently deploying ~150 units inside Tesla factories to validate manipulation tasks. The BOM sits at ~$40K today but Musk targets $20K-$30K at scale by leveraging Tesla\'s own supply chain, in-house chip fab (AI5), and Chinese manufacturing partners. The near-total redesign between Gen-1 and Gen-2 underscores how early the hardware design is.',
     ticker: 'TSLA',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo2_tesla.png',
+    robotImage: '/models/robo2_tesla.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Q1 2026',
@@ -87,7 +87,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'Founded in 2022 and already on their third-generation robot. Figure is making two notable bets: proprietary AI (Helix) rather than external partnerships, and a dedicated robot factory (BotQ) with 12K units/year capacity — a real commitment to manufacturing scale before proving demand. Their use of stamped steel and die-cast aluminum over CNC machining signals cost-at-scale thinking. Wireless inductive charging eliminates connector wear. Project Go-Big with Brookfield is generating massive teleoperation datasets to train Helix models.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo3_figure.png',
+    robotImage: '/models/robo3_figure.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Oct 2025',
@@ -126,7 +126,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'The longest-running commercial bipedal effort in the US, with Digit roots going back to Oregon State\'s ATRIAS research. Agility made a deliberate trade-off: flat spatulate grippers instead of dexterous hands, optimizing for tote-moving logistics rather than general manipulation. At $250K per unit — the most expensive humanoid on the market — they need logistics customers where displacing multiple shifts of labor justifies the price. Their cycloidal-pin gear transmission choice diverges from the industry\'s harmonic drive consensus.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo4_agility.png',
+    robotImage: '/models/robo4_agility.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Feb 2019',
@@ -165,7 +165,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'Originally founded in Norway, 1X is now a US-based company manufacturing robots in the Bay Area, making the most radical hardware bet in the space: tendon-driven actuation throughout the entire body, eliminating heavy gearboxes entirely. The result is the lightest humanoid at just 30 kg — half the weight of competitors — and the fastest at 6.2 m/s running speed. The soft 3D-lattice polymer body with a machine-washable nylon suit is designed for home environments where humans need physical safety around robots. At $20K purchase or $499/month lease, 1X is pricing for the consumer market, not enterprise.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo5_1x.png',
+    robotImage: '/models/robo5_1x.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Oct 2025',
@@ -202,7 +202,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'The most experienced humanoid robotics company in the world, now owned by Hyundai. The new electric Atlas represents a complete break from their iconic hydraulic platform — a bet that electric actuation has finally caught up. Atlas has the highest payload capacity in the industry (110 lbs instant lift) and uses titanium structural components where others use aluminum, reflecting their performance-first philosophy. Their DeepMind AI partnership mirrors Apptronik\'s approach: outsource intelligence, own the hardware. Price undisclosed — likely the most expensive platform currently in development.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo6_bostondynamics.png',
+    robotImage: '/models/robo6_bostondynamics.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Jan 2026',
@@ -238,7 +238,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'Taking a contrarian approach on two fronts: wheels instead of legs (simpler, more reliable for home use), and a foundation model (ACT-1) trained on zero robot data — using human demonstrations and internet video instead. They\'ve shipped 2,000 Skill Capture Gloves to generate training data from human operators doing household tasks. At $20K with a wheeled base, they\'re arguably building an extremely capable mobile manipulator rather than a traditional humanoid, which may be exactly what the home market actually needs.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo7_sunday.png',
+    robotImage: '/models/robo7_sunday.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Nov 2025',
@@ -276,7 +276,7 @@ export const companies: Company[] = [
     country: 'CN',
     description: 'The volume leader with 4,200 units expected in 2025 — more than Tesla, Figure, and Agility combined. Unitree\'s secret is radical cost compression: BOM of just $11.5K achieved through China\'s EV and drone supply chains. Their PMSM motors (rather than the BLDC consensus) offer better response and heat dissipation. At 130 cm tall and 35 kg, G1 is significantly smaller than competitors — closer to a research platform than a human-scale worker. The app store model suggests they\'re building a developer ecosystem rather than targeting specific industries.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo9_unitree.png',
+    robotImage: '/models/robo9_unitree.webp',
     robotSpecs: {
       status: 'In Production',
       launchDate: 'Aug 2024',
@@ -316,7 +316,7 @@ export const companies: Company[] = [
     country: 'CN',
     description: 'The shipment leader globally with 5,168 units projected in 2025 — 39% of the entire market. AGIBot\'s real moat may be data: AgiBot World contains 1M+ manipulation trajectories from 100+ robots, the largest known humanoid training dataset. They\'re actively transitioning from teleoperation to egocentric video capture for data collection, which could dramatically reduce the cost of scaling training data. Their Genie Operator-1 model processes this data into generalizable manipulation policies. Backed by significant Chinese government and provincial support.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo10_agibot.png',
+    robotImage: '/models/robo10_agibot.webp',
     robotSpecs: {
       status: 'In Production',
       launchDate: 'Aug 2024',
@@ -356,7 +356,7 @@ export const companies: Company[] = [
     description: 'The most ambitious hardware spec sheet in the industry: 82 DOF (highest of any humanoid), all-solid-state battery, proprietary Turing AI chips, and exotic materials including e-skin flexible composites and TPU 3D-printed muscle structures with liquid metal. As an EV manufacturer, XPeng has deep supply chain relationships and manufacturing expertise, but Iron represents a significant leap from cars to humanoids. Three proprietary AI chips suggest they\'re building full vertical integration on the compute side — no NVIDIA dependency. BOM estimated at ~$28K.',
     ticker: 'XPEV',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo12_xpeng.png',
+    robotImage: '/models/robo12_xpeng.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Nov 2025',
@@ -393,7 +393,7 @@ export const companies: Company[] = [
     country: 'CN',
     description: 'Focused on raw locomotion speed — T800 targets 3+ m/s, making it one of the fastest bipedal humanoids. The name is no accident: EngineAI is positioning for industrial environments where covering ground quickly matters. With 400 units planned for 2025, they\'re shipping meaningful volume while still in prototype. The dual battery option (ternary lithium or solid-state) gives customers a choice between proven and cutting-edge power. Price ranges widely ($40K-$81K) suggesting multiple configurations.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo13_engineai.png',
+    robotImage: '/models/robo13_engineai.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Dec 2025',
@@ -433,7 +433,7 @@ export const companies: Company[] = [
     description: 'One of the few humanoid companies already in production with 1,000 units planned for 2025. UBTECH has the longest track record in Chinese humanoids, with Walker lineage going back several generations. Their dual hot-swap battery system (48V, 3-5 kWh) is the highest-capacity power system in the industry, though runtime is still limited to 2 hours. At $80K they sit in the mid-range — affordable enough for Chinese government procurement but expensive enough to fund real R&D. Listed in Hong Kong as UBXG.HK.',
     ticker: 'UBXG.HK',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo14_ubtech.png',
+    robotImage: '/models/robo14_ubtech.webp',
     robotSpecs: {
       status: 'In Production',
       launchDate: 'Nov 2025',
@@ -472,7 +472,7 @@ export const companies: Company[] = [
     country: 'US',
     description: 'The outlier in the landscape: a 220 cm foldable wheeled platform that prioritizes operating time (25 hours — 5x longer than any legged competitor) over bipedal locomotion. Dual compute architecture pairs NVIDIA Jetson AGX Thor for AI inference with Intel x86 for deterministic control — a pragmatic split that acknowledges neither platform alone covers all needs. Uses exo-skeleton and VR for data collection. Already in production at $80K, targeting research labs and industrial environments where long continuous operation matters more than walking.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo8_dexmate.png',
+    robotImage: '/models/robo8_dexmate.webp',
     robotSpecs: {
       status: 'In Production',
       launchDate: 'Mar 2025',
@@ -510,7 +510,7 @@ export const companies: Company[] = [
     country: 'CN',
     description: 'Shanghai-based company that pivoted from rehabilitation robotics to humanoids, bringing deep actuator expertise from years of building exoskeletons and rehab devices. GR-2 is the successor to GR-1, with significantly improved manipulation capabilities. Fourier\'s proprietary FSA (Fourier Smart Actuator) series is designed for safe human interaction — a direct legacy of their medical robotics work. Their rehabilitation robotics revenue provides a cash flow base that pure-play humanoid startups lack. Targeting both industrial and service applications.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo15_fourier.png',
+    robotImage: '/models/robo15_fourier.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Nov 2024',
@@ -546,7 +546,7 @@ export const companies: Company[] = [
     country: 'CN',
     description: 'Shanghai-based humanoid startup that debuted at CES 2025 with live demonstrations of the Forerunner K2. Kepler is notable for vertical integration — they produce their own actuators, reducing dependency on external reducer and motor suppliers. The K2 is positioned for industrial logistics and light manufacturing tasks. Their emphasis on proprietary actuator technology mirrors the approach of companies like Fourier, suggesting that Chinese OEMs are racing to reduce dependency on Japanese harmonic drives.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo16_kepler.png',
+    robotImage: '/models/robo16_kepler.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Jan 2025',
@@ -583,7 +583,7 @@ export const companies: Company[] = [
     country: 'CA',
     description: 'Vancouver-based company taking the most AI-first approach in the industry. Sanctuary AI\'s core thesis is that general-purpose intelligence — not hardware — is the bottleneck for humanoid robots. Their Carbon AI system is designed as a general-purpose AI control system that can operate any robotic form factor. Phoenix uses hydraulic actuators in the hands for human-equivalent dexterity and force, diverging from the all-electric consensus. Deploying early units with Magna International for automotive manufacturing. Founded by former D-Wave Systems executives.',
     plyModel: '/models/skeleton.ply',
-    robotImage: '/models/robo17_sanctuary.png',
+    robotImage: '/models/robo17_sanctuary.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'May 2023',
