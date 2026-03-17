@@ -10,6 +10,7 @@ interface DetailPanelProps {
 const COUNTRY_FLAGS: Record<string, string> = {
   US: '🇺🇸', CN: '🇨🇳', JP: '🇯🇵', DE: '🇩🇪', CH: '🇨🇭',
   KR: '🇰🇷', TW: '🇹🇼', NL: '🇳🇱', IL: '🇮🇱', NO: '🇳🇴', AU: '🇦🇺',
+  CA: '🇨🇦', PL: '🇵🇱',
 };
 
 const TYPE_LABELS: Record<string, string> = {

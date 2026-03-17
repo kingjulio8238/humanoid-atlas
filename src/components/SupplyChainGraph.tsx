@@ -24,6 +24,7 @@ const COUNTRY_COLORS: Record<string, string> = {
   AU: '#888',
   IL: '#888',
   CA: '#3b82f6',
+  PL: '#888',
   GLOBAL: '#888',
 };
 
@@ -42,7 +43,7 @@ interface Vec2 { x: number; y: number }
 
 // Country sort order for vertical grouping within columns
 const COUNTRY_SORT: Record<string, number> = {
-  US: 0, CA: 1, NO: 2, CH: 3, DE: 4, AU: 5, IL: 6, // Western/allied
+  US: 0, CA: 1, NO: 2, CH: 3, DE: 4, AU: 5, IL: 6, PL: 7, // Western/allied
   JP: 10, KR: 11, TW: 12,                     // Asian allied
   CN: 20,                                       // China
 };

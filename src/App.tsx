@@ -1445,11 +1445,13 @@ export default function App() {
               <div className="oem-image-grid">
                 {oems.map((c) => (
                   <button key={c.id} className={`oem-image-card ${countryFilter && getCountryGroup(c.country) !== countryFilter ? 'geo-dim' : ''}`} onClick={() => handleSelectCompany(c.id)}>
-                    {c.robotImage && (
-                      <div className="oem-image-card__img">
+                    <div className="oem-image-card__img">
+                      {c.robotImage ? (
                         <img src={c.robotImage} alt={c.name} />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="oem-image-card__placeholder" />
+                      )}
+                    </div>
                     <div className="oem-image-card__info">
                       <span className="oem-image-card__name">{c.name}</span>
                       <span className="oem-image-card__country">{c.country}</span>

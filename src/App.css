@@ -6,6 +6,7 @@
   --text: #1a1a1a;
   --text-secondary: #6b6b6b;
   --text-dim: #a0a0a0;
+  --bg-muted: #ebe7e1;
   --border: #e0ddd8;
   --border-hover: #c5c0b8;
   --accent: #1a1a1a;
@@ -245,6 +246,12 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.oem-image-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-muted);
 }
 
 .oem-image-card__info {
