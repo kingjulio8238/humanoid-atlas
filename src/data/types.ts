@@ -82,8 +82,6 @@ export interface VLACompanyLink {
   companyId: string;
   relationship: VLACompanyRelationshipType;
   sources: VLASourceRef[];
-  ambiguous?: boolean;
-  ambiguityNote?: string;
 }
 
 export interface VLAModel {
@@ -97,7 +95,5 @@ export interface VLAModel {
   focus: string;
   availability: string;
   sources: VLASourceRef[];
-  ambiguous?: boolean;
-  ambiguityNote?: string;
   companyLinks: VLACompanyLink[];
 }

@@ -504,6 +504,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vla-filters {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-items: center;
 }
 
 .chain-clear {

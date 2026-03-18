@@ -13,9 +13,9 @@ const TABS = [
   { id: 'geopolitics', label: 'Geopolitics' },
   { id: 'network', label: 'Network' },
   { id: 'timeline', label: 'Buildout' },
+  { id: 'vlas', label: 'VLA' },
   { id: 'sensors_general', label: 'Sensors' },
   { id: 'compute', label: 'Compute' },
-  { id: 'vlas', label: 'VLA' },
   { id: 'batteries', label: 'Battery' },
   { id: 'motors', label: 'Motors' },
   { id: 'reducers', label: 'Reducers' },
@@ -412,7 +412,7 @@ function getVlaRelationshipTypeLabel(type: 'proprietary' | 'partner' | 'open' | 
   if (type === 'proprietary') return 'Proprietary / In-House';
   if (type === 'partner') return 'Partner Integration';
   if (type === 'open') return 'Open Model';
-  return 'Standalone Ecosystem Model';
+  return 'Ecosystem';
 }
 
 function getVlaCompanyRelationshipLabel(type: 'proprietary' | 'partner') {
@@ -672,6 +672,7 @@ export default function App() {
   const [companyId, setCompanyId] = useState<string | null>(initialHash.company || null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
   const [chainFocus, setChainFocus] = useState<string | null>(null);
+  const [vlaFilter, setVlaFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [countryFilter, setCountryFilter] = useState<CountryGroup>(null);
   const [cutCountries, setCutCountries] = useState<Set<string>>(new Set());
   const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
@@ -753,6 +754,15 @@ export default function App() {
       c.type.toLowerCase().includes(q) ||
       (c.ticker && c.ticker.toLowerCase().includes(q))
     ).slice(0, 10);
+  }, [searchQuery, isNlQuery]);
+
+  const vlaSearchResults = useMemo(() => {
+    if (!searchQuery.trim() || isNlQuery) return [];
+    const q = searchQuery.toLowerCase();
+    return vlaModels.filter((m) =>
+      m.name.toLowerCase().includes(q) ||
+      m.developer.toLowerCase().includes(q)
+    ).slice(0, 5);
   }, [searchQuery, isNlQuery]);
 
   // Smart search results (companies from AI answer)
@@ -886,12 +896,19 @@ export default function App() {
     [focusedVlaModel]
   );
 
+  const filteredVlaModels = useMemo(() => {
+    if (vlaFilter === 'all') return vlaModels;
+    if (vlaFilter === 'open') return vlaModels.filter((m) => m.relationshipType === 'open' || m.relationshipType === 'ecosystem');
+    return vlaModels.filter((m) => m.relationshipType === 'proprietary' || m.relationshipType === 'partner');
+  }, [vlaFilter]);
+
   const linkedVlaOems = useMemo(() => {
-    const ids = [...new Set(vlaModels.flatMap((model) => model.companyLinks.map((link) => link.companyId)))];
+    const models = vlaFilter === 'all' ? vlaModels : filteredVlaModels;
+    const ids = [...new Set(models.flatMap((model) => model.companyLinks.map((link) => link.companyId)))];
     return ids
       .map((id) => companies.find((company) => company.id === id))
       .filter(Boolean) as typeof companies;
-  }, []);
+  }, [vlaFilter, filteredVlaModels]);
 
   // Compute which entities are connected to the focused entity in the chain
   const connectedIds = useMemo(() => {
@@ -1419,6 +1436,8 @@ export default function App() {
                     .finally(() => setSmartLoading(false));
                 } else if (searchResults.length > 0) {
                   handleSelectCompany(searchResults[0].id);
+                } else if (vlaSearchResults.length > 0) {
+                  setActiveTab('vlas'); setChainFocus(vlaSearchResults[0].id); setSearchOpen(false); setSearchQuery('');
                 }
               }
             }}
@@ -1445,17 +1464,29 @@ export default function App() {
                 <div className="search-empty">Press Enter to compare</div>
               ) : isNlQuery ? (
                 <div className="search-empty">Press Enter to search</div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((c) => (
-                  <div key={c.id} className="search-result" onClick={() => handleSelectCompany(c.id)}>
-                    <span className="search-result__name">{c.name}</span>
-                    <span className="search-result__meta">
-                      <span>{c.country}</span>
-                      <span>&middot;</span>
-                      <span className="search-result__type">{TYPE_DISPLAY[c.type] || c.type}</span>
-                    </span>
-                  </div>
-                ))
+              ) : searchResults.length > 0 || vlaSearchResults.length > 0 ? (
+                <>
+                  {searchResults.map((c) => (
+                    <div key={c.id} className="search-result" onClick={() => handleSelectCompany(c.id)}>
+                      <span className="search-result__name">{c.name}</span>
+                      <span className="search-result__meta">
+                        <span>{c.country}</span>
+                        <span>&middot;</span>
+                        <span className="search-result__type">{TYPE_DISPLAY[c.type] || c.type}</span>
+                      </span>
+                    </div>
+                  ))}
+                  {vlaSearchResults.map((m) => (
+                    <div key={m.id} className="search-result" onClick={() => { setActiveTab('vlas'); setChainFocus(m.id); setSearchOpen(false); setSearchQuery(''); }}>
+                      <span className="search-result__name">{m.name}</span>
+                      <span className="search-result__meta">
+                        <span>{m.country}</span>
+                        <span>&middot;</span>
+                        <span className="search-result__type">VLA · {m.developer}</span>
+                      </span>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="search-empty">No results</div>
               )}
@@ -2159,10 +2190,10 @@ export default function App() {
                             Sources: focusedVlaModel.sources.map((source) => source.label).join(' · '),
                           }
                         : {
-                            'Tracked Models': String(vlaOverview.trackedModels),
-                            'Linked OEMs': String(vlaOverview.linkedOems),
-                            'Model Developers': String(vlaOverview.creatorCount),
-                            'Standalone Models': String(vlaOverview.standaloneModels),
+                            'Tracked Models': `${vlaOverview.trackedModels} models (open + proprietary)`,
+                            'Linked OEMs': `${vlaOverview.linkedOems} humanoid OEMs with VLA integrations`,
+                            'Model Developers': `${vlaOverview.creatorCount} organizations building VLAs`,
+                            'Standalone Models': `${vlaOverview.standaloneModels} models without direct OEM ties`,
                           }
                       : selectedComponent.keyMetrics;
 
@@ -2200,16 +2231,21 @@ export default function App() {
               <div className="supply-chain">
                 <div className="supply-chain__header">
                   <h3 className="section-title">Model Ecosystem</h3>
-                  {focusedVlaModel && (
-                    <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                      Clear filter
-                    </button>
-                  )}
+                  <div className="vla-filters">
+                    <button className={`country-pill ${vlaFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter('all')}>All</button>
+                    <button className={`country-pill ${vlaFilter === 'open' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'open' ? 'all' : 'open')}>Open Source</button>
+                    <button className={`country-pill ${vlaFilter === 'closed' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'closed' ? 'all' : 'closed')}>Proprietary</button>
+                    {focusedVlaModel && (
+                      <button className="chain-clear" onClick={() => setChainFocus(null)}>
+                        CLEAR FILTER
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="chain-flow">
                   <div className="chain-tier">
                     <div className="chain-tier-label">Models</div>
-                    {vlaModels.map((model) => (
+                    {filteredVlaModels.map((model) => (
                       <button
                         key={model.id}
                         className={`chain-entity ${focusedVlaModel && focusedVlaModel.id !== model.id ? 'chain-entity--dim' : ''} ${focusedVlaModel?.id === model.id ? 'chain-entity--focused' : ''} ${countryFilter && getCountryGroup(model.country) !== countryFilter ? 'geo-dim' : ''}`}
@@ -2261,7 +2297,7 @@ export default function App() {
                   <h3 className="section-title">Supply Chain</h3>
                   {chainFocus && (
                     <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                      Clear filter
+                      CLEAR FILTER
                     </button>
                   )}
                 </div>
