@@ -1,12 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { applySecurity, safeError } from './_middleware';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (applySecurity(req, res)) return;
 
   const {
     name, country, type, description, marketShare, ticker,
@@ -61,7 +57,7 @@ Write the thesis now (200 words max, 2-3 short paragraphs, no headers, no bullet
 
     if (!groqRes.ok) {
       const err = await groqRes.text();
-      return res.status(502).json({ error: 'Groq API error', details: err });
+      return safeError(res, 502, 'Groq API error', err);
     }
 
     const data = await groqRes.json();
@@ -69,6 +65,6 @@ Write the thesis now (200 words max, 2-3 short paragraphs, no headers, no bullet
 
     return res.json({ thesis });
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to generate thesis', details: String(err) });
+    return safeError(res, 500, 'Failed to generate thesis', err);
   }
 }

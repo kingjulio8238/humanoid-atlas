@@ -69,3 +69,31 @@ export interface ComponentCategory {
   bottleneckReason?: string;
   keyMetrics?: Record<string, string>;
 }
+
+export interface VLASourceRef {
+  label: string;
+  url: string;
+}
+
+export type VLAEntryRelationshipType = 'proprietary' | 'partner' | 'open' | 'ecosystem';
+export type VLACompanyRelationshipType = 'proprietary' | 'partner';
+
+export interface VLACompanyLink {
+  companyId: string;
+  relationship: VLACompanyRelationshipType;
+  sources: VLASourceRef[];
+}
+
+export interface VLAModel {
+  id: string;
+  name: string;
+  developer: string;
+  country: Country;
+  relationshipType: VLAEntryRelationshipType;
+  description: string;
+  release: string;
+  focus: string;
+  availability: string;
+  sources: VLASourceRef[];
+  companyLinks: VLACompanyLink[];
+}

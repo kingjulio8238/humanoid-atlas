@@ -384,6 +384,42 @@ body {
   font-size: 12px;
 }
 
+.vla-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.vla-placeholder__eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.vla-placeholder__title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 28px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.vla-placeholder__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
 .component-info {
   padding: 32px;
   display: flex;
@@ -475,6 +511,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vla-filters {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-items: center;
 }
 
 .chain-clear {
@@ -584,6 +629,14 @@ body {
   font-size: 18px;
   color: var(--text-dim);
   margin-top: 32px;
+}
+
+.chain-empty {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 10px 0;
 }
 
 /* OEM Grid */

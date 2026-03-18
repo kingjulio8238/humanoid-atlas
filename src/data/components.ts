@@ -123,6 +123,18 @@ export const componentCategories: ComponentCategory[] = [
     },
   },
   {
+    id: 'vlas',
+    name: 'VLA Models',
+    description: 'Vision-language-action models sit above the robot stack as the generalist reasoning and action layer. They unify perception, language grounding, and control policies for embodied tasks.',
+    bottleneck: false,
+    keyMetrics: {
+      'Core Modalities': 'Vision + Language + Action',
+      'Primary Role': 'Task planning + embodied control',
+      'Deployment Pattern': 'Partner access, internal stacks, model platforms',
+      'Current Focus': 'Generalist manipulation and robot reasoning',
+    },
+  },
+  {
     id: 'pcbs',
     name: 'PCBs',
     description: 'Printed circuit boards for power distribution, sensor integration, and compute interconnects.',

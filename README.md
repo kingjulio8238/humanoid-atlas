@@ -4,7 +4,7 @@ Interactive supply chain intelligence platform for the humanoid robotics industr
 
 **Live at [humanoids.fyi](https://www.humanoids.fyi)**
 
-![Humanoid Atlas](public/og-image.png)
+![Humanoid Atlas](public/atlas_v2.JPG)
 
 ## Features
 

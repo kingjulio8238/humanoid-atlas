@@ -1,4 +1,5 @@
 export { companies } from './companies';
 export { relationships } from './relationships';
 export { componentCategories } from './components';
-export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country } from './types';
+export { vlaModels } from './vlaModels';
+export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country, VLAModel } from './types';
