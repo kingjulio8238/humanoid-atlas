@@ -315,6 +315,20 @@ export const vlaModels: VLAModel[] = [
           { label: 'NVIDIA: Celebrating 2M+ Robotics Developers', url: 'https://blogs.nvidia.com/blog/2-million-robotics-developers/' },
         ],
       },
+      {
+        companyId: 'neura_4ne1',
+        relationship: 'partner',
+        sources: [
+          { label: 'Neura Robotics: CES 2026 (GR00T XX)', url: 'https://neura-robotics.com/neura-robotics-at-ces-2026/' },
+        ],
+      },
+      {
+        companyId: 'dobot',
+        relationship: 'partner',
+        sources: [
+          { label: 'NVIDIA: Physics AI partner ecosystem', url: 'https://nvidianews.nvidia.com/news/nvidia-isaac-gr00t-n1-open-humanoid-robot-foundation-model-simulation-frameworks' },
+        ],
+      },
     ],
   },
   {
@@ -338,6 +352,13 @@ export const vlaModels: VLAModel[] = [
         relationship: 'partner',
         sources: [
           { label: 'AgiBot + Physical Intelligence partnership', url: 'https://www.newsfilecorp.com/release/247097/AgiBot-Partners-with-Physical-Intelligence-to-Pioneer-Global-Innovation-in-Embodied-Intelligence' },
+        ],
+      },
+      {
+        companyId: 'astribot',
+        relationship: 'partner',
+        sources: [
+          { label: 'Astribot + Physical Intelligence pi0', url: 'https://mikekalil.com/blog/astribot-physical-intelligence/' },
         ],
       },
     ],
