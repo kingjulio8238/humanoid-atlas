@@ -195,4 +195,43 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r206', from: 'kollmorgen', to: 'boston_dynamics', component: 'BLDC Motors', description: 'Frameless motors from Spot heritage' },
   { id: 'r207', from: 'sony_sensors', to: 'unitree', component: 'Image Sensors' },
   { id: 'r208', from: 'sony_sensors', to: 'xpeng', component: 'Image Sensors', description: 'Eagle Eye stereo camera sensors' },
+
+  // === NEW OEM SUPPLY CHAIN RELATIONSHIPS ===
+
+  // Noetix Robotics (N2)
+  { id: 'r299', from: 'nvidia', to: 'noetix', component: 'Jetson Orin', description: 'AI inference compute (40 TOPS, 8GB) alongside RK3588s control' },
+
+  // Booster Robotics (T1)
+  { id: 'r310', from: 'nvidia', to: 'booster', component: 'Jetson AGX Orin', description: 'AI compute (200 TOPS)' },
+  { id: 'r311', from: 'intel', to: 'booster', component: 'i7 CPU', description: 'Main CPU compute' },
+  { id: 'r312', from: 'intel', to: 'booster', component: 'Depth Cameras', description: 'RealSense D455 RGBD depth camera' },
+
+
+  // RobotEra (L7)
+  { id: 'r330', from: 'nvidia', to: 'robotera', component: 'Jetson AGX Orin', description: 'AI compute (275 TOPS), NVIDIA Developer Program member' },
+
+  // Dobot (Atom)
+  { id: 'r340', from: 'intel', to: 'dobot', component: 'Core i9 CPU', description: 'Main CPU compute (24 cores)' },
+  { id: 'r342', from: 'intel', to: 'dobot', component: 'Depth Cameras', description: 'RealSense D455 depth camera' },
+  { id: 'r341', from: 'nvidia', to: 'dobot', component: 'GPU', description: '16GB GPU (1500 TOPS total system), Physics AI partner' },
+
+  // LimX Dynamics (CL-3 Oli)
+  { id: 'r350', from: 'nvidia', to: 'limx', component: 'Jetson Orin NX', description: 'AI/perception compute (157 TOPS)' },
+  { id: 'r351', from: 'intel', to: 'limx', component: 'Depth Cameras', description: 'RealSense D435i (head, chest, wrist, hip)' },
+
+  // PUDU Robotics (D9)
+  { id: 'r360', from: 'nvidia', to: 'pudu', component: 'Jetson Orin', description: 'AI compute in dual-processor architecture' },
+
+  // MagicLab (MagicBot G1)
+  { id: 'r370', from: 'leaderdrive', to: 'magiclab', component: 'Harmonic Reducer', description: 'Waist, arm, and wrist joint reducers' },
+  { id: 'r371', from: 'moons', to: 'magiclab', component: 'Precision Motors', description: 'Coreless/hollow-cup motors' },
+
+  // Xiaomi (CyberOne)
+  { id: 'r380', from: 'intel', to: 'xiaomi', component: 'Xeon CPUs', description: 'Dual Xeon quad-core processors' },
+  { id: 'r382', from: 'intel', to: 'xiaomi', component: 'Depth Cameras', description: 'RealSense D455 Mi-Sense depth camera' },
+  { id: 'r381', from: 'harmonic_drive', to: 'xiaomi', component: 'Harmonic Reducer', description: 'Joint harmonic gearboxes' },
+
+  // Neura Robotics (4NE-1)
+  { id: 'r390', from: 'nvidia', to: 'neura_4ne1', component: 'Jetson Thor T5000', description: 'Main compute with water cooling, GR00T XX VLA' },
+
 ];

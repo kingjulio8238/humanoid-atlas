@@ -439,6 +439,10 @@ function parseLaunchDate(s: string): number {
   if (qMatch) {
     return parseInt(qMatch[2]) + (parseInt(qMatch[1]) - 1) * 0.25;
   }
+  const yearMatch = s.match(/(\d{4})/);
+  if (yearMatch) {
+    return parseInt(yearMatch[1]);
+  }
   return 2025; // fallback
 }
 
