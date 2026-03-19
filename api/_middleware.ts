@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const ALLOWED_ORIGINS = [
+  /^https:\/\/(www\.)?humanoids\.fyi$/,
   /^https:\/\/humanoid-atlas[a-z0-9-]*\.vercel\.app$/,
   /^https?:\/\/localhost(:\d+)?$/,
 ];
