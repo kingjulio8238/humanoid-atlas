@@ -2477,6 +2477,15 @@ export default function App() {
             {activeTab === 'reward_models' && (
               <div className="supply-chain">
                 <div className="supply-chain__header">
+                  <h3 className="section-title">Reward Comparison</h3>
+                </div>
+                <RewardChart comparisons={rewardComparisons} />
+              </div>
+            )}
+
+            {activeTab === 'reward_models' && (
+              <div className="supply-chain">
+                <div className="supply-chain__header">
                   <h3 className="section-title">Model Directory</h3>
                   <div className="vla-filters">
                     <button className={`country-pill ${rewardFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setRewardFilter('all')}>All</button>
@@ -2508,15 +2517,6 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'reward_models' && (
-              <div className="supply-chain">
-                <div className="supply-chain__header">
-                  <h3 className="section-title">Reward Comparison</h3>
-                </div>
-                <RewardChart comparisons={rewardComparisons} />
               </div>
             )}
 
