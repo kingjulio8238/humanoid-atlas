@@ -101,12 +101,27 @@ body {
 }
 
 /* ========== COUNTRY FILTER ========== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 32px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.filter-bar__separator {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
 .country-filter {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 32px;
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -138,6 +153,39 @@ body {
 .geo-dim {
   opacity: 0.15;
   transition: opacity 0.2s;
+}
+
+/* ========== TAB GROUP NAV ========== */
+.tab-group-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tab-group-pill {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-group-pill:hover {
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+
+.tab-group-pill--active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 /* ========== COMPONENT NAV ========== */
@@ -1387,7 +1435,8 @@ body {
 @media (max-width: 768px) {
   /* Padding reductions */
   .header { padding: 10px 16px; gap: 8px; }
-  .country-filter { padding: 8px 16px; }
+  .filter-bar { padding: 8px 16px; flex-wrap: wrap; gap: 8px; }
+  .filter-bar__separator { display: none; }
   .component-nav { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .component-nav::-webkit-scrollbar { display: none; }
   .component-btn { padding: 10px 10px; font-size: 10px; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
@@ -1463,7 +1512,7 @@ body {
 @media (max-width: 480px) {
   /* Further padding reductions */
   .header { padding: 8px 12px; }
-  .country-filter { padding: 6px 12px; }
+  .filter-bar { padding: 6px 12px; }
   .component-btn { padding: 8px 8px; font-size: 9px; letter-spacing: 0.5px; }
   .oems-view { padding: 12px; }
   .oem-image-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }

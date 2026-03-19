@@ -7,23 +7,34 @@ import './App.css';
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-const TABS = [
-  { id: 'skeleton', label: 'Skeleton' },
-  { id: 'all_oems', label: 'All OEMs' },
-  { id: 'geopolitics', label: 'Geopolitics' },
-  { id: 'network', label: 'Network' },
-  { id: 'timeline', label: 'Buildout' },
-  { id: 'vlas', label: 'VLA' },
-  { id: 'sensors_general', label: 'Sensors' },
-  { id: 'compute', label: 'Compute' },
-  { id: 'batteries', label: 'Battery' },
-  { id: 'motors', label: 'Motors' },
-  { id: 'reducers', label: 'Reducers' },
-  { id: 'bearings', label: 'Bearings' },
-  { id: 'actuators_rotary', label: 'Actuators' },
-  { id: 'screws', label: 'Screws' },
-  { id: 'end_effectors', label: 'Hands' },
-  { id: 'pcbs', label: 'PCBs' },
+type TabGroup = 'overview' | 'hardware' | 'software';
+
+const TAB_GROUPS: { id: TabGroup; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'hardware', label: 'Hardware' },
+  { id: 'software', label: 'Software' },
+];
+
+const TABS: { id: string; label: string; group: TabGroup }[] = [
+  // Overview
+  { id: 'skeleton', label: 'Skeleton', group: 'overview' },
+  { id: 'all_oems', label: 'All OEMs', group: 'overview' },
+  { id: 'geopolitics', label: 'Geopolitics', group: 'overview' },
+  { id: 'network', label: 'Network', group: 'overview' },
+  { id: 'timeline', label: 'Buildout', group: 'overview' },
+  // Hardware
+  { id: 'sensors_general', label: 'Sensors', group: 'hardware' },
+  { id: 'compute', label: 'Compute', group: 'hardware' },
+  { id: 'batteries', label: 'Battery', group: 'hardware' },
+  { id: 'motors', label: 'Motors', group: 'hardware' },
+  { id: 'reducers', label: 'Reducers', group: 'hardware' },
+  { id: 'bearings', label: 'Bearings', group: 'hardware' },
+  { id: 'actuators_rotary', label: 'Actuators', group: 'hardware' },
+  { id: 'screws', label: 'Screws', group: 'hardware' },
+  { id: 'end_effectors', label: 'Hands', group: 'hardware' },
+  { id: 'pcbs', label: 'PCBs', group: 'hardware' },
+  // Software
+  { id: 'vlas', label: 'VLA', group: 'software' },
 ];
 
 // Per-model spin speed multipliers (normalize perceived rotation speed)
@@ -685,6 +696,7 @@ const TYPE_DISPLAY: Record<string, string> = {
 export default function App() {
   const initialHash = useMemo(() => parseHash(), []);
   const [activeTab, setActiveTab] = useState(initialHash.tab || 'skeleton');
+  const activeTabGroup = TABS.find((t) => t.id === activeTab)?.group || 'overview';
   const [companyId, setCompanyId] = useState<string | null>(initialHash.company || null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
   const [chainFocus, setChainFocus] = useState<string | null>(null);
@@ -1544,7 +1556,8 @@ export default function App() {
         </div>
       </header>
 
-      <div className="country-filter">
+      <div className="filter-bar">
+        <div className="country-filter">
           <button
             className={`country-pill ${countryFilter === null ? 'country-pill--active' : ''}`}
             onClick={() => setCountryFilter(null)}
@@ -1571,8 +1584,24 @@ export default function App() {
           >Other</button>
         </div>
 
+        <div className="filter-bar__separator"></div>
+
+        <div className="tab-group-nav">
+          {TAB_GROUPS.map((g) => (
+            <button
+              key={g.id}
+              className={`tab-group-pill ${activeTabGroup === g.id ? 'tab-group-pill--active' : ''}`}
+              onClick={() => {
+                const firstTab = TABS.find((t) => t.group === g.id);
+                if (firstTab) { setActiveTab(firstTab.id); setChainFocus(null); }
+              }}
+            >{g.label}</button>
+          ))}
+        </div>
+      </div>
+
       <nav className="component-nav">
-        {TABS.map((t) => {
+        {TABS.filter((t) => t.group === activeTabGroup).map((t) => {
           return (
             <button
               key={t.id}
