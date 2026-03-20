@@ -1,4 +1,4 @@
-import { companies, relationships, componentCategories } from '../data';
+import { companies, relationships, componentCategories, companyFunding } from '../data';
 import PLYViewer from './PLYViewer';
 
 interface DetailPanelProps {
@@ -107,6 +107,70 @@ export default function DetailPanel({ selectedId, onNavigate, onClose }: DetailP
           <PLYViewer modelUrl={company.plyModel} />
         </div>
       )}
+
+      {/* Funding section */}
+      {(() => {
+        const funding = companyFunding.find((f) => f.companyId === selectedId);
+        if (!funding || funding.rounds.length === 0) return null;
+        const maxRound = Math.max(...funding.rounds.filter((r) => r.amountM).map((r) => r.amountM!));
+        const formatAmt = (m: number) => m >= 1000 ? `$${(m / 1000).toFixed(1)}B` : `$${Math.round(m)}M`;
+        return (
+          <div className="detail-section">
+            <h3 className="detail-section__title">FUNDING</h3>
+            {funding.totalRaisedM && (
+              <div className="detail-spec-row detail-spec-row--highlight">
+                <span className="detail-spec-label">Total Raised</span>
+                <span className="detail-spec-value">{formatAmt(funding.totalRaisedM)}</span>
+              </div>
+            )}
+            {funding.latestValuationM && (
+              <div className="detail-spec-row">
+                <span className="detail-spec-label">Valuation</span>
+                <span className="detail-spec-value">{formatAmt(funding.latestValuationM)}{funding.latestValuationNote ? ` (${funding.latestValuationNote})` : ''}</span>
+              </div>
+            )}
+            {funding.ipoPlans && (
+              <div className="detail-spec-row">
+                <span className="detail-spec-label">IPO Plans</span>
+                <span className="detail-spec-value">{funding.ipoPlans}</span>
+              </div>
+            )}
+            <div className="detail-funding-rounds">
+              {funding.rounds.map((r, i) => (
+                <div key={i} className="detail-funding-round">
+                  <div className="detail-funding-round__info">
+                    <span className="detail-funding-round__name">{r.name}</span>
+                    <span className="detail-funding-round__date">{r.date}</span>
+                  </div>
+                  {r.amountM ? (
+                    <>
+                      <div className="detail-funding-round__bar-wrap">
+                        <div
+                          className="detail-funding-round__bar"
+                          style={{ width: `${(r.amountM / maxRound) * 100}%` }}
+                        />
+                      </div>
+                      <span className="detail-funding-round__amount">{formatAmt(r.amountM)}</span>
+                    </>
+                  ) : (
+                    <span className="detail-funding-round__amount detail-funding-round__amount--dim">undisclosed</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {funding.keyInvestors.length > 0 && (
+              <>
+                <h4 className="detail-funding-subtitle">KEY INVESTORS</h4>
+                <div className="detail-funding-investors">
+                  {funding.keyInvestors.map((inv) => (
+                    <span key={inv} className="detail-funding-investor">{inv}</span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* SPLC-Style Supply Chain View */}
       {suppliers.length > 0 && (

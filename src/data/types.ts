@@ -178,6 +178,49 @@ export interface VizTool {
   sources: VizToolSourceRef[];
 }
 
+// ── Funding ──────────────────────────────────────────────────
+
+export type FundingStatus = 'private' | 'public' | 'ipo-filed' | 'acquired' | 'subsidiary';
+
+export interface FundingSourceRef {
+  label: string;
+  url: string;
+}
+
+export interface FundingRound {
+  name: string;          // e.g. "Series B", "Seed", "IPO"
+  date: string;          // e.g. "2025-02", "2024-01"
+  amountM?: number;      // amount in millions USD (null if undisclosed)
+  valuationM?: number;   // post-money valuation in millions USD
+  lead?: string;         // lead investor name
+  notes?: string;        // e.g. "oversubscribed from $350M"
+}
+
+export interface CompanyFunding {
+  companyId: string;           // matches Company.id
+  name: string;                // display name
+  country: Country;
+  status: FundingStatus;
+  ticker?: string;             // e.g. "9880.HK", "TSLA"
+  totalRaisedM?: number;       // total raised in millions USD
+  latestValuationM?: number;   // latest valuation in millions USD
+  latestValuationNote?: string; // e.g. "IPO target", "analyst est."
+  ipoPlans?: string;           // e.g. "STAR Market Q2 2026"
+  keyInvestors: string[];      // top investor names
+  rounds: FundingRound[];
+  sources: FundingSourceRef[];
+}
+
+export interface InvestorProfile {
+  id: string;
+  name: string;
+  country: Country;
+  type: string;               // e.g. "Corporate VC", "VC", "Sovereign Wealth", "Personal"
+  portfolioCompanyIds: string[]; // matches companyFunding[].companyId
+  description: string;
+  sources: FundingSourceRef[];
+}
+
 export interface VLAModel {
   id: string;
   name: string;

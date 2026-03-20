@@ -3480,3 +3480,253 @@ body {
     padding: 12px;
   }
 }
+
+/* ========== FUNDING TAB ========== */
+
+.funding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.funding-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.funding-row:hover {
+  border-color: var(--border-hover);
+}
+
+.funding-row__country {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  width: 40px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-row__name {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-row__status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  width: 80px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.funding-row__bars {
+  flex: 1;
+  position: relative;
+  height: 24px;
+  background: #f0ede8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.funding-row__raised {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.3s;
+  z-index: 1;
+}
+
+.funding-row__valuation {
+  position: absolute;
+  top: -1px;
+  height: calc(100% + 2px);
+  width: 2.5px;
+  background: var(--red);
+  border-radius: 1px;
+  transition: left 0.3s;
+  z-index: 2;
+}
+
+.funding-row__labels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 90px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.funding-row__raised-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.funding-row__val-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.funding-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.funding-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funding-legend__bar {
+  display: inline-block;
+  width: 16px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.funding-legend__bar--raised {
+  background: var(--accent);
+}
+
+.funding-legend__bar--val {
+  width: 2px;
+  height: 12px;
+  background: var(--red);
+  border-radius: 1px;
+}
+
+.funding-footnote {
+  margin-top: 4px;
+  font-size: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+}
+
+/* ── Investor Cards ── */
+
+.funding-investors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.funding-investor-card {
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+
+.funding-investor-card:hover {
+  border-color: var(--border-hover);
+}
+
+.funding-investor-card__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.funding-investor-card__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.funding-investor-card__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.funding-investor-card__portfolio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.funding-investor-card__company {
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.funding-investor-card__company:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card);
+}
+
+.funding-investor-card__desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Funding responsive ── */
+
+@media (max-width: 768px) {
+  .funding-row__name {
+    width: 110px;
+  }
+  .funding-row__status {
+    display: none;
+  }
+  .funding-row__labels {
+    min-width: 70px;
+  }
+  .funding-investors {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .funding-row {
+    gap: 8px;
+  }
+  .funding-row__name {
+    width: 80px;
+    font-size: 11px;
+  }
+  .funding-row__labels {
+    min-width: 60px;
+    font-size: 10px;
+  }
+}

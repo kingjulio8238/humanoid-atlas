@@ -7,4 +7,5 @@ export { rewardComparisons } from './rewardComparisons';
 export { worldModels } from './worldModels';
 export { vizTools } from './vizTools';
 export { headDesigns } from './headDesigns';
-export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country, VLAModel, RewardModel, RewardModelType, WorldModel, WorldModelType, VizTool, VizToolType, HeadDesign, FaceDisplayType } from './types';
+export { companyFunding, topInvestors } from './funding';
+export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country, VLAModel, RewardModel, RewardModelType, WorldModel, WorldModelType, VizTool, VizToolType, HeadDesign, FaceDisplayType, FundingStatus, CompanyFunding, InvestorProfile } from './types';

@@ -3,18 +3,19 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
 import SupplyChainGraph from './components/SupplyChainGraph';
-import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools, headDesigns } from './data';
-import type { RewardModelType, WorldModelType, VizToolType, FaceDisplayType } from './data';
+import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools, headDesigns, companyFunding, topInvestors } from './data';
+import type { RewardModelType, WorldModelType, VizToolType, FaceDisplayType, FundingStatus } from './data';
 import RewardChart from './components/RewardChart';
 import './App.css';
 
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-type TabGroup = 'overview' | 'hardware' | 'software' | 'hri';
+type TabGroup = 'overview' | 'industry' | 'hardware' | 'software' | 'hri';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'industry', label: 'Industry' },
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
   { id: 'hri', label: 'HRI' },
@@ -24,9 +25,11 @@ const TABS: { id: string; label: string; group: TabGroup }[] = [
   // Overview
   { id: 'skeleton', label: 'Skeleton', group: 'overview' },
   { id: 'all_oems', label: 'All OEMs', group: 'overview' },
-  { id: 'geopolitics', label: 'Geopolitics', group: 'overview' },
   { id: 'network', label: 'Network', group: 'overview' },
-  { id: 'timeline', label: 'Buildout', group: 'overview' },
+  // Industry
+  { id: 'funding', label: 'Funding', group: 'industry' },
+  { id: 'geopolitics', label: 'Geopolitics', group: 'industry' },
+  { id: 'timeline', label: 'Buildout', group: 'industry' },
   // Hardware
   { id: 'sensors_general', label: 'Sensors', group: 'hardware' },
   { id: 'compute', label: 'Compute', group: 'hardware' },
@@ -51,9 +54,10 @@ const TABS: { id: string; label: string; group: TabGroup }[] = [
 const TAB_TO_PATH: Record<string, string> = {
   skeleton: '/',
   all_oems: '/oems',
-  geopolitics: '/geopolitics',
   network: '/network',
-  timeline: '/buildout',
+  funding: '/industry/funding',
+  geopolitics: '/industry/geopolitics',
+  timeline: '/industry/buildout',
   sensors_general: '/hardware/sensors',
   compute: '/hardware/compute',
   batteries: '/hardware/battery',
@@ -71,14 +75,20 @@ const TAB_TO_PATH: Record<string, string> = {
   displays: '/hri/displays',
 };
 
-const PATH_TO_TAB: Record<string, string> = Object.fromEntries(
-  Object.entries(TAB_TO_PATH).map(([tab, path]) => [path, tab])
-);
+const PATH_TO_TAB: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(TAB_TO_PATH).map(([tab, path]) => [path, tab])
+  ),
+  // Legacy redirects (moved from overview to industry)
+  '/geopolitics': 'geopolitics',
+  '/buildout': 'timeline',
+};
 
 // Per-tab SEO meta content
 const TAB_META: Record<string, { title: string; description: string }> = {
   skeleton: { title: 'Humanoid Atlas | Humanoid Robot Supply Chain Map & OEM Database', description: 'The comprehensive humanoid robot industry database. Compare 29+ OEMs, 41+ suppliers, hardware supply chain, VLA models, reward models, world models, and more.' },
   all_oems: { title: 'All Humanoid Robot OEMs | Humanoid Atlas', description: 'Compare 29+ humanoid robot manufacturers worldwide. Detailed specs, shipment data, and side-by-side comparison for Tesla Optimus, Figure, 1X NEO, Unitree, Agility Digit, and more.' },
+  funding: { title: 'Humanoid Robot Funding & Valuations | Humanoid Atlas', description: 'Track funding rounds, valuations, and key investors across 25+ humanoid robotics companies. Compare total raised, latest valuations, and investor portfolios.' },
   geopolitics: { title: 'Humanoid Robot Geopolitics — US vs China Supply Chain | Humanoid Atlas', description: 'Geopolitical analysis of the humanoid robot supply chain. Compare US, China, and global supplier dependencies, self-sufficiency scores, and bottleneck exposure.' },
   network: { title: 'Humanoid Robot Supply Chain Network Graph | Humanoid Atlas', description: 'Interactive network visualization of all humanoid robot OEM-supplier relationships. Explore the full supply chain graph.' },
   timeline: { title: 'Humanoid Robot Industry Buildout Timeline | Humanoid Atlas', description: 'Timeline of humanoid robot development milestones, production ramp-ups, and industry buildout.' },
@@ -873,6 +883,7 @@ export default function App() {
   const [worldModelFilter, setWorldModelFilter] = useState<'all' | WorldModelType>('all');
   const [vizToolFilter, setVizToolFilter] = useState<'all' | VizToolType>('all');
   const [headDesignFilter, setHeadDesignFilter] = useState<'all' | FaceDisplayType>('all');
+  const [fundingStatusFilter, setFundingStatusFilter] = useState<'all' | FundingStatus>('all');
   const [countryFilter, setCountryFilter] = useState<CountryGroup>(null);
   const [cutCountries, setCutCountries] = useState<Set<string>>(new Set());
   const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
@@ -1085,7 +1096,7 @@ export default function App() {
   );
 
   const chain = useMemo(() => {
-    if (activeTab === 'skeleton' || activeTab === 'all_oems' || activeTab === 'geopolitics') return null;
+    if (activeTab === 'skeleton' || activeTab === 'all_oems' || activeTab === 'geopolitics' || activeTab === 'funding') return null;
     if (activeTab === 'vlas') return null;
     if (activeTab === 'reward_models') return null;
     if (activeTab === 'world_models') return null;
@@ -1174,6 +1185,22 @@ export default function App() {
     if (headDesignFilter === 'all') return headDesigns;
     return headDesigns.filter((d) => d.faceType === headDesignFilter);
   }, [headDesignFilter]);
+
+  const filteredFunding = useMemo(() => {
+    let items = [...companyFunding];
+    if (fundingStatusFilter !== 'all') {
+      items = items.filter((f) => f.status === fundingStatusFilter);
+    }
+    return items;
+  }, [fundingStatusFilter]);
+
+  const fundingSortedByRaised = useMemo(() => {
+    return [...filteredFunding].sort((a, b) => {
+      const valDiff = (b.latestValuationM ?? 0) - (a.latestValuationM ?? 0);
+      if (valDiff !== 0) return valDiff;
+      return (b.totalRaisedM ?? 0) - (a.totalRaisedM ?? 0);
+    });
+  }, [filteredFunding]);
 
   // Compute which entities are connected to the focused entity in the chain
   const connectedIds = useMemo(() => {
@@ -1862,7 +1889,7 @@ export default function App() {
         })}
       </nav>
 
-      <main className={activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : 'component-view'}>
+      <main className={activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className="skeleton-center">
@@ -1971,6 +1998,123 @@ export default function App() {
                 </div>
 
               </div>
+            </div>
+          );
+        })()}
+
+        {/* Funding tab */}
+        {activeTab === 'funding' && (() => {
+          // Shared linear scale — exclude mega-cap outliers (>$100B)
+          // so diversified public companies don't crush the scale
+          const scaleMax = Math.max(
+            ...filteredFunding.map((f) => f.totalRaisedM ?? 0),
+            ...filteredFunding
+              .filter((f) => (f.latestValuationM ?? 0) <= 100000)
+              .map((f) => f.latestValuationM ?? 0),
+          );
+          const pct = (v: number) => Math.min((v / scaleMax) * 100, 99);
+
+          const getFundingStatusLabel = (s: FundingStatus) => {
+            switch (s) {
+              case 'private': return 'Private';
+              case 'public': return 'Public';
+              case 'ipo-filed': return 'IPO Filed';
+              case 'acquired': return 'Acquired';
+              case 'subsidiary': return 'Subsidiary';
+            }
+          };
+
+          const formatAmount = (m: number) => {
+            if (m >= 1000000) return `$${(m / 1000000).toFixed(1)}T`;
+            if (m >= 1000) return `$${(m / 1000).toFixed(1)}B`;
+            return `$${Math.round(m)}M`;
+          };
+
+          return (
+            <div className="geo-content">
+              <section className="geo-section">
+                <div className="supply-chain__header">
+                  <h3 className="section-title">Funding & Valuation</h3>
+                  <div className="vla-filters">
+                    <button className={`country-pill ${fundingStatusFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setFundingStatusFilter('all')}>All</button>
+                    <button className={`country-pill ${fundingStatusFilter === 'private' ? 'country-pill--active' : ''}`} onClick={() => setFundingStatusFilter(fundingStatusFilter === 'private' ? 'all' : 'private')}>Private</button>
+                    <button className={`country-pill ${fundingStatusFilter === 'public' ? 'country-pill--active' : ''}`} onClick={() => setFundingStatusFilter(fundingStatusFilter === 'public' ? 'all' : 'public')}>Public</button>
+                    <button className={`country-pill ${fundingStatusFilter === 'subsidiary' ? 'country-pill--active' : ''}`} onClick={() => setFundingStatusFilter(fundingStatusFilter === 'subsidiary' ? 'all' : 'subsidiary')}>Subsidiary</button>
+                    <button className={`country-pill ${fundingStatusFilter === 'acquired' ? 'country-pill--active' : ''}`} onClick={() => setFundingStatusFilter(fundingStatusFilter === 'acquired' ? 'all' : 'acquired')}>Acquired</button>
+                  </div>
+                </div>
+                <div className="funding-list">
+                  {fundingSortedByRaised.map((f) => (
+                    <div
+                      key={f.companyId}
+                      className={`funding-row ${countryFilter && getCountryFilterGroup(f.country) !== countryFilter ? 'geo-dim' : ''}`}
+                      onClick={() => handleSelectCompany(f.companyId)}
+                    >
+                      <span className="funding-row__country">{f.country}</span>
+                      <span className="funding-row__name">{f.name}</span>
+                      <span className="funding-row__status">{getFundingStatusLabel(f.status)}</span>
+                      <div className="funding-row__bars">
+                        {f.totalRaisedM != null && (
+                          <div
+                            className="funding-row__raised"
+                            style={{ width: `${pct(f.totalRaisedM)}%` }}
+                          />
+                        )}
+                        {f.latestValuationM != null && (
+                          <div
+                            className="funding-row__valuation"
+                            style={{ left: `${pct(f.latestValuationM)}%` }}
+                          />
+                        )}
+                      </div>
+                      <div className="funding-row__labels">
+                        {f.totalRaisedM != null && (
+                          <span className="funding-row__raised-label">{formatAmount(f.totalRaisedM)} raised</span>
+                        )}
+                        {f.latestValuationM != null && (
+                          <span className="funding-row__val-label">{formatAmount(f.latestValuationM)} val{f.latestValuationNote ? '*' : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="funding-legend">
+                  <span className="funding-legend__item"><span className="funding-legend__bar funding-legend__bar--raised" /> Raised</span>
+                  <span className="funding-legend__item"><span className="funding-legend__bar funding-legend__bar--val" /> Valuation</span>
+                </div>
+                <div className="funding-footnote">* analyst estimate / IPO target / acquisition price</div>
+              </section>
+
+              <section className="geo-section">
+                <div className="supply-chain__header">
+                  <h3 className="section-title">Top Investors</h3>
+                </div>
+                <div className="funding-investors">
+                  {topInvestors.map((inv) => (
+                    <div key={inv.id} className="funding-investor-card">
+                      <div className="funding-investor-card__header">
+                        <span className="funding-investor-card__name">{inv.name}</span>
+                        <span className="funding-investor-card__meta">{inv.country} / {inv.type}</span>
+                      </div>
+                      <div className="funding-investor-card__portfolio">
+                        {inv.portfolioCompanyIds.map((cid) => {
+                          const cf = companyFunding.find((f) => f.companyId === cid);
+                          return (
+                            <button
+                              key={cid}
+                              className="funding-investor-card__company"
+                              onClick={() => handleSelectCompany(cid)}
+                            >
+                              {cf?.name || cid}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="funding-investor-card__desc">{inv.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           );
         })()}
