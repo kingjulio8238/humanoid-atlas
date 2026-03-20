@@ -1,0 +1,49 @@
+# Humanoid Atlas
+> The comprehensive, open-source database of the humanoid robot industry — OEMs, hardware supply chain, AI software stack, and human-robot interaction design.
+
+## URL
+https://www.humanoids.fyi
+
+## What This Site Contains
+
+Humanoid Atlas is an interactive data tool tracking the full humanoid robotics ecosystem. It is free, open-source, and updated regularly.
+
+### Overview
+- 29 humanoid robot OEMs worldwide with full robot specifications (height, weight, DOF, sensors, compute, battery, actuators, price)
+- 41+ component suppliers mapped across the hardware supply chain
+- Geopolitical analysis of US vs China vs Rest of World supplier dependencies
+- Interactive supply chain network graph showing all OEM-supplier relationships
+- Industry buildout timeline
+
+### Hardware Supply Chain (10 component categories)
+- Sensors: cameras, LiDAR, IMUs, encoders, tactile sensors
+- Compute: NVIDIA Jetson, Intel, custom SoCs
+- Battery: cell chemistry, pack design, suppliers (Panasonic, CATL, Molicel, Samsung SDI)
+- Motors: BLDC motors from Maxon, Allied Motion, ThinGap, T-Motor, and others
+- Reducers: harmonic reducers from Harmonic Drive, LKGEAR, Leaderdrive, and others
+- Bearings: cross-roller and ball bearings
+- Actuators: rotary and linear actuator modules
+- Screws: planetary roller screws
+- Hands: end effectors ranging from 3-finger grippers to 22-DOF anthropomorphic hands
+- PCBs: motor drivers, power management, analog ICs
+
+### Software Stack (4 categories)
+- VLA Models (19): Vision-Language-Action models including GR00T N1, pi0, OpenVLA, Gemini Robotics, Helix 02, and 14 more
+- Reward Models (10): Robotic reward models including Robometer, RoboReward, SARM, GVL, Eureka, and 5 more
+- World Models (19): Including DreamDojo, 1X World Model, Dreamer V4, NVIDIA Cosmos, V-JEPA 2, Field AI, Rhoda AI, and 12 more
+- Visualization Tools (10): Including Foxglove, Rerun, RViz2, PlotJuggler, and 6 more — with interactive capability comparison matrix
+
+### Human-Robot Interaction (HRI)
+- Display Designs (17): Head/face designs across all major OEMs categorized by type — OLED screen, status screen, LED indicator, no display, concealed
+- Camera configurations, depth approaches, LiDAR usage, audio systems, and interactive features per robot
+
+## Key OEMs Tracked
+Tesla (Optimus), Figure (02/03), 1X Technologies (NEO), Unitree (G1/H1), Agility Robotics (Digit), Boston Dynamics (Atlas), Apptronik (Apollo), Sanctuary AI (Phoenix), NEURA Robotics (4NE-1), Fourier (GR-2), XPeng (Iron), UBTech (Walker S2), Kepler (Forerunner), AgiBot (A2), Sunday Robotics (Memo), and 14 more
+
+## Data Sources
+Company websites, SEC filings, technical papers (arXiv, ICLR, NeurIPS, CoRL, ICRA, IROS), founder questionnaires, press coverage, and open-source repositories
+
+## Open Source
+GitHub: https://github.com/kingjulio8238/humanoid-atlas
+License: Open source
+Created by Julian Saks — https://x.com/JulianSaks
