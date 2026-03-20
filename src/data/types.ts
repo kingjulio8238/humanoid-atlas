@@ -131,6 +131,30 @@ export interface WorldModel {
   sources: WorldModelSourceRef[];
 }
 
+export type FaceDisplayType = 'oled-screen' | 'status-screen' | 'led-indicator' | 'no-display' | 'concealed';
+
+export interface HeadDesignSourceRef {
+  label: string;
+  url: string;
+}
+
+export interface HeadDesign {
+  id: string;
+  name: string;
+  developer: string;
+  country: Country;
+  faceType: FaceDisplayType;
+  description: string;
+  displayTech: string;
+  headCameras: string;
+  totalCameras: string;
+  depthApproach: string;
+  lidar: string;
+  audioSystem: string;
+  interactiveFeatures: string;
+  sources: HeadDesignSourceRef[];
+}
+
 export type VizToolType = 'platform' | '3d-viewer' | 'time-series' | 'data-analytics';
 
 export interface VizToolSourceRef {

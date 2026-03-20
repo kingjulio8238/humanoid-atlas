@@ -215,4 +215,16 @@ export const componentCategories: ComponentCategory[] = [
       'Emerging': 'Sharpa Robotics (from Hesai founders)',
     },
   },
+  {
+    id: 'displays',
+    name: 'Displays',
+    description: 'The face of the humanoid — display screens, LED indicators, cameras, and sensors that define how a robot perceives the world and communicates with humans. Design approaches range from full OLED expression screens to minimal LED status lights to deliberately faceless sensor pods, reflecting deep trade-offs between anthropomorphism, uncanny valley avoidance, and functional perception.',
+    bottleneck: false,
+    keyMetrics: {
+      'Display Approaches': 'OLED screen, status screen, LED indicator, concealed, none',
+      'Camera Range': '0–8 head-mounted cameras across OEMs',
+      'Key Tension': 'Anthropomorphism vs uncanny valley vs pure function',
+      'Trend': 'Vision-only perception (dropping LiDAR) + AI depth estimation',
+    },
+  },
 ];

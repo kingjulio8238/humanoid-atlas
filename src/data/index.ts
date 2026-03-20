@@ -6,4 +6,5 @@ export { rewardModels } from './rewardModels';
 export { rewardComparisons } from './rewardComparisons';
 export { worldModels } from './worldModels';
 export { vizTools } from './vizTools';
-export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country, VLAModel, RewardModel, RewardModelType, WorldModel, WorldModelType, VizTool, VizToolType } from './types';
+export { headDesigns } from './headDesigns';
+export type { Company, SupplyRelationship, ComponentCategory, RobotSpecs, EntityType, Country, VLAModel, RewardModel, RewardModelType, WorldModel, WorldModelType, VizTool, VizToolType, HeadDesign, FaceDisplayType } from './types';

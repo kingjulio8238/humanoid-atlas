@@ -1,20 +1,21 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
 import SupplyChainGraph from './components/SupplyChainGraph';
-import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools } from './data';
-import type { RewardModelType, WorldModelType, VizToolType } from './data';
+import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools, headDesigns } from './data';
+import type { RewardModelType, WorldModelType, VizToolType, FaceDisplayType } from './data';
 import RewardChart from './components/RewardChart';
 import './App.css';
 
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-type TabGroup = 'overview' | 'hardware' | 'software';
+type TabGroup = 'overview' | 'hardware' | 'software' | 'hri';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
+  { id: 'hri', label: 'HRI' },
 ];
 
 const TABS: { id: string; label: string; group: TabGroup }[] = [
@@ -40,6 +41,8 @@ const TABS: { id: string; label: string; group: TabGroup }[] = [
   { id: 'reward_models', label: 'Reward Models', group: 'software' },
   { id: 'world_models', label: 'World Models', group: 'software' },
   { id: 'viz_tools', label: 'Viz Tools', group: 'software' },
+  // HRI
+  { id: 'displays', label: 'Displays', group: 'hri' },
 ];
 
 // Per-model spin speed multipliers (normalize perceived rotation speed)
@@ -487,6 +490,25 @@ function getWorldModelOverview() {
   };
 }
 
+function getFaceDisplayTypeLabel(type: FaceDisplayType) {
+  if (type === 'oled-screen') return 'OLED Screen';
+  if (type === 'status-screen') return 'Status Screen';
+  if (type === 'led-indicator') return 'LED Indicator';
+  if (type === 'no-display') return 'No Display';
+  return 'Concealed';
+}
+
+function getHeadDesignOverview() {
+  return {
+    trackedDesigns: headDesigns.length,
+    oledScreens: headDesigns.filter((d) => d.faceType === 'oled-screen').length,
+    statusScreens: headDesigns.filter((d) => d.faceType === 'status-screen').length,
+    ledIndicators: headDesigns.filter((d) => d.faceType === 'led-indicator').length,
+    noDisplay: headDesigns.filter((d) => d.faceType === 'no-display').length,
+    concealed: headDesigns.filter((d) => d.faceType === 'concealed').length,
+  };
+}
+
 function getVizToolTypeLabel(type: VizToolType) {
   if (type === 'platform') return 'Platform';
   if (type === '3d-viewer') return '3D Viewer';
@@ -778,6 +800,7 @@ export default function App() {
   const [rewardFilter, setRewardFilter] = useState<'all' | RewardModelType>('all');
   const [worldModelFilter, setWorldModelFilter] = useState<'all' | WorldModelType>('all');
   const [vizToolFilter, setVizToolFilter] = useState<'all' | VizToolType>('all');
+  const [headDesignFilter, setHeadDesignFilter] = useState<'all' | FaceDisplayType>('all');
   const [countryFilter, setCountryFilter] = useState<CountryGroup>(null);
   const [cutCountries, setCutCountries] = useState<Set<string>>(new Set());
   const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
@@ -1003,6 +1026,7 @@ export default function App() {
     if (activeTab === 'reward_models') return null;
     if (activeTab === 'world_models') return null;
     if (activeTab === 'viz_tools') return null;
+    if (activeTab === 'displays') return null;
     if (activeTab === 'actuators_rotary') {
       return getComponentChain(actuatorType === 'linear' ? 'actuators_linear_only' : 'actuators_rotary_only');
     }
@@ -1073,6 +1097,19 @@ export default function App() {
     if (vizToolFilter === 'all') return vizTools;
     return vizTools.filter((t) => t.toolType === vizToolFilter);
   }, [vizToolFilter]);
+
+  // Head design state
+  const headDesignOverview = useMemo(() => getHeadDesignOverview(), []);
+
+  const focusedHeadDesign = useMemo(
+    () => headDesigns.find((d) => d.id === chainFocus) || null,
+    [chainFocus]
+  );
+
+  const filteredHeadDesigns = useMemo(() => {
+    if (headDesignFilter === 'all') return headDesigns;
+    return headDesigns.filter((d) => d.faceType === headDesignFilter);
+  }, [headDesignFilter]);
 
   // Compute which entities are connected to the focused entity in the chain
   const connectedIds = useMemo(() => {
@@ -2427,6 +2464,20 @@ export default function App() {
                         : `${vizToolOverview.trackedTools} tracked · ${vizToolOverview.platformTools} platforms · ${vizToolOverview.viewerTools} 3D viewers · ${vizToolOverview.timeSeriesTools} time series · ${vizToolOverview.analyticsTools} analytics`}
                     </span>
                   </div>
+                ) : activeTab === 'displays' ? (
+                  <div className="vla-placeholder">
+                    <span className="vla-placeholder__eyebrow">
+                      {focusedHeadDesign ? focusedHeadDesign.developer : 'Humanoid Head & Display Designs'}
+                    </span>
+                    <span className="vla-placeholder__title">
+                      {focusedHeadDesign ? focusedHeadDesign.name : 'Displays'}
+                    </span>
+                    <span className="vla-placeholder__meta">
+                      {focusedHeadDesign
+                        ? `${focusedHeadDesign.country} · ${getFaceDisplayTypeLabel(focusedHeadDesign.faceType)} · ${focusedHeadDesign.headCameras} head cams`
+                        : `${headDesignOverview.trackedDesigns} tracked · ${headDesignOverview.oledScreens} OLED · ${headDesignOverview.statusScreens} status screen · ${headDesignOverview.ledIndicators} LED · ${headDesignOverview.noDisplay} none · ${headDesignOverview.concealed} concealed`}
+                    </span>
+                  </div>
                 ) : selectedComponent.plyModel ? (
                   <PLYViewer modelUrl={selectedComponent.plyModel} color="#1a1a1a" initialRotation={MODEL_ROTATIONS[selectedComponent.plyModel]} spinSpeed={MODEL_SPIN[selectedComponent.plyModel]} scale={MODEL_SCALE[selectedComponent.plyModel]} />
                 ) : (
@@ -2447,7 +2498,9 @@ export default function App() {
                           ? focusedWorldModel.description
                           : activeTab === 'viz_tools' && focusedVizTool
                             ? focusedVizTool.description
-                            : selectedComponent.description;
+                            : activeTab === 'displays' && focusedHeadDesign
+                              ? focusedHeadDesign.description
+                              : selectedComponent.description;
                   const metrics = isActuator
                     ? ACTUATOR_INFO[actuatorType].keyMetrics
                     : activeTab === 'reward_models'
@@ -2513,7 +2566,29 @@ export default function App() {
                                 'Data & Analytics': `${vizToolOverview.analyticsTools} AI-powered analytics`,
                                 Developers: `${vizToolOverview.developerCount} organizations`,
                               }
-                          : activeTab === 'vlas'
+                          : activeTab === 'displays'
+                            ? focusedHeadDesign
+                              ? {
+                                  Developer: focusedHeadDesign.developer,
+                                  'Face Type': getFaceDisplayTypeLabel(focusedHeadDesign.faceType),
+                                  'Display Tech': focusedHeadDesign.displayTech,
+                                  'Head Cameras': focusedHeadDesign.headCameras,
+                                  'Total Cameras': focusedHeadDesign.totalCameras,
+                                  'Depth Approach': focusedHeadDesign.depthApproach,
+                                  LiDAR: focusedHeadDesign.lidar,
+                                  Audio: focusedHeadDesign.audioSystem,
+                                  'Interactive Features': focusedHeadDesign.interactiveFeatures,
+                                  Sources: focusedHeadDesign.sources.map((s) => s.label).join(' · '),
+                                }
+                              : {
+                                  'Tracked Designs': `${headDesignOverview.trackedDesigns} head/face designs`,
+                                  'OLED Screen': `${headDesignOverview.oledScreens} full expression displays`,
+                                  'Status Screen': `${headDesignOverview.statusScreens} icon/emotion screens`,
+                                  'LED Indicator': `${headDesignOverview.ledIndicators} LED-based signaling`,
+                                  'No Display': `${headDesignOverview.noDisplay} pure sensor pods`,
+                                  Concealed: `${headDesignOverview.concealed} hidden/decorative`,
+                                }
+                            : activeTab === 'vlas'
                             ? focusedVlaModel
                               ? {
                                   Developer: focusedVlaModel.developer,
@@ -2789,6 +2864,45 @@ export default function App() {
                         <span className="chain-country">{tool.country}</span>
                         <span className="chain-share">
                           {tool.developer} · {getVizToolTypeLabel(tool.toolType)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'displays' && (
+              <div className="supply-chain">
+                <div className="supply-chain__header">
+                  <h3 className="section-title">Design Directory</h3>
+                  <div className="vla-filters">
+                    <button className={`country-pill ${headDesignFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter('all')}>All</button>
+                    <button className={`country-pill ${headDesignFilter === 'oled-screen' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'oled-screen' ? 'all' : 'oled-screen')}>OLED</button>
+                    <button className={`country-pill ${headDesignFilter === 'status-screen' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'status-screen' ? 'all' : 'status-screen')}>Status Screen</button>
+                    <button className={`country-pill ${headDesignFilter === 'led-indicator' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'led-indicator' ? 'all' : 'led-indicator')}>LED</button>
+                    <button className={`country-pill ${headDesignFilter === 'no-display' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'no-display' ? 'all' : 'no-display')}>None</button>
+                    <button className={`country-pill ${headDesignFilter === 'concealed' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'concealed' ? 'all' : 'concealed')}>Concealed</button>
+                    {focusedHeadDesign && (
+                      <button className="chain-clear" onClick={() => setChainFocus(null)}>
+                        CLEAR FILTER
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="chain-flow">
+                  <div className="chain-tier">
+                    <div className="chain-tier-label">Designs</div>
+                    {filteredHeadDesigns.map((design) => (
+                      <button
+                        key={design.id}
+                        className={`chain-entity ${focusedHeadDesign && focusedHeadDesign.id !== design.id ? 'chain-entity--dim' : ''} ${focusedHeadDesign?.id === design.id ? 'chain-entity--focused' : ''} ${countryFilter && getCountryFilterGroup(design.country) !== countryFilter ? 'geo-dim' : ''}`}
+                        onClick={() => setChainFocus((prev) => prev === design.id ? null : design.id)}
+                      >
+                        <span className="chain-name">{design.name}</span>
+                        <span className="chain-country">{design.country}</span>
+                        <span className="chain-share">
+                          {design.developer} · {getFaceDisplayTypeLabel(design.faceType)}
                         </span>
                       </button>
                     ))}
