@@ -105,7 +105,6 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r405', from: 'shadow_robot', to: 'boston_dynamics', component: 'Dexterous Hands', description: 'Research-grade 24 DOF tendon-driven hand (OpenAI, DeepMind, NASA)' },
   { id: 'r406', from: 'orca_dexterity', to: 'pollen_robotics', component: 'Dexterous Hands', description: 'Open-source 17 DOF hand ($3.5K-$6.1K), NVIDIA Isaac Gym support' },
   { id: 'r407', from: 'robotis', to: 'pollen_robotics', component: 'Dexterous Hands', description: 'Dynamixel XM430 servo motors for Reachy 2 grippers' },
-  { id: 'r408', from: 'robotis', to: 'orca_dexterity', component: 'Dexterous Hands', description: 'Dynamixel XC330/XC430 servos for ORCA Hand actuation' },
 
   // === ADDITIONAL SENSOR RELATIONSHIPS (from audit) ===
   { id: 'r120', from: 'sony_sensors', to: 'boston_dynamics', component: 'Image Sensors', description: 'Camera sensors for 360° perception' },
