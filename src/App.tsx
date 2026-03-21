@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, Fragment } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
@@ -6,12 +6,13 @@ import SupplyChainGraph from './components/SupplyChainGraph';
 import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools, headDesigns, companyFunding, topInvestors, companyProduction, factoryDirectory, manufacturingPartners, simPlatforms, safetyStandards, oemSafetyProfiles } from './data';
 import type { RewardModelType, WorldModelType, VizToolType, FaceDisplayType, FundingStatus, FactoryStatus, SimPlatformType, SafetyComplianceLevel, OemSafetyProfile } from './data';
 import RewardChart from './components/RewardChart';
+import ApiDocs from './components/ApiDocs';
 import './App.css';
 
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-type TabGroup = 'overview' | 'industry' | 'hardware' | 'software' | 'hri';
+type TabGroup = 'overview' | 'industry' | 'hardware' | 'software' | 'hri' | 'api';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -19,6 +20,7 @@ const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
   { id: 'hri', label: 'HRI' },
+  { id: 'api', label: 'API' },
 ];
 
 const TABS: { id: string; label: string; group: TabGroup }[] = [
@@ -51,6 +53,14 @@ const TABS: { id: string; label: string; group: TabGroup }[] = [
   // HRI
   { id: 'displays', label: 'Displays', group: 'hri' },
   { id: 'safety_standards', label: 'Safety & Standards', group: 'hri' },
+  // API
+  { id: 'api_getting_started', label: 'Getting Started', group: 'api' },
+  { id: 'api_companies', label: 'Companies', group: 'api' },
+  { id: 'api_supply_chain', label: 'Supply Chain', group: 'api' },
+  { id: 'api_resources', label: 'Resources', group: 'api' },
+  { id: 'api_ai_sim', label: 'AI & Sim', group: 'api' },
+  { id: 'api_safety', label: 'Safety', group: 'api' },
+  { id: 'api_query', label: 'Query', group: 'api' },
 ];
 
 // Path ↔ Tab ID mapping for SEO-friendly URLs
@@ -79,6 +89,13 @@ const TAB_TO_PATH: Record<string, string> = {
   viz_tools: '/software/viz-tools',
   displays: '/hri/displays',
   safety_standards: '/hri/safety-standards',
+  api_getting_started: '/api/getting-started',
+  api_companies: '/api/companies',
+  api_supply_chain: '/api/supply-chain',
+  api_resources: '/api/resources',
+  api_ai_sim: '/api/ai-sim',
+  api_safety: '/api/safety',
+  api_query: '/api/query',
 };
 
 const PATH_TO_TAB: Record<string, string> = {
@@ -116,6 +133,13 @@ const TAB_META: Record<string, { title: string; description: string }> = {
   viz_tools: { title: 'Robotics Visualization Tools — Foxglove, Rerun & More | Humanoid Atlas', description: 'Compare 10 robotics visualization tools with capability matrix. Foxglove, Rerun, RViz2, PlotJuggler, and more.' },
   safety_standards: { title: 'Humanoid Robot Safety Standards & Compliance | Humanoid Atlas', description: 'Track safety standards (ISO 25785-1, ANSI R15.06, EU AI Act), OEM compliance profiles, and safety design features across 12 humanoid robotics companies.' },
   displays: { title: 'Humanoid Robot Displays & Head Designs | Humanoid Atlas', description: 'Compare 17 humanoid robot head/face designs. OLED screens, status displays, LED indicators, cameras, sensors, and interaction design.' },
+  api_getting_started: { title: 'API Getting Started — Authentication & Base URL | Humanoid Atlas', description: 'Get started with the Humanoid Atlas API. Base URL, authentication, response format, and system health endpoints.' },
+  api_companies: { title: 'API Companies Endpoints | Humanoid Atlas', description: 'List, search, and retrieve detailed company profiles for OEMs and suppliers via the Humanoid Atlas API.' },
+  api_supply_chain: { title: 'API Supply Chain Endpoints | Humanoid Atlas', description: 'Query supply chain relationships, traverse dependency graphs, analyze bottlenecks, and run what-if scenarios.' },
+  api_resources: { title: 'API Resource Endpoints | Humanoid Atlas', description: 'Access components, funding, investors, production data, factories, and manufacturing partners via the API.' },
+  api_ai_sim: { title: 'API AI & Simulation Endpoints | Humanoid Atlas', description: 'Query VLA models, reward models, world models, simulation platforms, and visualization tools.' },
+  api_safety: { title: 'API Safety Endpoints | Humanoid Atlas', description: 'Access safety standards, OEM compliance profiles, and head design data via the API.' },
+  api_query: { title: 'API Query & Compare Endpoints | Humanoid Atlas', description: 'Natural language search powered by LLM and side-by-side OEM comparison endpoints.' },
 };
 
 // Per-model spin speed multipliers (normalize perceived rotation speed)
@@ -2028,14 +2052,16 @@ export default function App() {
 
         <div className="tab-group-nav">
           {TAB_GROUPS.map((g) => (
-            <button
-              key={g.id}
-              className={`tab-group-pill ${activeTabGroup === g.id ? 'tab-group-pill--active' : ''}`}
-              onClick={() => {
-                const firstTab = TABS.find((t) => t.group === g.id);
-                if (firstTab) { navigate(TAB_TO_PATH[firstTab.id] || '/'); setChainFocus(null); }
-              }}
-            >{g.label}</button>
+            <Fragment key={g.id}>
+              {g.id === 'api' && <div className="filter-bar__separator" />}
+              <button
+                className={`tab-group-pill ${activeTabGroup === g.id ? 'tab-group-pill--active' : ''}`}
+                onClick={() => {
+                  const firstTab = TABS.find((t) => t.group === g.id);
+                  if (firstTab) { navigate(TAB_TO_PATH[firstTab.id] || '/'); setChainFocus(null); }
+                }}
+              >{g.label}</button>
+            </Fragment>
           ))}
         </div>
       </div>
@@ -2054,7 +2080,7 @@ export default function App() {
         })}
       </nav>
 
-      <main className={activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
+      <main className={activeTabGroup === 'api' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className="skeleton-center">
@@ -3831,6 +3857,10 @@ export default function App() {
             )}
 
           </>
+        )}
+
+        {activeTabGroup === 'api' && (
+          <ApiDocs activeSubTab={activeTab} />
         )}
       </main>
 
