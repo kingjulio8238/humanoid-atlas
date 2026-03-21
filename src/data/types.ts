@@ -1,4 +1,4 @@
-export type Country = 'US' | 'CN' | 'JP' | 'DE' | 'CH' | 'KR' | 'TW' | 'NL' | 'IL' | 'NO' | 'AU' | 'CA' | 'PL' | 'SE' | 'IN' | 'GLOBAL';
+export type Country = 'US' | 'CN' | 'JP' | 'DE' | 'CH' | 'KR' | 'TW' | 'NL' | 'IL' | 'NO' | 'AU' | 'CA' | 'PL' | 'SE' | 'IN' | 'ES' | 'FR' | 'GB' | 'GLOBAL';
 
 export type EntityType = 'oem' | 'tier1_supplier' | 'component_maker' | 'raw_material' | 'ai_compute';
 
