@@ -1626,6 +1626,14 @@ body {
   .tab-group-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; min-width: 0; flex-shrink: 1; }
   .tab-group-nav::-webkit-scrollbar { display: none; }
   .tab-group-pill { white-space: nowrap; flex-shrink: 0; }
+  .tab-group-pill--active,
+  .tab-group-pill--active:focus,
+  .tab-group-pill--active:active,
+  .tab-group-pill--active:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .country-pill--active,
+  .country-pill--active:focus,
+  .country-pill--active:active,
+  .country-pill--active:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
   .component-nav { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .component-nav::-webkit-scrollbar { display: none; }
   .component-btn { padding: 10px 10px; font-size: 10px; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0; }
