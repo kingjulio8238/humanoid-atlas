@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import PLYViewer, { preloadPLY } from './components/PLYViewer';
 import SupplyChainGraph from './components/SupplyChainGraph';
 import { companies, relationships, componentCategories, vlaModels, rewardModels, rewardComparisons, worldModels, vizTools, headDesigns, companyFunding, topInvestors, companyProduction, factoryDirectory, manufacturingPartners, simPlatforms, safetyStandards, oemSafetyProfiles } from './data';
-import type { RewardModelType, WorldModelType, VizToolType, FaceDisplayType, FundingStatus, FactoryStatus, SimPlatformType, SafetyComplianceLevel, OemSafetyProfile } from './data';
+import type { RobotSpecs, RewardModelType, WorldModelType, VizToolType, FaceDisplayType, FundingStatus, FactoryStatus, SimPlatformType, SafetyComplianceLevel, OemSafetyProfile } from './data';
 import RewardChart from './components/RewardChart';
 import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
@@ -229,6 +229,118 @@ const COMPONENT_KEYWORDS: Record<string, string[]> = {
   screws: ['planetary roller screws', 'roller screws'],
   sensors_tactile: [],
   skeleton: [],
+};
+
+// ==================== SKELETON INTERACTIVE REGIONS ====================
+interface SkeletonRegionBounds {
+  min: [number, number, number];
+  max: [number, number, number];
+}
+
+interface SkeletonRegion {
+  id: string;
+  label: string;
+  componentIds: string[];
+  bounds: SkeletonRegionBounds[];
+  color: string;
+}
+
+const SKELETON_REGIONS: SkeletonRegion[] = [
+  {
+    id: 'head',
+    label: 'Head',
+    componentIds: ['sensors_general', 'displays', 'compute'],
+    bounds: [{ min: [-0.12, 0.81, -0.12], max: [0.12, 1.05, 0.12] }],
+    color: '#d05050',
+  },
+  {
+    id: 'neck',
+    label: 'Neck',
+    componentIds: ['actuators_rotary', 'motors', 'displays'],
+    bounds: [{ min: [-0.18, 0.71, -0.15], max: [0.18, 0.77, 0.15] }],
+    color: '#d05050',
+  },
+  {
+    id: 'torso',
+    label: 'Torso',
+    componentIds: ['batteries', 'pcbs', 'compute'],
+    bounds: [{ min: [-0.2, 0.15, -0.16], max: [0.2, 0.72, 0.16] }],
+    color: '#d05050',
+  },
+  {
+    id: 'shoulders',
+    label: 'Shoulders',
+    componentIds: ['actuators_rotary', 'bearings', 'reducers'],
+    bounds: [
+      { min: [-1.0, 0.5, -0.22], max: [-0.2, 0.78, 0.22] },
+      { min: [0.2, 0.5, -0.22], max: [1.0, 0.78, 0.22] },
+    ],
+    color: '#d05050',
+  },
+  {
+    id: 'arms',
+    label: 'Arms',
+    componentIds: ['actuators_rotary', 'motors', 'reducers'],
+    bounds: [
+      { min: [-1.0, -0.1, -0.18], max: [-0.22, 0.55, 0.18] },
+      { min: [0.22, -0.1, -0.18], max: [1.0, 0.55, 0.18] },
+    ],
+    color: '#d05050',
+  },
+  {
+    id: 'hips',
+    label: 'Hips',
+    componentIds: ['bearings', 'actuators_rotary', 'reducers'],
+    bounds: [{ min: [-0.22, -0.15, -0.16], max: [0.22, 0.15, 0.16] }],
+    color: '#d05050',
+  },
+  {
+    id: 'legs',
+    label: 'Legs',
+    componentIds: ['actuators_linear', 'screws', 'bearings'],
+    bounds: [{ min: [-0.28, -0.7, -0.18], max: [0.28, -0.15, 0.18] }],
+    color: '#d05050',
+  },
+  {
+    id: 'ankles',
+    label: 'Ankles',
+    componentIds: ['actuators_rotary', 'bearings', 'reducers'],
+    bounds: [{ min: [-0.28, -0.88, -0.18], max: [0.28, -0.7, 0.18] }],
+    color: '#d05050',
+  },
+  {
+    id: 'feet',
+    label: 'Feet',
+    componentIds: ['sensors_general', 'bearings'],
+    bounds: [{ min: [-0.32, -1.05, -0.22], max: [0.32, -0.88, 0.22] }],
+    color: '#d05050',
+  },
+  {
+    id: 'hands',
+    label: 'Hands',
+    componentIds: ['end_effectors', 'sensors_tactile', 'motors'],
+    bounds: [
+      { min: [-0.65, -0.5, -0.15], max: [-0.28, -0.1, 0.15] },
+      { min: [0.28, -0.5, -0.15], max: [0.65, -0.1, 0.15] },
+    ],
+    color: '#d05050',
+  },
+];
+
+const COMPONENT_SPEC_FIELDS: Record<string, { field: keyof RobotSpecs; label: string }[]> = {
+  motors: [{ field: 'motor', label: 'Motor Type' }],
+  reducers: [{ field: 'transmission', label: 'Transmission' }],
+  compute: [{ field: 'compute', label: 'Compute Platform' }],
+  sensors_general: [{ field: 'externalSensors', label: 'External Sensors' }, { field: 'internalSensors', label: 'Internal Sensors' }],
+  sensors_tactile: [{ field: 'endEffector', label: 'End Effector' }, { field: 'internalSensors', label: 'Internal Sensors' }],
+  end_effectors: [{ field: 'endEffector', label: 'End Effector' }],
+  batteries: [{ field: 'battery', label: 'Battery' }, { field: 'charging', label: 'Charging' }, { field: 'operatingTime', label: 'Operating Time' }],
+  pcbs: [],
+  displays: [],
+  actuators_rotary: [{ field: 'actuatorBody', label: 'Body Actuators' }, { field: 'actuatorHand', label: 'Hand Actuators' }],
+  actuators_linear: [{ field: 'actuatorBody', label: 'Body Actuators' }, { field: 'transmission', label: 'Transmission' }],
+  bearings: [{ field: 'transmission', label: 'Transmission' }],
+  screws: [{ field: 'transmission', label: 'Transmission' }],
 };
 
 // Component IDs that map to the TABS for sovereignty analysis
@@ -1008,6 +1120,13 @@ export default function App() {
   const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
   const [activeScenarios, setActiveScenarios] = useState<Set<string>>(new Set());
   const [viewCount, setViewCount] = useState<number | null>(null);
+
+  // Skeleton interactive state
+  const [skeletonRegion, setSkeletonRegion] = useState<string | null>(null);
+  const [skeletonPill, setSkeletonPill] = useState<string | null>(null);
+  const [skeletonOem, setSkeletonOem] = useState<string | null>(null);
+  const [skeletonSidebarOpen, setSkeletonSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [likedByMe, setLikedByMe] = useState<Set<string>>(() => {
     try {
@@ -1059,6 +1178,13 @@ export default function App() {
       setCompanyId(urlCompany);
     }
   }, [searchParams]);
+
+  // Mobile detection for skeleton interactive
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   // Close search dropdown on outside click
   useEffect(() => {
@@ -1226,6 +1352,17 @@ export default function App() {
     }
     return getComponentChain(activeTab);
   }, [activeTab, actuatorType]);
+
+  // Skeleton sidebar computed data
+  const skeletonChain = useMemo(() => {
+    if (!skeletonPill) return null;
+    return getComponentChain(skeletonPill);
+  }, [skeletonPill]);
+
+  const skeletonComponent = useMemo(() => {
+    if (!skeletonPill) return null;
+    return componentCategories.find(c => c.id === skeletonPill) || null;
+  }, [skeletonPill]);
 
   const vlaOverview = useMemo(() => getVLAOverview(), []);
 
@@ -2213,8 +2350,194 @@ export default function App() {
       <main className={activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
-          <div className="skeleton-center">
-            <PLYViewer modelUrl="/models/skeleton.ply" color="#1a1a1a" initialRotation={MODEL_ROTATIONS['/models/skeleton.ply']} spinSpeed={MODEL_SPIN['/models/skeleton.ply']} />
+          <div className={`skeleton-interactive${skeletonRegion && skeletonSidebarOpen && !isMobile ? ' skeleton-interactive--sidebar-open' : ''}`}>
+            {!isMobile && !skeletonRegion && (
+              <div className="skeleton-prompt">Click a region to explore</div>
+            )}
+            <div className="skeleton-center">
+              <PLYViewer
+                modelUrl="/models/skeleton.ply"
+                color="#1a1a1a"
+                initialRotation={MODEL_ROTATIONS['/models/skeleton.ply']}
+                spinSpeed={isMobile ? MODEL_SPIN['/models/skeleton.ply'] : 0}
+                interactive={!isMobile}
+                regions={SKELETON_REGIONS}
+                selectedRegion={skeletonRegion}
+                onRegionClick={(regionId) => {
+                  setSkeletonRegion(regionId);
+                  const region = SKELETON_REGIONS.find(r => r.id === regionId);
+                  if (region) setSkeletonPill(region.componentIds[0]);
+                  setSkeletonSidebarOpen(true);
+                }}
+              />
+            </div>
+            {!isMobile && skeletonRegion && skeletonSidebarOpen && (() => {
+              const activeSkeletonRegion = SKELETON_REGIONS.find(r => r.id === skeletonRegion);
+              if (!activeSkeletonRegion) return null;
+              const selectedOemCompany = skeletonOem ? companies.find(c => c.id === skeletonOem) : null;
+              return (
+                <div className="skeleton-sidebar">
+                  <div className="skeleton-sidebar__header">
+                    <span className="skeleton-sidebar__region-label">{activeSkeletonRegion.label}</span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="back-btn" onClick={() => setSkeletonSidebarOpen(false)} title="Collapse sidebar">
+                        <span>&rsaquo;</span>
+                      </button>
+                      <button className="back-btn" onClick={() => { setSkeletonRegion(null); setSkeletonPill(null); }} title="Close">
+                        <span>&times;</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="skeleton-sidebar__pills">
+                    {activeSkeletonRegion.componentIds.map(cid => {
+                      const comp = componentCategories.find(c => c.id === cid);
+                      if (!comp) return null;
+                      return (
+                        <button
+                          key={cid}
+                          className={`country-pill${skeletonPill === cid ? ' country-pill--active' : ''}`}
+                          onClick={() => setSkeletonPill(cid)}
+                        >
+                          {comp.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="skeleton-sidebar__body">
+                    {skeletonComponent && (
+                      <>
+                        <h3 className="skeleton-sidebar__component-name">{skeletonComponent.name}</h3>
+                        <p className="skeleton-sidebar__description">{skeletonComponent.description}</p>
+
+                        {skeletonComponent.bottleneck && skeletonComponent.bottleneckReason && (
+                          <div className="skeleton-sidebar__bottleneck">
+                            <span className="skeleton-sidebar__section-label">Supply Chain Bottleneck</span>
+                            <p className="skeleton-sidebar__bottleneck-reason">{skeletonComponent.bottleneckReason}</p>
+                          </div>
+                        )}
+
+                        {skeletonComponent.keyMetrics && Object.keys(skeletonComponent.keyMetrics).length > 0 && (
+                          <div className="skeleton-sidebar__section">
+                            <span className="skeleton-sidebar__section-label">Key Metrics</span>
+                            <div className="skeleton-sidebar__metrics">
+                              {Object.entries(skeletonComponent.keyMetrics).map(([k, v]) => (
+                                <div key={k} className="skeleton-sidebar__metric-row">
+                                  <span className="skeleton-sidebar__metric-label">{k}</span>
+                                  <span className="skeleton-sidebar__metric-value">{v}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {skeletonChain && skeletonChain.suppliers.length > 0 && (
+                          <div className="skeleton-sidebar__section">
+                            <span className="skeleton-sidebar__section-label">Suppliers</span>
+                            <div className="skeleton-sidebar__supplier-list">
+                              {skeletonChain.suppliers.map(s => (
+                                <div key={s!.id} className="skeleton-sidebar__supplier-row" onClick={() => { setCompanyId(s!.id); }}>
+                                  <span className="skeleton-sidebar__supplier-name">{s!.name}</span>
+                                  <span className="skeleton-sidebar__supplier-meta">{s!.country}{s!.marketShare ? ` - ${s!.marketShare}` : ''}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {skeletonChain && (
+                          <div className="skeleton-sidebar__section">
+                            <span className="skeleton-sidebar__section-label">Supply Chain</span>
+                            <div className="skeleton-sidebar__chain-summary">
+                              {skeletonChain.upstream.length > 0 && (
+                                <span className="skeleton-sidebar__chain-tier">{skeletonChain.upstream.length} Raw Materials</span>
+                              )}
+                              {skeletonChain.upstream.length > 0 && <span className="skeleton-sidebar__chain-arrow">&rarr;</span>}
+                              <span className="skeleton-sidebar__chain-tier">{skeletonChain.suppliers.length} Suppliers</span>
+                              <span className="skeleton-sidebar__chain-arrow">&rarr;</span>
+                              <span className="skeleton-sidebar__chain-tier">{skeletonChain.oems.length} OEMs</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {TAB_TO_PATH[skeletonPill!] && (
+                          <button
+                            className="skeleton-sidebar__nav-link"
+                            onClick={() => navigate(TAB_TO_PATH[skeletonPill!])}
+                          >
+                            View full {skeletonComponent.name} tab &rarr;
+                          </button>
+                        )}
+
+                        <div className="skeleton-sidebar__section" style={{ marginTop: '20px' }}>
+                          <span className="skeleton-sidebar__section-label">OEM View</span>
+                          <select
+                            className="skeleton-sidebar__oem-select"
+                            value={skeletonOem || ''}
+                            onChange={(e) => setSkeletonOem(e.target.value || null)}
+                          >
+                            <option value="">Select an OEM...</option>
+                            {oems.map(o => (
+                              <option key={o.id} value={o.id}>{o.name}</option>
+                            ))}
+                          </select>
+
+                          {selectedOemCompany && selectedOemCompany.robotSpecs && skeletonPill && (
+                            <div className="skeleton-sidebar__oem-data">
+                              <span className="skeleton-sidebar__oem-name">{selectedOemCompany.name}</span>
+                              {(COMPONENT_SPEC_FIELDS[skeletonPill] || []).map(({ field, label }) => {
+                                const val = selectedOemCompany.robotSpecs?.[field];
+                                if (!val || val === 'Not disclosed') return null;
+                                const display = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
+                                return (
+                                  <div key={field} className="skeleton-sidebar__metric-row">
+                                    <span className="skeleton-sidebar__metric-label">{label}</span>
+                                    <span className="skeleton-sidebar__metric-value">{display}</span>
+                                  </div>
+                                );
+                              })}
+                              {skeletonChain && (() => {
+                                const oemRels = skeletonChain.rels.filter(r => r.to === skeletonOem);
+                                if (oemRels.length === 0) return <p className="skeleton-sidebar__no-data">No supply chain data for this OEM</p>;
+                                return (
+                                  <div className="skeleton-sidebar__section" style={{ marginTop: '8px' }}>
+                                    <span className="skeleton-sidebar__section-label">Suppliers Used</span>
+                                    <div className="skeleton-sidebar__supplier-list">
+                                    {oemRels.map(r => {
+                                      const sup = companies.find(c => c.id === r.from);
+                                      return sup ? (
+                                        <div key={r.id} className="skeleton-sidebar__supplier-row" onClick={() => setCompanyId(sup.id)}>
+                                          <span className="skeleton-sidebar__supplier-name">{sup.name}</span>
+                                          <span className="skeleton-sidebar__supplier-meta">{r.component}</span>
+                                        </div>
+                                      ) : null;
+                                    })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          {selectedOemCompany && !selectedOemCompany.robotSpecs && (
+                            <p className="skeleton-sidebar__no-data">No spec data available for {selectedOemCompany.name}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+            {!isMobile && skeletonRegion && !skeletonSidebarOpen && (
+              <button
+                className="skeleton-sidebar__reopen back-btn"
+                onClick={() => setSkeletonSidebarOpen(true)}
+                title="Open sidebar"
+              >
+                <span>&lsaquo;</span>
+              </button>
+            )}
           </div>
         )}
 

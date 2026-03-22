@@ -243,6 +243,29 @@ body {
   overflow: hidden;
 }
 
+.skeleton-interactive {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.skeleton-interactive .skeleton-center {
+  flex: 1 1 100%;
+  min-width: 0;
+  height: 100%;
+  transition: flex-basis 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.skeleton-interactive--sidebar-open .skeleton-center {
+  flex: 0 0 60%;
+}
+
+.skeleton-interactive .skeleton-center .ply-viewer {
+  width: 100%;
+  height: 100%;
+}
+
 .skeleton-center {
   width: 100%;
   height: 100%;
@@ -251,6 +274,280 @@ body {
 .skeleton-center .ply-viewer {
   width: 100%;
   height: 100%;
+}
+
+/* Prompt */
+.skeleton-prompt {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Sidebar */
+.skeleton-sidebar {
+  flex: 0 0 40%;
+  height: 100%;
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  animation: skeleton-sidebar-slide-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes skeleton-sidebar-slide-in {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.skeleton-sidebar::-webkit-scrollbar { width: 4px; }
+.skeleton-sidebar::-webkit-scrollbar-track { background: transparent; }
+.skeleton-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.skeleton-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.skeleton-sidebar__region-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.skeleton-sidebar__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.skeleton-sidebar__body {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.skeleton-sidebar__component-name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 8px 0;
+}
+
+.skeleton-sidebar__description {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+}
+
+.skeleton-sidebar__section {
+  margin-bottom: 16px;
+}
+
+.skeleton-sidebar__section-label {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.skeleton-sidebar__bottleneck {
+  background: rgba(197, 48, 48, 0.06);
+  border: 1px solid rgba(197, 48, 48, 0.2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.skeleton-sidebar__bottleneck .skeleton-sidebar__section-label {
+  color: var(--red);
+}
+
+.skeleton-sidebar__bottleneck-reason {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.skeleton-sidebar__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skeleton-sidebar__metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.skeleton-sidebar__metric-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.skeleton-sidebar__metric-value {
+  font-size: 11px;
+  color: var(--text);
+  text-align: right;
+}
+
+.skeleton-sidebar__supplier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skeleton-sidebar__supplier-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.skeleton-sidebar__supplier-row:hover {
+  background: var(--bg-muted);
+}
+
+.skeleton-sidebar__supplier-name {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.skeleton-sidebar__supplier-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.skeleton-sidebar__chain-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.skeleton-sidebar__chain-tier {
+  font-size: 11px;
+  color: var(--text);
+  padding: 3px 8px;
+  background: var(--bg-muted);
+  border-radius: 3px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.skeleton-sidebar__chain-arrow {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.skeleton-sidebar__nav-link {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-top: 12px;
+}
+
+.skeleton-sidebar__nav-link:hover {
+  color: var(--text);
+}
+
+.skeleton-sidebar__oem-select {
+  width: 100%;
+  padding: 7px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a0a0a0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.skeleton-sidebar__oem-select:hover,
+.skeleton-sidebar__oem-select:focus {
+  border-color: var(--text-dim);
+  outline: none;
+}
+
+.skeleton-sidebar__oem-data {
+  margin-top: 4px;
+}
+
+.skeleton-sidebar__oem-name {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.skeleton-sidebar__no-data {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.skeleton-sidebar__reopen {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .skeleton-prompt { display: none; }
+  .skeleton-sidebar { display: none; }
+  .skeleton-sidebar__reopen { display: none; }
+  .skeleton-interactive--sidebar-open .skeleton-center { flex: 1; }
 }
 
 /* ========== ALL OEMs VIEW ========== */
