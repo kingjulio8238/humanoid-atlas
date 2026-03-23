@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth, SignInButton } from '@clerk/clerk-react';
 import { api } from '../lib/brokerage-api';
 import { useCart } from '../hooks/useCart';
 
-// Try to get Clerk auth hook — gracefully degrade if not available
-let useAuthHook: (() => { getToken: () => Promise<string | null>; isSignedIn: boolean | undefined }) | null = null;
-let SignInButton: React.ComponentType<{ children: React.ReactNode }> | null = null;
-let UserButton: React.ComponentType | null = null;
+const CLERK_AVAILABLE = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-try {
-  const clerk = await import('@clerk/clerk-react');
-  useAuthHook = clerk.useAuth as unknown as typeof useAuthHook;
-  SignInButton = clerk.SignInButton as unknown as typeof SignInButton;
-  UserButton = clerk.UserButton as unknown as typeof UserButton;
-} catch { /* Clerk not available — all features degrade gracefully */ }
+// Safe Clerk hook — returns defaults if ClerkProvider is not mounted
+function useClerkAuth(): { isSignedIn: boolean; getToken: () => Promise<string | null> } {
+  if (!CLERK_AVAILABLE) return { isSignedIn: false, getToken: async () => null };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const auth = useAuth();
+  return { isSignedIn: auth.isSignedIn ?? false, getToken: auth.getToken };
+}
+
+function ClerkSignInBtn({ children }: { children: React.ReactNode }) {
+  if (!CLERK_AVAILABLE) return <>{children}</>;
+  return <SignInButton>{children}</SignInButton>;
+}
 
 interface Listing {
   id: string; title: string; slug: string; description: string; modality: string;
@@ -240,7 +244,7 @@ function CartDrawer({ cart, onClose, formatUsd }: { cart: ReturnType<typeof useC
 // ═══════════════════════════════════════════════════════════
 
 function SellData() {
-  const isSignedIn = useAuthHook?.()?.isSignedIn;
+  const { isSignedIn } = useClerkAuth();
 
   if (!isSignedIn) {
     return (
@@ -258,11 +262,7 @@ function SellData() {
             <p>· 15% platform fee, no upfront costs</p>
             <p>· Opt into data collection programs</p>
           </div>
-          {SignInButton ? (
-            <SignInButton><button className="db-add-cart-btn">Sign Up as Provider</button></SignInButton>
-          ) : (
-            <button className="db-add-cart-btn" disabled>Sign-in not available</button>
-          )}
+          <ClerkSignInBtn><button className="db-add-cart-btn">Sign Up as Provider</button></ClerkSignInBtn>
         </div>
       </div>
     );
@@ -476,15 +476,6 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
 // ═══════════════════════════════════════════════════════════
 
 export default function DataBrokerage({ activeSubTab }: { activeSubTab: string }) {
-  // Wire up Clerk token getter if available
-  useEffect(() => {
-    if (useAuthHook) {
-      try {
-        // This is safe because useAuthHook is stable across renders
-      } catch { /* ignore */ }
-    }
-  }, []);
-
   return (
     <>
       {activeSubTab === 'buy_data' && <BuyData />}

@@ -19,7 +19,7 @@ type TabGroup = 'overview' | 'industry' | 'data' | 'hardware' | 'software' | 'hr
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'industry', label: 'Industry' },
-  { id: 'data', label: 'Data' },
+  // { id: 'data', label: 'Data' }, // Hidden until ready — uncomment to enable
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
   { id: 'hri', label: 'HRI' },
