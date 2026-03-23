@@ -250,3 +250,23 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r404', from: 'bosch_sensortec', to: 'fauna', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis inertial measurement unit' },
 
 ];
+// NullLabTests additions — potential for embodied AGI acceleration
+
+{
+  from: "Tesla",
+  to: "Nvidia",
+  component: "compute",
+  type: "supplier",
+  confidence: "confirmed",
+  source: "https://www.tesla.com/AI (Optimus compute references)",
+  notes: "High-bandwidth inference for real-time world models"
+},
+{
+  from: "Figure",
+  to: "Agile Robots",
+  component: "actuators",
+  type: "supplier",
+  confidence: "likely",
+  source: "https://example-robotics-news.com/figure-agile-partnership",
+  notes: "Dexterity boost — key for self-improving manipulation loops"
+}
