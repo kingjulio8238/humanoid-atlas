@@ -8,16 +8,18 @@ import type { RobotSpecs, RewardModelType, WorldModelType, VizToolType, FaceDisp
 import RewardChart from './components/RewardChart';
 import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
+import DataBrokerage from './components/DataBrokerage';
 import './App.css';
 
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-type TabGroup = 'overview' | 'industry' | 'hardware' | 'software' | 'hri' | 'cli' | 'api';
+type TabGroup = 'overview' | 'industry' | 'data' | 'hardware' | 'software' | 'hri' | 'cli' | 'api';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'industry', label: 'Industry' },
+  { id: 'data', label: 'Data' },
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
   { id: 'hri', label: 'HRI' },
@@ -35,6 +37,10 @@ const TABS: { id: string; label: string; group: TabGroup }[] = [
   { id: 'funding', label: 'Funding', group: 'industry' },
   { id: 'timeline', label: 'Buildout', group: 'industry' },
   { id: 'factories', label: 'Factories', group: 'industry' },
+  // Data
+  { id: 'buy_data', label: 'Buy Data', group: 'data' },
+  { id: 'sell_data', label: 'Sell Data', group: 'data' },
+  { id: 'collect_data', label: 'Collect Data', group: 'data' },
   // Hardware
   { id: 'sensors_general', label: 'Sensors', group: 'hardware' },
   { id: 'compute', label: 'Compute', group: 'hardware' },
@@ -78,6 +84,9 @@ const TAB_TO_PATH: Record<string, string> = {
   factories: '/industry/factories',
   geopolitics: '/industry/geopolitics',
   timeline: '/industry/buildout',
+  buy_data: '/data/buy',
+  sell_data: '/data/sell',
+  collect_data: '/data/collect',
   sensors_general: '/hardware/sensors',
   compute: '/hardware/compute',
   batteries: '/hardware/battery',
@@ -125,6 +134,9 @@ const TAB_META: Record<string, { title: string; description: string }> = {
   geopolitics: { title: 'Humanoid Robot Geopolitics - US vs China Supply Chain | Humanoid Atlas', description: 'Geopolitical analysis of the humanoid robot supply chain. Compare US, China, and global supplier dependencies, self-sufficiency scores, and bottleneck exposure.' },
   network: { title: 'Humanoid Robot Supply Chain Network Graph | Humanoid Atlas', description: 'Interactive network visualization of all humanoid robot OEM-supplier relationships. Explore the full supply chain graph.' },
   timeline: { title: 'Humanoid Robot Industry Buildout Timeline | Humanoid Atlas', description: 'Timeline of humanoid robot development milestones, production ramp-ups, and industry buildout.' },
+  buy_data: { title: 'Buy Training Data | Atlas Data Brokerage', description: 'Browse and purchase humanoid robot training datasets. Egocentric video, teleoperation, tactile, motion capture data from verified providers.' },
+  sell_data: { title: 'Sell Training Data | Atlas Data Brokerage', description: 'List your training datasets on Atlas Data Brokerage. Reach OEM buyers, set your own prices, get paid via Stripe.' },
+  collect_data: { title: 'Collect Training Data | Atlas Data Brokerage', description: 'Join data collection programs and earn by gathering training data for humanoid robots.' },
   sensors_general: { title: 'Humanoid Robot Sensors - Cameras, LiDAR, IMUs | Humanoid Atlas', description: 'Sensor supply chain for humanoid robots. Intel RealSense, Livox LiDAR, Sony image sensors, and more.' },
   compute: { title: 'Humanoid Robot Compute - NVIDIA Jetson, SoCs | Humanoid Atlas', description: 'Compute platforms powering humanoid robots. NVIDIA Jetson Orin/Thor, Intel, Qualcomm, and custom SoCs.' },
   batteries: { title: 'Humanoid Robot Batteries - Cells & Pack Design | Humanoid Atlas', description: 'Battery supply chain for humanoid robots. Panasonic, CATL, Samsung SDI, Molicel cells and pack designs.' },
@@ -2355,7 +2367,7 @@ export default function App() {
         })}
       </nav>
 
-      <main className={activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
+      <main className={activeTabGroup === 'data' ? 'component-view' : activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className={`skeleton-interactive${skeletonRegion && skeletonSidebarOpen && !isMobile ? ' skeleton-interactive--sidebar-open' : ''}`}>
@@ -4318,6 +4330,10 @@ export default function App() {
             )}
 
           </>
+        )}
+
+        {activeTabGroup === 'data' && (
+          <DataBrokerage activeSubTab={activeTab} />
         )}
 
         {activeTabGroup === 'cli' && (
