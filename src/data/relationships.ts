@@ -248,5 +248,10 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r402', from: 'stmicro', to: 'fauna', component: 'VL53L8CX ToF Sensors', componentCategoryId: 'sensors_general', description: '4x time-of-flight obstacle detection sensors' },
   { id: 'r403', from: 'molicel', to: 'fauna', component: 'P50B Battery Cells', componentCategoryId: 'batteries', description: 'Li-ion 21700 cells, 46.8V swappable pack' },
   { id: 'r404', from: 'bosch_sensortec', to: 'fauna', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis inertial measurement unit' },
-
+  
+  // === VIBE ROBOTICS ===
+  { id: 'r410', from: 'nvidia', to: 'vibe', component: 'Jetson Orin Nano', componentCategoryId: 'compute', description: 'Primary compute for AI inference' },
+  { id: 'r411', from: 'intel', to: 'vibe', component: 'Depth Cameras', componentCategoryId: 'sensors_general', description: 'RealSense D435i depth camera' },
+  { id: 'r412', from: 'feetech', to: 'vibe', component: 'Servo Actuators', componentCategoryId: 'actuators_rotary', description: 'Low-cost embedded servo actuators for joint control' },
+  { id: 'r413', from: 'adafruit', to: 'vibe', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis IMU for balance and orientation' },
 ];
