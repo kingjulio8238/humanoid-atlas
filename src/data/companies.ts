@@ -277,10 +277,10 @@ export const companies: Company[] = [
     name: 'Vibe Robotics (Sunday A1)',
     type: 'oem',
     country: 'US',
-    description: 'Vibe Robotics is taking a contrarian approach to humanoid robotics: instead of maximizing performance, they are optimizing for accessibility and scale. Their core thesis is that the bottleneck for general-purpose humanoids is not better hardware, but large-scale real-world data—something that can only be achieved through widespread deployment. By building ultra-low-cost humanoids ($1K–$2K range) using 3D-printed structures and commodity actuators, Vibe targets universities, research labs, and developers rather than enterprise customers. This enables hundreds to thousands of robots to be deployed early, forming a distributed data flywheel across diverse real-world environments. The bet is that scale of deployment—not peak hardware capability—will ultimately define the winning humanoid platform, similar to how personal computers outpaced mainframes through accessibility.',
+    description: 'Vibe Robotics is taking a contrarian approach to humanoid robotics: instead of maximizing performance, they are optimizing for accessibility and scale. Their core thesis is that the bottleneck for general-purpose humanoids is not better hardware, but large-scale real-world data - something that can only be achieved through widespread deployment. By building ultra-low-cost humanoids ($1K-$2K range) using 3D-printed structures and commodity actuators, Vibe targets universities, research labs, and developers rather than enterprise customers. This enables hundreds to thousands of robots to be deployed early, forming a distributed data flywheel across diverse real-world environments. The bet is that scale of deployment - not peak hardware capability - will ultimately define the winning humanoid platform, similar to how personal computers outpaced mainframes through accessibility.',
     plyModel: '/models/skeleton.ply',
     website: 'https://www.viberobotics.co',
-    robotImage: '/models/robo8_vibe.png',
+    robotImage: '/models/robo8_vibe.webp',
     robotSpecs: {
       status: 'Prototype',
       launchDate: 'Feb 2026',

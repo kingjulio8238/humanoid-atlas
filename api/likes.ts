@@ -16,7 +16,7 @@ const REDIS_KEY = 'oem_likes';
 const REDIS_VOTED_PREFIX = 'oem_voted:'; // Set of IPs that liked a given OEM
 
 const VALID_OEM_IDS = new Set([
-  'apptronik', 'tesla', 'figure', 'agility', '1x', 'boston_dynamics', 'sunday',
+  'apptronik', 'tesla', 'figure', 'agility', '1x', 'boston_dynamics', 'sunday', 'vibe',
   'unitree', 'booster', 'booster_k1', 'agibot', 'xpeng', 'engineai', 'ubtech', 'dexmate',
   'fourier', 'kepler', 'sanctuary_ai', 'noetix', 'dobot', 'limx', 'pudu',
   'astribot', 'magiclab', 'xiaomi', 'foundation_robotics', 'neura_4ne1', 'robotera',
