@@ -1168,44 +1168,6 @@ function MyPurchases() {
 // CHARTS
 // ═══════════════════════════════════════════════════════════
 
-function AreaChart({ data, label }: { data: { label: string; value: number }[]; label: string }) {
-  const w = 640;
-  const h = 150;
-  const padL = 24;
-  const padR = 24;
-  const padB = 28;
-  const padT = 8;
-  const chartW = w - padL - padR;
-  const chartH = h - padB - padT;
-  const max = Math.max(...data.map(d => d.value), 1);
-
-  const getY = (v: number) => padT + chartH - (v / max) * chartH;
-  const getX = (i: number) => padL + (i / (data.length - 1)) * chartW;
-
-  const points = data.map((d, i) => `${getX(i)},${getY(d.value)}`).join(' ');
-  const areaPoints = `${getX(0)},${h - padB} ${points} ${getX(data.length - 1)},${h - padB}`;
-
-  return (
-    <div className="db-chart-wrap">
-      <div className="db-meta-label" style={{ marginBottom: 16 }}>{label}</div>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto' }}>
-        {[0, 0.25, 0.5, 0.75, 1].map(pct => (
-          <line key={pct} x1={padL} y1={getY(max * pct)} x2={w - padR} y2={getY(max * pct)} stroke="var(--border)" strokeWidth="0.5" strokeDasharray={pct === 0 ? 'none' : '4 4'} />
-        ))}
-        <polyline points={areaPoints} fill="rgba(26,26,26,0.03)" stroke="none" />
-        <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-        {data.map((d, i) => (
-          <circle key={i} cx={getX(i)} cy={getY(d.value)} r="2" fill="var(--bg-card)" stroke="var(--accent)" strokeWidth="1" />
-        ))}
-        {data.map((d, i) => (
-          <text key={`l${i}`} x={getX(i)} y={h - 8} textAnchor="middle" fill="var(--text-dim)"
-            style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', letterSpacing: '1px' }}>{d.label}</text>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
 function VerticalBarChart({ data, label }: { data: { label: string; value: number }[]; label: string }) {
   const max = Math.max(...data.map(d => d.value), 1);
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -1324,52 +1286,11 @@ function ProviderAnalytics() {
   const collectors = (data?.collector_count as number) ?? 0;
   const topListings = (data?.top_listings as Array<Record<string, unknown>>) ?? [];
 
-  // Generate demo time-series data (replaced by real data when transactions flow)
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const getRecentMonths = (count: number) => {
-    const months: string[] = [];
-    for (let i = count - 1; i >= 0; i--) {
-      months.push(monthNames[(currentMonth - i + 12) % 12]);
-    }
-    return months;
-  };
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const getRecentDays = () => {
-    const days: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 86400000);
-      days.push(dayNames[d.getDay()]);
-    }
-    return days;
-  };
-  const periodLabels: Record<string, string[]> = {
-    '7d': getRecentDays(),
-    '30d': ['W1', 'W2', 'W3', 'W4'],
-    '90d': getRecentMonths(3),
-    'all': getRecentMonths(6),
-  };
-  const labels = periodLabels[period] || periodLabels['all'];
-
-  const distribute = (total: number, n: number): number[] => {
-    if (total === 0) return Array(n).fill(0);
-    const vals: number[] = [];
-    let rem = total;
-    for (let i = 0; i < n - 1; i++) {
-      const v = Math.max(0, (rem / (n - i)) * (0.5 + Math.random()));
-      vals.push(Math.round(v));
-      rem -= v;
-    }
-    vals.push(Math.max(0, Math.round(rem)));
-    return vals;
-  };
-
-  const revPoints = distribute(revenue, labels.length);
-  const txnPoints = distribute(txns, labels.length);
-
-  const revenueChartData = labels.map((l, i) => ({ label: l, value: revPoints[i] }));
-  const txnChartData = labels.map((l, i) => ({ label: l, value: txnPoints[i] }));
+  // Build bar chart data from top_listings (real per-listing data, not fake time-series)
+  const listingBarData = topListings.map(l => ({
+    label: String(l.title ?? '').slice(0, 20) + (String(l.title ?? '').length > 20 ? '...' : ''),
+    value: Math.round((l.revenue_cents as number) / 100),
+  }));
 
   // Donut: breakdown by modality from top listings
   const modalityMap = new Map<string, number>();
@@ -1379,15 +1300,12 @@ function ProviderAnalytics() {
   }
   const donutColors = ['#1a1a1a', '#8a8580', '#c5c0b8', '#e0ddd8', '#a0a0a0'];
   const donutSegments = [...modalityMap.entries()].map(([name, value], i) => ({
-    name: name.replace(/_/g, ' '),
+    name: name.replace(/_/g, ' ').toUpperCase(),
     value,
     color: donutColors[i % donutColors.length],
   }));
-  // If no data, show placeholder segments
   const finalDonut = donutSegments.length > 0 ? donutSegments : [
-    { name: 'Video', value: 0, color: donutColors[0] },
-    { name: 'Teleoperation', value: 0, color: donutColors[1] },
-    { name: 'Tactile', value: 0, color: donutColors[2] },
+    { name: 'No data', value: 0, color: '#e0ddd8' },
   ];
 
   return (
@@ -1418,10 +1336,11 @@ function ProviderAnalytics() {
         </div>
       </div>
 
-      <AreaChart data={revenueChartData} label="Revenue over time" />
+      {listingBarData.length > 0 && (
+        <VerticalBarChart data={listingBarData} label="Revenue by listing ($)" />
+      )}
 
       <div className="db-chart-row">
-        <VerticalBarChart data={txnChartData} label="Transactions" />
         <DonutChart segments={finalDonut} label="Hours by modality" />
       </div>
 
