@@ -1208,21 +1208,26 @@ function AreaChart({ data, label }: { data: { label: string; value: number }[]; 
 
 function VerticalBarChart({ data, label }: { data: { label: string; value: number }[]; label: string }) {
   const max = Math.max(...data.map(d => d.value), 1);
+  const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="db-chart-wrap">
       <div className="db-meta-label" style={{ marginBottom: 16 }}>{label}</div>
-      <div className="db-vbar-chart">
-        {data.map((d, i) => (
-          <div key={i} className="db-vbar-chart__col" title={`${d.value} transactions`}>
-            <div className="db-vbar-chart__val">{d.value || ''}</div>
-            <div className="db-vbar-chart__bar-wrap">
-              <div className="db-vbar-chart__bar" style={{ height: `${Math.max((d.value / max) * 100, 1)}%` }} />
+      {total === 0 ? (
+        <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>No data for this period</div>
+      ) : (
+        <div className="db-vbar-chart">
+          {data.map((d, i) => (
+            <div key={i} className="db-vbar-chart__col" title={`${d.value} transactions`}>
+              <div className="db-vbar-chart__val">{d.value > 0 ? d.value : ''}</div>
+              <div className="db-vbar-chart__bar-wrap">
+                <div className="db-vbar-chart__bar" style={{ height: d.value > 0 ? `${Math.max((d.value / max) * 100, 12)}%` : '0%' }} />
+              </div>
+              <div className="db-vbar-chart__label">{d.label}</div>
             </div>
-            <div className="db-vbar-chart__label">{d.label}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1573,6 +1578,35 @@ function StripeStatus() {
   );
 }
 
+function CopyableCodeBlock({ code, label }: { code: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <div style={{ position: 'relative' }}>
+      <div className="db-meta-label" style={{ marginBottom: 8 }}>{label}</div>
+      <button
+        onClick={handleCopy}
+        style={{
+          position: 'absolute', top: 28, right: 8,
+          background: copied ? 'var(--green)' : 'var(--bg-primary)',
+          color: copied ? '#fff' : 'var(--text-secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: 3, padding: '3px 8px',
+          fontSize: 9, fontFamily: 'Share Tech Mono, monospace',
+          textTransform: 'uppercase', letterSpacing: '0.5px',
+          cursor: 'pointer',
+        }}
+      >{copied ? 'Copied' : 'Copy'}</button>
+      <pre className="db-code-block">{code}</pre>
+    </div>
+  );
+}
+
 function ProvisioningGuide({ callbackUrl }: { callbackUrl: string }) {
   return (
     <div style={{ marginTop: 16 }}>
@@ -1583,8 +1617,7 @@ function ProvisioningGuide({ callbackUrl }: { callbackUrl: string }) {
         You can respond synchronously with access details, or asynchronously via the callback URL.
       </p>
 
-      <div className="db-meta-label" style={{ marginBottom: 8 }}>Request format (sent by Atlas)</div>
-      <pre className="db-code-block">{`POST your-api-endpoint
+      <CopyableCodeBlock label="Request format (sent by Atlas)" code={`POST your-api-endpoint
 Authorization: Bearer your-api-key
 Content-Type: application/json
 
@@ -1601,22 +1634,22 @@ Content-Type: application/json
     }
   ],
   "callback_url": "${callbackUrl}"
-}`}</pre>
+}`} />
 
-      <div className="db-meta-label" style={{ marginBottom: 8, marginTop: 16 }}>Response - Synchronous (instant access)</div>
-      <pre className="db-code-block">{`{
+      <div style={{ marginTop: 16 }} />
+      <CopyableCodeBlock label="Response - Synchronous (instant access)" code={`{
   "status": "ready",
   "access_url": "https://your-storage.com/download/xyz",
   "instructions": "Download all files from the link above"
-}`}</pre>
+}`} />
 
-      <div className="db-meta-label" style={{ marginBottom: 8, marginTop: 16 }}>Response - Asynchronous (processing needed)</div>
-      <pre className="db-code-block">{`{
+      <div style={{ marginTop: 16 }} />
+      <CopyableCodeBlock label="Response - Asynchronous (processing needed)" code={`{
   "status": "processing"
-}`}</pre>
+}`} />
 
-      <div className="db-meta-label" style={{ marginBottom: 8, marginTop: 16 }}>Callback (when async processing is done)</div>
-      <pre className="db-code-block">{`POST ${callbackUrl}
+      <div style={{ marginTop: 16 }} />
+      <CopyableCodeBlock label="Callback (when async processing is done)" code={`POST ${callbackUrl}
 Content-Type: application/json
 
 {
@@ -1624,7 +1657,7 @@ Content-Type: application/json
   "status": "ready",
   "access_url": "https://your-storage.com/download/xyz",
   "instructions": "Download all files from the link above"
-}`}</pre>
+}`} />
     </div>
   );
 }
