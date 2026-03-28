@@ -508,9 +508,9 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose }: {
           <div className="db-modal-success">
             <div className="db-modal-success__title">Purchase successful</div>
             <div className="db-modal-success__note">
-              Your data access is being prepared. Check "My Purchases" to track status and download files.
+              Your data access is being prepared.
             </div>
-            <button className="db-add-cart-btn" onClick={onClose}>Done</button>
+            <button className="db-add-cart-btn" onClick={() => { onClose(); onPurchaseComplete?.(); }}>View My Purchases</button>
           </div>
         ) : (
           <>
