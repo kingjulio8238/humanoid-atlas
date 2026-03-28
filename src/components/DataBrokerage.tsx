@@ -1370,6 +1370,7 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
   const [signups, setSignups] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const fetchSignups = () => {
     setLoading(true);
@@ -1383,9 +1384,19 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
 
   const handleStatusChange = async (signupId: string, status: string) => {
     setActionLoading(signupId);
+    setActionMsg(null);
     try {
-      await api.patch(`/provider/collection-programs/${programId}/signups/${signupId}`, { status });
+      const res = await api.patch<{ data: Record<string, unknown> }>(`/provider/collection-programs/${programId}/signups/${signupId}`, { status });
       fetchSignups();
+      if (status === 'accepted') {
+        const webhookSent = res.data?.webhook_sent;
+        if (webhookSent) {
+          setActionMsg('Collector accepted and synced to your system.');
+        } else {
+          setActionMsg('Collector accepted. Configure your provisioning API in Settings to auto-sync collectors to your database.');
+        }
+        setTimeout(() => setActionMsg(null), 8000);
+      }
     } catch (err) {
       console.error('Failed to update status:', err);
     } finally {
@@ -1413,6 +1424,12 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
             <div><div className="db-meta-label">Signup type</div><div className="db-meta-value">{String(program.signup_type ?? 'atlas_form')}</div></div>
           </div>
           {program.requirements && <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 12 }}><strong>Requirements:</strong> {String(program.requirements)}</div>}
+        </div>
+      )}
+
+      {actionMsg && (
+        <div style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', padding: '8px 12px', marginBottom: 12, borderRadius: 4, background: actionMsg.includes('synced') ? 'rgba(39,103,73,0.08)' : 'rgba(214,158,46,0.08)', color: actionMsg.includes('synced') ? '#276749' : '#8a6d00' }}>
+          {actionMsg}
         </div>
       )}
 
@@ -1861,6 +1878,29 @@ Content-Type: application/json
   "access_url": "https://your-storage.com/download/xyz",
   "instructions": "Download all files from the link above"
 }`} />
+
+      <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+        <div className="db-meta-label" style={{ marginBottom: 12 }}>Collector events</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          When you accept a collector from the Programs tab, Atlas sends a notification to the same endpoint so you can sync them to your own database.
+        </p>
+        <CopyableCodeBlock label="Event: collector_accepted" code={`POST your-api-endpoint
+Authorization: Bearer your-api-key
+Content-Type: application/json
+
+{
+  "event": "collector_accepted",
+  "collector": {
+    "name": "Eve Torres",
+    "email": "eve@example.com",
+    "referral_code": "ATL-377DKM"
+  },
+  "program": {
+    "id": "program-uuid",
+    "title": "Kitchen Activity Capture"
+  }
+}`} />
+      </div>
     </div>
   );
 }
