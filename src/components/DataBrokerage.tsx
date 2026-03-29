@@ -109,7 +109,7 @@ function BuyData() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [filters, setFilters] = useState({ modality: '', environment: '', q: '' });
+  const [filters, setFilters] = useState({ modality: '', environment: '', q: '', min_price: '', max_price: '' });
   const [facets, setFacets] = useState<{ modalities: string[]; environments: string[] }>({ modalities: [], environments: [] });
   const [showCustomRequest, setShowCustomRequest] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
@@ -127,14 +127,24 @@ function BuyData() {
     }
   }, [isSignedIn, cart.totalItems]);
 
+  // Debounced search: only refetch after 300ms pause in typing
+  const [debouncedQ, setDebouncedQ] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(filters.q), 300);
+    return () => clearTimeout(t);
+  }, [filters.q]);
+
   const fetchListings = useCallback(() => {
-    setLoading(true);
+    // Only show full loading on initial load (when listings are empty)
+    if (listings.length === 0) setLoading(true);
     const params = new URLSearchParams();
     if (filters.modality) params.set('modality', filters.modality);
     if (filters.environment) params.set('environment', filters.environment);
-    if (filters.q) params.set('q', filters.q);
+    if (debouncedQ) params.set('q', debouncedQ);
+    if (filters.min_price) params.set('min_price', filters.min_price);
+    if (filters.max_price) params.set('max_price', filters.max_price);
     api.get<{ data: Listing[] }>(`/catalog?${params}`).then(r => setListings(r.data)).catch(console.error).finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters.modality, filters.environment, filters.min_price, filters.max_price, debouncedQ]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
   useEffect(() => { api.get<{ data: typeof facets }>('/catalog/facets').then(r => setFacets(r.data)).catch(console.error); }, []);
@@ -211,23 +221,39 @@ function BuyData() {
         <MyPurchases />
       ) : (
         <>
-          <div className="db-filter-bar">
+          <div className="db-filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input className="db-search" placeholder="Search datasets..." value={filters.q}
-              onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} />
-            <span className="db-filter-sep" />
-            {facets.modalities.map(m => (
-              <button key={m} className={`db-filter-pill${filters.modality === m ? ' db-filter-pill--active' : ''}`}
-                onClick={() => setFilters(f => ({ ...f, modality: f.modality === m ? '' : m }))}>
-                {m.replace(/_/g, ' ')}
-              </button>
-            ))}
-            <span className="db-filter-sep" />
-            {facets.environments.map(e => (
-              <button key={e} className={`db-filter-pill${filters.environment === e ? ' db-filter-pill--active' : ''}`}
-                onClick={() => setFilters(f => ({ ...f, environment: f.environment === e ? '' : e }))}>
-                {e}
-              </button>
-            ))}
+              onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} style={{ maxWidth: 280 }} />
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.modality}
+                onChange={e => setFilters(f => ({ ...f, modality: e.target.value }))}>
+                <option value="">Modality</option>
+                {facets.modalities.map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.environment}
+                onChange={e => setFilters(f => ({ ...f, environment: e.target.value }))}>
+                <option value="">Environment</option>
+                {facets.environments.map(e => <option key={e} value={e}>{e}</option>)}
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 120, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={`${filters.min_price}-${filters.max_price}`}
+                onChange={e => {
+                  const [min, max] = e.target.value.split('-');
+                  setFilters(f => ({ ...f, min_price: min, max_price: max }));
+                }}>
+                <option value="-">Price</option>
+                <option value="-50">&lt; $50/hr</option>
+                <option value="50-100">$50–100</option>
+                <option value="100-200">$100–200</option>
+                <option value="200-">$200+</option>
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
           </div>
 
           {loading ? (
