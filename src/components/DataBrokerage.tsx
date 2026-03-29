@@ -418,6 +418,7 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose }: {
   const [error, setError] = useState('');
   const [paying, setPaying] = useState(false);
   const [stripeReady, setStripeReady] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const paymentElementRef = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<Stripe | null>(null);
   const elementsRef = useRef<StripeElements | null>(null);
@@ -560,7 +561,12 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose }: {
 
             {error && <div className="db-form-error" style={{ marginBottom: 12 }}>{error}</div>}
 
-            <button className="db-add-cart-btn" onClick={handlePay} disabled={paying || !stripeReady}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+              <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
+              <span>I agree to the <a href="/data/buyer-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Data Buyer Conditions</a></span>
+            </label>
+
+            <button className="db-add-cart-btn" onClick={handlePay} disabled={paying || !stripeReady || !agreedToTerms}>
               {paying ? 'Processing...' : `Pay ${formatUsd(current.amount_cents)}`}
             </button>
           </>
@@ -825,8 +831,9 @@ function ProviderDashboard() {
   const tabs = [
     { id: 'listings', label: 'My Listings' },
     { id: 'create', label: 'Create Listing' },
-    { id: 'programs', label: 'Programs' },
+    { id: 'programs', label: 'My Programs' },
     { id: 'analytics', label: 'Analytics' },
+    { id: 'docs', label: 'Docs' },
     { id: 'stripe', label: 'Settings' },
   ];
 
@@ -888,6 +895,7 @@ function ProviderDashboard() {
       {activeTab === 'create' && <CreateListingForm />}
       {activeTab === 'programs' && <CollectionProgramsManager />}
       {activeTab === 'analytics' && <ProviderAnalytics />}
+      {activeTab === 'docs' && <ProviderDocs />}
       {activeTab === 'stripe' && <StripeStatus />}
     </div>
   );
@@ -903,6 +911,7 @@ function CreateListingForm() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const modalities = ['video', 'motion_capture', 'point_cloud', 'tactile', 'force_torque', 'audio', 'multimodal', 'simulation', 'other'];
   const environments = ['indoor', 'outdoor', 'industrial', 'domestic', 'laboratory', 'warehouse', 'retail', 'healthcare', 'mixed', 'simulation'];
@@ -1006,7 +1015,12 @@ function CreateListingForm() {
         </div>
       </div>
 
-      <button className="db-add-cart-btn" onClick={handleSubmit} disabled={submitting}>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+        <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>I agree to the <a href="/data/seller-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Data Provider Conditions</a></span>
+      </label>
+
+      <button className="db-add-cart-btn" onClick={handleSubmit} disabled={submitting || !agreedToTerms}>
         {submitting ? 'Submitting...' : 'Submit for Review'}
       </button>
     </div>
@@ -1686,7 +1700,6 @@ function StripeStatus() {
   const [saveMsg, setSaveMsg] = useState('');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -1813,11 +1826,6 @@ function StripeStatus() {
           {saveMsg && <span style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', color: saveMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{saveMsg}</span>}
         </div>
 
-        <button className="db-back-btn" style={{ marginTop: 16, marginBottom: 0 }} onClick={() => setShowGuide(!showGuide)}>
-          {showGuide ? 'Hide integration guide' : 'View integration guide'}
-        </button>
-
-        {showGuide && <ProvisioningGuide callbackUrl={provSettings?.callback_url ?? ''} />}
       </div>
 
     </div>
@@ -1853,16 +1861,94 @@ function CopyableCodeBlock({ code, label }: { code: string; label: string }) {
   );
 }
 
+function ProviderDocs() {
+  const [callbackUrl, setCallbackUrl] = useState('');
+
+  useEffect(() => {
+    api.get<{ data: { callback_url: string } }>('/provider/settings')
+      .then(r => setCallbackUrl(r.data.callback_url ?? ''))
+      .catch(console.error);
+  }, []);
+
+  return (
+    <div>
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 12 }}>Overview</div>
+        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+          Atlas sends webhook events to your API endpoint when key actions occur. Configure your endpoint URL and API key in the <strong>Settings</strong> tab, then implement the handlers below.
+        </p>
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <CopyableCodeBlock label="Your callback URL" code={callbackUrl || 'Configure your provisioning API in Settings'} />
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>1. Data purchase events</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          When a buyer completes a purchase, Atlas sends a POST request to your API endpoint.
+          You can respond synchronously with access details, or asynchronously via the callback URL.
+        </p>
+        <ProvisioningGuide callbackUrl={callbackUrl} />
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>2. Collector signup events</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          When you accept a collector from the Programs tab, Atlas sends a notification to the same endpoint so you can sync them to your own database.
+        </p>
+        <CopyableCodeBlock label="Event: collector_accepted" code={`POST your-api-endpoint
+Authorization: Bearer your-api-key
+Content-Type: application/json
+
+{
+  "event": "collector_accepted",
+  "collector": {
+    "name": "Eve Torres",
+    "email": "eve@example.com",
+    "referral_code": "ATL-377DKM"
+  },
+  "program": {
+    "id": "program-uuid",
+    "title": "Kitchen Activity Capture"
+  }
+}`} />
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Expected response</div>
+        <pre className="db-code-block">{`{
+  "status": "ok"
+}`}</pre>
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>3. Collector activity postback</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          Report collector hours and earnings back to Atlas. Call this endpoint from your system when a collector completes work.
+        </p>
+        <CopyableCodeBlock label="POST to Atlas (your system calls this)" code={`POST ${callbackUrl.replace('/provisioning', '/collector-activity')}
+Authorization: Bearer your-api-key
+Content-Type: application/json
+
+{
+  "referral_code": "ATL-377DKM",
+  "hours_delta": 5.5,
+  "earnings_delta_cents": 8250
+}`} />
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Expected response</div>
+        <pre className="db-code-block">{`{
+  "received": true
+}`}</pre>
+      </div>
+    </div>
+  );
+}
+
 function ProvisioningGuide({ callbackUrl }: { callbackUrl: string }) {
   return (
-    <div style={{ marginTop: 16 }}>
-      <div className="db-meta-label" style={{ marginBottom: 12 }}>Integration guide</div>
-
-      <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-        When a buyer completes a purchase, Atlas sends a POST request to your API endpoint.
-        You can respond synchronously with access details, or asynchronously via the callback URL.
-      </p>
-
+    <div>
       <CopyableCodeBlock label="Request format (sent by Atlas)" code={`POST your-api-endpoint
 Authorization: Bearer your-api-key
 Content-Type: application/json
@@ -1883,16 +1969,18 @@ Content-Type: application/json
 }`} />
 
       <div style={{ marginTop: 16 }} />
-      <CopyableCodeBlock label="Response - Synchronous (instant access)" code={`{
+      <div className="db-meta-label" style={{ marginBottom: 8 }}>Response - Synchronous (instant access)</div>
+      <pre className="db-code-block">{`{
   "status": "ready",
   "access_url": "https://your-storage.com/download/xyz",
   "instructions": "Download all files from the link above"
-}`} />
+}`}</pre>
 
       <div style={{ marginTop: 16 }} />
-      <CopyableCodeBlock label="Response - Asynchronous (processing needed)" code={`{
+      <div className="db-meta-label" style={{ marginBottom: 8 }}>Response - Asynchronous (processing needed)</div>
+      <pre className="db-code-block">{`{
   "status": "processing"
-}`} />
+}`}</pre>
 
       <div style={{ marginTop: 16 }} />
       <CopyableCodeBlock label="Callback (when async processing is done)" code={`POST ${callbackUrl}
@@ -1905,28 +1993,6 @@ Content-Type: application/json
   "instructions": "Download all files from the link above"
 }`} />
 
-      <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-        <div className="db-meta-label" style={{ marginBottom: 12 }}>Collector events</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-          When you accept a collector from the Programs tab, Atlas sends a notification to the same endpoint so you can sync them to your own database.
-        </p>
-        <CopyableCodeBlock label="Event: collector_accepted" code={`POST your-api-endpoint
-Authorization: Bearer your-api-key
-Content-Type: application/json
-
-{
-  "event": "collector_accepted",
-  "collector": {
-    "name": "Eve Torres",
-    "email": "eve@example.com",
-    "referral_code": "ATL-377DKM"
-  },
-  "program": {
-    "id": "program-uuid",
-    "title": "Kitchen Activity Capture"
-  }
-}`} />
-      </div>
     </div>
   );
 }
@@ -2057,6 +2123,7 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
   const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSubmit = async () => {
     if (!name || !email) { setError('Name and email are required'); return; }
@@ -2129,7 +2196,11 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
                 <div style={{ fontSize: 13, fontWeight: 500, marginTop: 4 }}>{program.compensation_description}</div>
               </div>
             )}
-            <button className="db-add-cart-btn" onClick={handleSubmit}>Submit Application</button>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8, marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+              <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
+              <span>I agree to the <a href="/data/collector-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Data Collector Conditions</a></span>
+            </label>
+            <button className="db-add-cart-btn" onClick={handleSubmit} disabled={!agreedToTerms}>Submit Application</button>
           </>
         )}
       </div>
@@ -2266,6 +2337,124 @@ function AccountPage() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// TERMS PAGES
+// ═══════════════════════════════════════════════════════════
+
+function TermsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="api-preamble" style={{ marginBottom: 20 }}>
+      <div className="db-meta-label" style={{ marginBottom: 12 }}>{title}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.9 }}>{children}</div>
+    </div>
+  );
+}
+
+function TermsPage({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <div className="api-docs">
+      <div className="api-docs-header">
+        <div>
+          <h2 className="api-docs-title">{title}</h2>
+          <p className="api-docs-desc">{subtitle}</p>
+        </div>
+      </div>
+      <div style={{ maxWidth: 720 }}>
+        {children}
+        <div style={{ marginTop: 32, padding: '16px 0', borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text-dim)', fontFamily: 'Share Tech Mono, monospace' }}>
+          Atlas Data Brokerage · humanoids.fyi · Last updated March 2026
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SellerTerms() {
+  return (
+    <TermsPage title="Data Provider Conditions" subtitle="Guidelines for selling data on Atlas">
+      <TermsSection title="Platform & fees">
+        <p>Atlas retains a 15% platform fee on all data sales. You receive 85% of each transaction, deposited directly to your connected Stripe account.</p>
+        <p style={{ marginTop: 8 }}>A $5 platform fee is charged per accepted collector, invoiced via Stripe with 7-day payment terms. You must complete Stripe onboarding before you can receive payouts or accept collectors.</p>
+      </TermsSection>
+
+      <TermsSection title="Your responsibilities">
+        <p>You host your own data on your infrastructure and maintain a provisioning API (or deliver data manually) to fulfill buyer purchases.</p>
+        <p style={{ marginTop: 8 }}><strong>You are responsible for delivering purchased data to buyers.</strong> If delivery fails, you are liable for issuing a full refund and communicating directly with the buyer. Atlas facilitates the connection but is not responsible for delivery failures.</p>
+        <p style={{ marginTop: 8 }}>You warrant that you have the legal right to sell the data you list. You set the license type and terms for each listing and are responsible for enforcing them.</p>
+      </TermsSection>
+
+      <TermsSection title="Content & review">
+        <p>All listings are reviewed by Atlas before publication. Edits to published listings require re-review. Atlas may reject, suspend, or remove listings at its discretion.</p>
+        <p style={{ marginTop: 8 }}>Preview samples (max 500MB) are stored on Atlas infrastructure and are publicly accessible to potential buyers browsing the catalog.</p>
+      </TermsSection>
+
+      <TermsSection title="Data sharing">
+        <p>When a buyer purchases your data, their email and company name are shared with you for delivery purposes. When you accept a collector, their name, email, and referral code are shared with you.</p>
+        <p style={{ marginTop: 8 }}>You must handle all shared personal data in compliance with applicable privacy laws.</p>
+      </TermsSection>
+
+      <TermsSection title="Account">
+        <p>Atlas may suspend your account at any time, which prevents new purchases of your listings. You may deactivate your own listings at any time.</p>
+      </TermsSection>
+    </TermsPage>
+  );
+}
+
+function BuyerTerms() {
+  return (
+    <TermsPage title="Data Buyer Conditions" subtitle="Guidelines for purchasing data on Atlas">
+      <TermsSection title="Purchases">
+        <p>You pay the listed price per hour of data, subject to minimum purchase requirements set by each provider. Payment is processed via Stripe — Atlas never handles your card details directly.</p>
+        <p style={{ marginTop: 8 }}>Purchased data access does not expire. Once your data is provisioned, it remains accessible through the provider.</p>
+      </TermsSection>
+
+      <TermsSection title="Data delivery">
+        <p>Data is delivered by the provider, not Atlas. Atlas facilitates the connection between you and the provider but <strong>the provider is responsible for delivery and any refunds.</strong></p>
+        <p style={{ marginTop: 8 }}>If you do not receive your data, contact the provider directly. Atlas will assist in connecting you but is not liable for the quality, accuracy, or completeness of data provided.</p>
+      </TermsSection>
+
+      <TermsSection title="License & usage">
+        <p>You must comply with the license type specified on each listing (standard, exclusive, research only, commercial, or custom). You may not resell, redistribute, or sublicense purchased data unless the license explicitly permits it.</p>
+        <p style={{ marginTop: 8 }}>License violations may result in account suspension.</p>
+      </TermsSection>
+
+      <TermsSection title="Your information">
+        <p>Your email address and company name are shared with the data provider for delivery purposes. Atlas stores your name, email, and company name. Payment data is handled entirely by Stripe.</p>
+      </TermsSection>
+    </TermsPage>
+  );
+}
+
+function CollectorTerms() {
+  return (
+    <TermsPage title="Data Collector Conditions" subtitle="Guidelines for participating in data collection programs">
+      <TermsSection title="Signup & acceptance">
+        <p>You sign up for collection programs with your name and email — no account is required. Acceptance into a program is at the provider's sole discretion and is not guaranteed.</p>
+        <p style={{ marginTop: 8 }}>Upon acceptance, your name, email, and referral code are shared with the data provider.</p>
+      </TermsSection>
+
+      <TermsSection title="Compensation">
+        <p>Compensation is paid directly by the data provider, not Atlas. Atlas tracks your hours and earnings for visibility, but does not process collector payments.</p>
+        <p style={{ marginTop: 8 }}>Compensation rates are set by the provider per program. Any disputes regarding payment should be directed to the provider.</p>
+      </TermsSection>
+
+      <TermsSection title="Your work">
+        <p>You are an independent contributor, not an employee of Atlas or the data provider. You must meet the program requirements set by the provider.</p>
+        <p style={{ marginTop: 8 }}>Data you collect is owned by the provider per the program terms. By participating, you grant the provider rights to use the data you contribute.</p>
+      </TermsSection>
+
+      <TermsSection title="Referral code">
+        <p>You receive a unique referral code to track your status and earnings. You can check your status publicly at any time using this code.</p>
+      </TermsSection>
+
+      <TermsSection title="Atlas's role">
+        <p>Atlas is a marketplace connecting collectors to data providers. Atlas is not a party to the collection agreement between you and the provider.</p>
+        <p style={{ marginTop: 8 }}>Atlas charges the provider a platform fee per accepted collector. This fee does not affect your compensation.</p>
+      </TermsSection>
+    </TermsPage>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════
 
@@ -2288,6 +2477,9 @@ export default function DataBrokerage({ activeSubTab, viewCount }: { activeSubTa
       {activeSubTab === 'buy_data' && <BuyData />}
       {activeSubTab === 'sell_data' && <SellData viewCount={viewCount} />}
       {activeSubTab === 'collect_data' && <CollectData viewCount={viewCount} />}
+      {activeSubTab === 'seller_terms' && <SellerTerms />}
+      {activeSubTab === 'buyer_terms' && <BuyerTerms />}
+      {activeSubTab === 'collector_terms' && <CollectorTerms />}
       {activeSubTab === 'account' && <AccountPage />}
     </>
   );
