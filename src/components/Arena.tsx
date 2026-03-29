@@ -853,7 +853,7 @@ export default function Arena({ activeSubTab }: ArenaProps) {
             Leaderboard
             {leaderboard && leaderboard.rankings.length > 0 && (
               <span className="arena-leaderboard__vote-count">
-                {leaderboard.rankings.reduce((sum, r) => sum + r.votes, 0)} votes
+                {Math.floor(leaderboard.rankings.reduce((sum, r) => sum + r.votes, 0) / 2)} votes
               </span>
             )}
           </h3>

@@ -5408,8 +5408,8 @@ select.db-form-input { appearance: none; -webkit-appearance: none; background-im
 
 .arena-leaderboard__vote-count {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--text-dim);
   margin-left: 12px;
