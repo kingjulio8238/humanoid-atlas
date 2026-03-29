@@ -108,6 +108,7 @@ function PurchaseSection({ listing, cart, onCartOpen }: { listing: Listing; cart
 function BuyData() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  useEffect(() => { api.post('/page-views', { page: 'buy_data' }).catch(() => {}); }, []);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [filters, setFilters] = useState({ modality: '', environment: '', q: '', min_price: '', max_price: '' });
   const [facets, setFacets] = useState<{ modalities: string[]; environments: string[] }>({ modalities: [], environments: [] });
@@ -624,6 +625,7 @@ function ProviderRegistrationForm({ onRegistered }: { onRegistered: (url: string
 function SellData({ viewCount }: { viewCount: number | null }) {
   const { isSignedIn } = useClerkAuth();
   const [providerStatus, setProviderStatus] = useState<'loading' | 'not_registered' | 'pending_onboarding' | 'active'>('loading');
+  useEffect(() => { api.post('/page-views', { page: 'sell_data' }).catch(() => {}); }, []);
   const [stripeUrl, setStripeUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2004,6 +2006,7 @@ Content-Type: application/json
 function CollectData({ viewCount: _viewCount }: { viewCount: number | null }) {
   const [programs, setPrograms] = useState<CollectionProgram[]>([]);
   const [loading, setLoading] = useState(true);
+  useEffect(() => { api.post('/page-views', { page: 'collect_data' }).catch(() => {}); }, []);
   const [applyingTo, setApplyingTo] = useState<CollectionProgram | null>(null);
 
   useEffect(() => {
@@ -2342,8 +2345,8 @@ function AccountPage() {
 
 function TermsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="api-preamble" style={{ marginBottom: 20 }}>
-      <div className="db-meta-label" style={{ marginBottom: 12 }}>{title}</div>
+    <div style={{ marginBottom: 28 }}>
+      <div className="db-meta-label" style={{ marginBottom: 10, fontSize: 12 }}>{title}</div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.9 }}>{children}</div>
     </div>
   );
@@ -2352,16 +2355,14 @@ function TermsSection({ title, children }: { title: string; children: React.Reac
 function TermsPage({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="api-docs">
-      <div className="api-docs-header">
-        <div>
-          <h2 className="api-docs-title">{title}</h2>
-          <p className="api-docs-desc">{subtitle}</p>
-        </div>
+      <div style={{ marginBottom: 28 }}>
+        <h2 className="api-docs-title">{title}</h2>
+        <p className="api-docs-desc">{subtitle}</p>
       </div>
-      <div style={{ maxWidth: 720 }}>
+      <div style={{ maxWidth: 680 }}>
         {children}
-        <div style={{ marginTop: 32, padding: '16px 0', borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text-dim)', fontFamily: 'Share Tech Mono, monospace' }}>
-          Atlas Data Brokerage · humanoids.fyi · Last updated March 2026
+        <div style={{ marginTop: 40, padding: '16px 0', borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text-dim)', fontFamily: 'Share Tech Mono, monospace' }}>
+          Atlas Data Brokerage · Humanoid Atlas · Last updated March 2026
         </div>
       </div>
     </div>
@@ -2403,7 +2404,7 @@ function BuyerTerms() {
   return (
     <TermsPage title="Data Buyer Conditions" subtitle="Guidelines for purchasing data on Atlas">
       <TermsSection title="Purchases">
-        <p>You pay the listed price per hour of data, subject to minimum purchase requirements set by each provider. Payment is processed via Stripe — Atlas never handles your card details directly.</p>
+        <p>You pay the listed price per hour of data, subject to minimum purchase requirements set by each provider. Payment is processed via Stripe - Atlas never handles your card details directly.</p>
         <p style={{ marginTop: 8 }}>Purchased data access does not expire. Once your data is provisioned, it remains accessible through the provider.</p>
       </TermsSection>
 
@@ -2428,7 +2429,7 @@ function CollectorTerms() {
   return (
     <TermsPage title="Data Collector Conditions" subtitle="Guidelines for participating in data collection programs">
       <TermsSection title="Signup & acceptance">
-        <p>You sign up for collection programs with your name and email — no account is required. Acceptance into a program is at the provider's sole discretion and is not guaranteed.</p>
+        <p>You sign up for collection programs with your name and email - no account is required. Acceptance into a program is at the provider's sole discretion and is not guaranteed.</p>
         <p style={{ marginTop: 8 }}>Upon acceptance, your name, email, and referral code are shared with the data provider.</p>
       </TermsSection>
 
