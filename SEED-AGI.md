@@ -20,3 +20,14 @@ Last aligned: $(date +%Y-%m-%d)
 
 This brings small-scale embodied AGI experiments directly into the atlas.
 
+
+## Mini-Humanoids Section (1ft / ~30cm scale) - Added Mar 29 2026
+
+- **Target height**: ~30 cm
+- **Use cases**: Hop to fold laundry, pick small objects, home assistance tasks
+- **Connection to Unitree UnifoLM-WBT-Dataset**: Perfect for training on "Collect Clothes" tasks from the March 2026 dataset
+- **Recommended components** (from humanoid-atlas): Unitree actuators + new WBT dataset for imitation learning / teleop
+- **TODO**: Add 3D model of my personal hopping android + training pipeline
+
+This brings small-scale embodied AGI experiments directly into the atlas.
+
