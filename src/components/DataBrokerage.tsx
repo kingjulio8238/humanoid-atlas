@@ -233,7 +233,7 @@ function BuyData() {
         <div className="api-docs-header-top">
           <div>
             <div className="api-docs-title-row">
-              <h2 className="api-docs-title">Buy Data</h2>
+              <h2 className="api-docs-title">{showPurchases ? 'My Purchases' : 'Buy Data'}</h2>
               {!showPurchases && <button className="api-md-btn" onClick={() => setShowCustomRequest(true)}>Request Custom Dataset</button>}
               {isSignedIn && (
                 <button className="api-md-btn" onClick={() => setShowPurchases(!showPurchases)}>
@@ -2088,7 +2088,7 @@ The \`access_url\` is what the buyer sees and clicks. It should point to a direc
 {
   "status": "ready",
   "access_url": "https://your-storage.com/download/xyz",
-  "instructions": "Download all files from the link above. Link expires in 7 days."
+  "instructions": "Download all files from the link above."
 }
 \`\`\`
 
