@@ -7,6 +7,31 @@ import { companies } from '../data';
 
 const OEM_COUNT = companies.filter((c) => c.type === 'oem').length;
 
+const LOCATION_OPTIONS = [
+  'San Francisco, USA', 'New York, USA', 'Austin, USA', 'Boston, USA', 'Seattle, USA', 'Los Angeles, USA', 'Pittsburgh, USA', 'Chicago, USA',
+  'Beijing, China', 'Shanghai, China', 'Shenzhen, China', 'Hangzhou, China', 'Guangzhou, China',
+  'Munich, Germany', 'Berlin, Germany', 'Stuttgart, Germany',
+  'Tokyo, Japan', 'Osaka, Japan',
+  'Seoul, South Korea',
+  'Paris, France', 'Lyon, France',
+  'London, UK', 'Bristol, UK', 'Cambridge, UK',
+  'Toronto, Canada', 'Vancouver, Canada', 'Montreal, Canada',
+  'Tel Aviv, Israel',
+  'Singapore',
+  'Bangalore, India', 'Mumbai, India', 'Hyderabad, India',
+  'Sydney, Australia', 'Melbourne, Australia',
+  'Milan, Italy', 'Turin, Italy',
+  'Oslo, Norway',
+  'Amsterdam, Netherlands',
+  'Zurich, Switzerland',
+  'Taipei, Taiwan',
+  'Barcelona, Spain', 'Madrid, Spain',
+  'Stockholm, Sweden',
+  'Helsinki, Finland',
+  'Dubai, UAE',
+  'Sao Paulo, Brazil',
+];
+
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
   : null;
@@ -1564,7 +1589,7 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
           </div>
           <div className="db-meta-grid">
             <div><div className="db-meta-label">Compensation</div><div className="db-meta-value">{String(program.compensation_description ?? '—')}</div></div>
-            <div><div className="db-meta-label">Referral fee</div><div className="db-meta-value">{formatUsd((program.referral_fee_cents as number) ?? 0)}</div></div>
+            <div><div className="db-meta-label">Referral fee (on acceptance)</div><div className="db-meta-value">{formatUsd((program.referral_fee_cents as number) ?? 0)}</div></div>
             <div><div className="db-meta-label">Signup type</div><div className="db-meta-value">{String(program.signup_type ?? 'atlas_form')}</div></div>
           </div>
           {program.requirements ? <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 12 }}><strong>Requirements:</strong> {String(program.requirements)}</div> : null}
@@ -1587,6 +1612,12 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
               <div>
                 <span style={{ fontWeight: 500, fontSize: 13 }}>{String(s.name)}</span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: 11, marginLeft: 8 }}>{String(s.email)}</span>
+                {!!(s.form_data as Record<string, unknown>)?.linkedin && (
+                  <a href={String((s.form_data as Record<string, unknown>).linkedin)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 8, textDecoration: 'none' }}>LinkedIn</a>
+                )}
+                {!!(s.form_data as Record<string, unknown>)?.x_handle && (
+                  <a href={`https://x.com/${String((s.form_data as Record<string, unknown>).x_handle).replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 8, textDecoration: 'none' }}>X</a>
+                )}
               </div>
               <span className={`db-status-badge db-status-badge--${String(s.status) === 'active' || String(s.status) === 'accepted' ? 'approved' : String(s.status) === 'rejected' ? 'rejected' : String(s.status) === 'completed' ? 'approved' : 'pending'}`}>
                 {String(s.status)}
@@ -1636,7 +1667,7 @@ function CreateProgramForm({ onCreated }: { onCreated: () => void }) {
         title,
         description,
         requirements: requirements || undefined,
-        compensation_description: compensation || undefined,
+        compensation_description: compensation ? `$${compensation}/hr of verified data` : undefined,
       });
       onCreated();
     } catch (err) {
@@ -1664,8 +1695,8 @@ function CreateProgramForm({ onCreated }: { onCreated: () => void }) {
           <input className="db-form-input" value={requirements} onChange={e => setRequirements(e.target.value)} placeholder="Smartphone with 4K camera" />
         </div>
         <div className="db-form-field" style={{ flex: 1 }}>
-          <label className="db-meta-label">Compensation</label>
-          <input className="db-form-input" value={compensation} onChange={e => setCompensation(e.target.value)} placeholder="$20/hr for approved footage" />
+          <label className="db-meta-label">Compensation ($/hr)</label>
+          <input className="db-form-input" type="number" min="1" step="1" value={compensation} onChange={e => setCompensation(e.target.value)} placeholder="20" />
         </div>
       </div>
       <button className="db-add-cart-btn" style={{ marginTop: 8 }} onClick={handleSubmit} disabled={submitting}>
@@ -2688,10 +2719,46 @@ function CollectData({ viewCount: _viewCount }: { viewCount: number | null }) {
   );
 }
 
+function LocationAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const matches = value.length >= 2 ? LOCATION_OPTIONS.filter(l => l.toLowerCase().includes(value.toLowerCase())).slice(0, 6) : [];
+
+  return (
+    <div className="db-form-field" style={{ position: 'relative' }}>
+      <label className="db-meta-label">Location</label>
+      <input
+        className="db-form-input"
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="City, Country"
+        autoComplete="off"
+      />
+      {open && matches.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+          background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 4,
+          maxHeight: 160, overflowY: 'auto', marginTop: 2,
+        }}>
+          {matches.map(m => (
+            <div key={m} style={{ padding: '6px 12px', fontSize: 11, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              onMouseDown={() => { onChange(m); setOpen(false); }}>
+              {m}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CollectorModal({ program, onClose }: { program: CollectionProgram; onClose: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [xHandle, setXHandle] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
@@ -2703,7 +2770,7 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
     setError('');
     try {
       const res = await api.post<{ data: { referral_code: string; redirect_url?: string } }>(`/collection-programs/${program.id}/signup`, {
-        name, email, form_data: { location },
+        name, email, form_data: { location, ...(linkedin ? { linkedin } : {}), ...(xHandle ? { x_handle: xHandle } : {}) },
       });
       setReferralCode(res.data.referral_code);
       setSubmitted(true);
@@ -2759,9 +2826,16 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
               <label className="db-meta-label">Email</label>
               <input className="db-form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
-            <div className="db-form-field">
-              <label className="db-meta-label">Location</label>
-              <input className="db-form-input" value={location} onChange={e => setLocation(e.target.value)} placeholder="City, Country" />
+            <LocationAutocomplete value={location} onChange={setLocation} />
+            <div className="db-form-row">
+              <div className="db-form-field" style={{ flex: 1 }}>
+                <label className="db-meta-label">LinkedIn (optional)</label>
+                <input className="db-form-input" value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/yourname" />
+              </div>
+              <div className="db-form-field" style={{ flex: 1 }}>
+                <label className="db-meta-label">X / Twitter (optional)</label>
+                <input className="db-form-input" value={xHandle} onChange={e => setXHandle(e.target.value)} placeholder="@yourhandle" />
+              </div>
             </div>
             {program.compensation_description && (
               <div className="db-modal-compensation">
