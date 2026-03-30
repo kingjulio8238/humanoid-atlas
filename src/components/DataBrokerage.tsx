@@ -1144,9 +1144,16 @@ function MyPurchases() {
 
             <div className="api-preamble" style={{ marginTop: 12 }}>
               <div className="db-meta-label" style={{ marginBottom: 12 }}>Quick start</div>
-              <CopyableCode label="curl" code={`curl -L -o dataset.mov \\\n  "${accessUrl}"`} />
-              <CopyableCode label="Python" code={`import requests\n\nurl = "${accessUrl}"\nresponse = requests.get(url, stream=True)\n\nwith open("dataset.mov", "wb") as f:\n    for chunk in response.iter_content(chunk_size=8192):\n        f.write(chunk)\n\nprint(f"Downloaded successfully")`} />
-              <CopyableCode label="wget" code={`wget -O dataset.mov \\\n  "${accessUrl}"`} />
+              {(() => {
+                const fname = (() => { try { const p = new URL(accessUrl).pathname; return p.split('/').pop() || 'dataset'; } catch { return 'dataset'; } })();
+                return (
+                  <>
+                    <CopyableCode label="curl" code={`curl -L -o ${fname} \\\n  "${accessUrl}"`} />
+                    <CopyableCode label="Python" code={`import requests\n\nurl = "${accessUrl}"\nresponse = requests.get(url, stream=True)\n\nwith open("${fname}", "wb") as f:\n    for chunk in response.iter_content(chunk_size=8192):\n        f.write(chunk)\n\nprint(f"Downloaded successfully")`} />
+                    <CopyableCode label="wget" code={`wget -O ${fname} \\\n  "${accessUrl}"`} />
+                  </>
+                );
+              })()}
             </div>
           </>
         ) : status === 'ready' && !accessUrl ? (
@@ -1948,6 +1955,8 @@ Content-Type: application/json
 **Response option A — Synchronous (instant access):**
 
 Return this if the data is ready to download immediately.
+
+The \`access_url\` is what the buyer sees and clicks. It should point to a direct download (e.g. a presigned S3/R2/GCS URL to a zip file) or a landing page on your infrastructure where the buyer can browse and download individual files. Atlas displays this URL directly to the buyer with a download button and curl/wget/Python snippets. For the best buyer experience, return a URL that either downloads a file directly or opens a user-friendly download page.
 
 \`\`\`json
 {
