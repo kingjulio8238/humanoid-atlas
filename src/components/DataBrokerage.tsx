@@ -3,6 +3,9 @@ import { useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-reac
 import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 import { api, setTokenGetter } from '../lib/brokerage-api';
 import { useCart } from '../hooks/useCart';
+import { companies } from '../data';
+
+const OEM_COUNT = companies.filter((c) => c.type === 'oem').length;
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -652,6 +655,10 @@ function SellData({ viewCount }: { viewCount: number | null }) {
         .then(r => {
           if (r.data.stripe_onboarding_complete || r.data.status === 'active') {
             setProviderStatus('active');
+            // Navigate to Settings tab after Stripe onboarding
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('provider-tab-change', { detail: { tab: 'stripe' } }));
+            }, 500);
           } else {
             setProviderStatus('pending_onboarding');
           }
@@ -684,7 +691,7 @@ function SellData({ viewCount }: { viewCount: number | null }) {
           </div>
           <div className="db-sell-hero__divider" />
           <div className="db-sell-hero__stat">
-            <div className="db-sell-hero__num">37</div>
+            <div className="db-sell-hero__num">{OEM_COUNT}</div>
             <div className="db-sell-hero__label">OEMs on platform</div>
           </div>
           <div className="db-sell-hero__divider" />
@@ -819,6 +826,74 @@ function SellData({ viewCount }: { viewCount: number | null }) {
   );
 }
 
+function SampleUploader({ listingId }: { listingId: string }) {
+  const [samples, setSamples] = useState<Array<{ id: string; url: string; filename: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get<{ data: { samples?: Array<{ id: string; url: string; filename: string }> } }>(`/provider/listings/${listingId}`)
+      .then(r => setSamples(r.data.samples ?? []))
+      .catch(() => {});
+  }, [listingId]);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    setError('');
+    try {
+      // 1. Get presigned upload URL
+      const { data } = await api.post<{ data: { upload_url: string; sample_id: string; public_url: string } }>(`/provider/listings/${listingId}/samples/upload-url`, {
+        filename: file.name,
+        content_type: file.type,
+        size: file.size,
+      });
+      // 2. Upload directly to R2
+      await fetch(data.upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      // 3. Confirm upload
+      await api.post(`/provider/listings/${listingId}/samples/confirm`, { sample_id: data.sample_id });
+      // 4. Refresh samples list
+      setSamples(prev => [...prev, { id: data.sample_id, url: data.public_url, filename: file.name }]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  return (
+    <div className="api-preamble" style={{ marginTop: 12 }}>
+      <div className="db-meta-label" style={{ marginBottom: 12 }}>Samples</div>
+      {samples.length > 0 && <SampleGallery samples={samples} />}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="video/*,image/*,.parquet,.hdf5,.rosbag,.mcap"
+          style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+        />
+        <button
+          className="db-add-cart-btn"
+          style={{ padding: '6px 16px', fontSize: 10, width: 'auto', marginTop: 0 }}
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? 'Uploading...' : 'Upload Sample'}
+        </button>
+        {error && <span style={{ fontSize: 10, color: 'var(--red)' }}>{error}</span>}
+      </div>
+      <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6 }}>
+        Upload preview clips or sample files. Max 500MB per file. Visible to buyers in the catalog.
+      </p>
+    </div>
+  );
+}
+
 function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState('listings');
   const [listings, setListings] = useState<Record<string, unknown>[]>([]);
@@ -830,6 +905,16 @@ function ProviderDashboard() {
       .then(r => setListings(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, []);
+
+  // Listen for tab change events from child components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.tab;
+      if (tab) setActiveTab(tab);
+    };
+    window.addEventListener('provider-tab-change', handler);
+    return () => window.removeEventListener('provider-tab-change', handler);
   }, []);
 
   const tabs = [
@@ -872,6 +957,7 @@ function ProviderDashboard() {
                       <div><div className="db-meta-label">Min hours</div><div className="db-meta-value">{String(l.minimum_hours)}</div></div>
                     </div>
                   </div>
+                  <SampleUploader listingId={String(l.id)} />
                 </div>
               );
             })()}
@@ -909,7 +995,7 @@ function ProviderDashboard() {
 function CreateListingForm() {
   const [form, setForm] = useState({
     title: '', description: '', modality: 'video', environment: 'domestic',
-    price_per_hour: '', minimum_hours: '1', total_hours: '', format: '',
+    price_per_hour: '', minimum_hours: '1', total_hours: '', format: 'parquet',
     license_type: 'commercial', license_terms: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -920,6 +1006,7 @@ function CreateListingForm() {
   const modalities = ['video', 'motion_capture', 'point_cloud', 'tactile', 'force_torque', 'audio', 'multimodal', 'simulation', 'other'];
   const environments = ['indoor', 'outdoor', 'industrial', 'domestic', 'laboratory', 'warehouse', 'retail', 'healthcare', 'mixed', 'simulation'];
   const licenses = ['standard', 'exclusive', 'research_only', 'commercial', 'custom'];
+  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'other'];
 
   const update = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
@@ -944,7 +1031,7 @@ function CreateListingForm() {
         license_terms: form.license_terms || undefined,
       });
       setResult('Listing submitted for review');
-      setForm({ title: '', description: '', modality: 'video', environment: 'domestic', price_per_hour: '', minimum_hours: '1', total_hours: '', format: '', license_type: 'commercial', license_terms: '' });
+      setForm({ title: '', description: '', modality: 'video', environment: 'domestic', price_per_hour: '', minimum_hours: '1', total_hours: '', format: 'parquet', license_type: 'commercial', license_terms: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create listing');
     } finally {
@@ -1009,7 +1096,9 @@ function CreateListingForm() {
       <div className="db-form-row">
         <div className="db-form-field" style={{ flex: 1 }}>
           <label className="db-meta-label">Format</label>
-          <input className="db-form-input" placeholder="e.g. MP4 / H.264" value={form.format} onChange={e => update('format', e.target.value)} />
+          <select className="db-form-select" value={form.format} onChange={e => update('format', e.target.value)}>
+            {formats.map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+          </select>
         </div>
         <div className="db-form-field" style={{ flex: 1 }}>
           <label className="db-meta-label">License</label>
@@ -1018,6 +1107,10 @@ function CreateListingForm() {
           </select>
         </div>
       </div>
+
+      <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 12, lineHeight: 1.5 }}>
+        After submitting, you can upload sample preview files from My Listings page.
+      </p>
 
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
         <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
@@ -1736,11 +1829,13 @@ function StripeStatus() {
       if (apiKey) updates.provisioning_api_key = apiKey;
       await api.patch('/provider/settings', updates);
       setSaveMsg('Saved');
-      setApiKey('');
       // Refresh settings
       const r = await api.get<{ data: typeof provSettings }>('/provider/settings');
       setProvSettings(r.data);
-      setTimeout(() => setSaveMsg(''), 2000);
+      // Redirect to Docs tab after short delay
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('provider-tab-change', { detail: { tab: 'docs' } }));
+      }, 1000);
     } catch (err) {
       setSaveMsg(err instanceof Error ? err.message : 'Failed to save');
     }
@@ -1794,7 +1889,7 @@ function StripeStatus() {
       <div className="api-preamble" style={{ marginTop: 16 }}>
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Provisioning API</div>
         <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 16 }}>
-          Optional - configure your API to automatically deliver data access to buyers after purchase
+          Configure your API endpoint to automatically deliver data access to buyers after purchase. Build an HTTP POST endpoint on your infrastructure that handles purchase and collector webhook events, then enter its URL and a secret API key below. See the <strong>Docs</strong> tab for payload specs and testing.
         </p>
 
         <div className="db-form-field">
@@ -1817,7 +1912,7 @@ function StripeStatus() {
 
         <div className="db-form-field">
           <label className="db-meta-label">API key {provSettings?.has_api_key ? '(configured)' : ''}</label>
-          <input className="db-form-input" type="password" placeholder={provSettings?.has_api_key ? provSettings.provisioning_api_key_masked ?? '••••••••' : 'Enter API key'}
+          <input className="db-form-input" type="text" placeholder={provSettings?.has_api_key ? provSettings.provisioning_api_key_masked ?? '' : 'Enter API key (min 32 characters)'}
             value={apiKey} onChange={e => setApiKey(e.target.value)} />
         </div>
 
@@ -2215,11 +2310,15 @@ function downloadProviderDocsMd(callbackUrl: string) {
 
 function ProviderDocs() {
   const [callbackUrl, setCallbackUrl] = useState('');
+  const [provApiUrl, setProvApiUrl] = useState('');
   const [mdDownloaded, setMdDownloaded] = useState(false);
 
   useEffect(() => {
-    api.get<{ data: { callback_url: string } }>('/provider/settings')
-      .then(r => setCallbackUrl(r.data.callback_url ?? ''))
+    api.get<{ data: { callback_url: string; provisioning_api_url: string | null } }>('/provider/settings')
+      .then(r => {
+        setCallbackUrl(r.data.callback_url ?? '');
+        setProvApiUrl(r.data.provisioning_api_url ?? '');
+      })
       .catch(console.error);
   }, []);
 
@@ -2242,11 +2341,20 @@ function ProviderDocs() {
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
+        {provApiUrl && <><CopyableCodeBlock label="Your provisioning API" code={provApiUrl} /><div style={{ marginTop: 12 }} /></>}
         <CopyableCodeBlock label="Your callback URL" code={callbackUrl || 'Configure your provisioning API in Settings'} />
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>1. Data purchase events</div>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>1. Test your integration</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          Send a test webhook to verify your endpoint handles each event type correctly. Configure your API URL and key in <strong>Settings</strong> first.
+        </p>
+        <TestWebhookPanel />
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>2. Data purchase events</div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           When a buyer completes a purchase, Atlas sends a POST request to your API endpoint.
           You can respond synchronously with access details, or asynchronously via the callback URL.
@@ -2255,7 +2363,7 @@ function ProviderDocs() {
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>2. Collector signup events</div>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>3. Collector signup events</div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           When you accept a collector from the Programs tab, Atlas sends a notification to the same endpoint so you can sync them to your own database.
         </p>
@@ -2284,7 +2392,7 @@ Content-Type: application/json
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>3. Collector activity postback</div>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>4. Collector activity postback</div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           Report collector hours and earnings back to Atlas. Call this endpoint from your system when a collector completes work.
         </p>
@@ -2305,22 +2413,17 @@ Content-Type: application/json
 }`}</pre>
       </div>
 
-      <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>4. Test your integration</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
-          Send a test webhook to verify your endpoint handles each event type correctly. Configure your API URL and key in <strong>Settings</strong> first.
-        </p>
-        <TestWebhookPanel />
-      </div>
     </div>
   );
 }
 
 function TestWebhookPanel() {
   const [results, setResults] = useState<Record<string, { loading: boolean; result?: { success: boolean; valid: boolean; status: number; message: string; response: unknown } }>>({});
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
 
   const sendTest = async (event: 'ping' | 'purchase' | 'collector_accepted') => {
     setResults(r => ({ ...r, [event]: { loading: true } }));
+    setHidden(h => ({ ...h, [event]: false }));
     try {
       const res = await api.post<{ data: { success: boolean; valid: boolean; status: number; message: string; response: unknown } }>('/provider/test-webhook', { event });
       setResults(r => ({ ...r, [event]: { loading: false, result: res.data } }));
@@ -2335,11 +2438,42 @@ function TestWebhookPanel() {
     { id: 'collector_accepted' as const, label: 'Collector Accepted', desc: 'Simulates a collector signup event' },
   ];
 
+  // Check if all 3 passed
+  const allPassed = events.every(ev => {
+    const r = results[ev.id]?.result;
+    return r?.success && r?.valid;
+  });
+
+  // Redirect to Create Listing when all pass
+  useEffect(() => {
+    if (!allPassed) return;
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('provider-tab-change', { detail: { tab: 'create' } }));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [allPassed]);
+
+  // Auto-hide passed result messages after 4s
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (const ev of events) {
+      const r = results[ev.id]?.result;
+      if (r?.success && r?.valid && !hidden[ev.id]) {
+        timers.push(setTimeout(() => setHidden(h => ({ ...h, [ev.id]: true })), 4000));
+      }
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [results]);
+
   return (
     <div>
       {events.map((ev, i) => {
         const state = results[ev.id];
         const isLast = i === events.length - 1;
+        const passed = !!(state?.result?.success && state?.result?.valid);
+        const failed = !!(state?.result && !state.result.success);
+        const showMessage = !!state?.result && !hidden[ev.id];
+
         return (
           <div key={ev.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)', paddingBottom: isLast ? 0 : 12, marginBottom: isLast ? 0 : 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2348,30 +2482,38 @@ function TestWebhookPanel() {
               </span>
               <button
                 className="db-add-cart-btn"
-                style={{ padding: '4px 14px', fontSize: 10, width: 'auto', marginTop: 0, marginLeft: 16, flexShrink: 0 }}
+                style={{
+                  padding: '4px 14px', fontSize: 10, width: 'auto', marginTop: 0, marginLeft: 16, flexShrink: 0,
+                  ...(passed ? { background: '#4a9e4a', borderColor: '#4a9e4a', color: '#000' } : {}),
+                }}
                 onClick={() => sendTest(ev.id)}
-                disabled={state?.loading}
+                disabled={state?.loading || passed}
               >
-                {state?.loading ? '...' : 'Send'}
+                {state?.loading ? '...' : passed ? 'Success' : failed ? 'Send Again' : 'Send'}
               </button>
             </div>
-            {state?.result && (
+            {showMessage && (
               <div style={{
                 marginTop: 8,
                 padding: '6px 10px',
                 borderRadius: 3,
                 fontSize: 10,
                 lineHeight: 1.5,
-                backgroundColor: state.result.success && state.result.valid ? 'rgba(0,128,0,0.05)' : state.result.success ? 'rgba(200,150,0,0.05)' : 'rgba(200,0,0,0.05)',
-                color: state.result.success && state.result.valid ? '#2a7a2a' : state.result.success ? '#8a6d00' : '#a00',
+                backgroundColor: passed ? 'rgba(0,128,0,0.05)' : state?.result?.success ? 'rgba(200,150,0,0.05)' : 'rgba(200,0,0,0.05)',
+                color: passed ? '#2a7a2a' : state?.result?.success ? '#8a6d00' : '#a00',
                 fontFamily: 'var(--font-mono)',
               }}>
-                {state.result.success && state.result.valid ? 'PASS' : state.result.success ? 'WARN' : 'FAIL'} — {state.result.message}
+                {passed ? 'PASS' : state?.result?.success ? 'WARN' : 'FAIL'} - {state?.result?.message}
               </div>
             )}
           </div>
         );
       })}
+      {allPassed && (
+        <div style={{ marginTop: 12, fontSize: 11, color: '#2a7a2a', fontFamily: 'var(--font-mono)' }}>
+          All tests passed. Redirecting to Create Listing...
+        </div>
+      )}
     </div>
   );
 }

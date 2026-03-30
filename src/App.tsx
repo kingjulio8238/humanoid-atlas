@@ -1167,10 +1167,20 @@ export default function App() {
   const [clerkSignedIn, setClerkSignedIn] = useState(false);
 
   useEffect(() => {
-    const handler = (e: Event) => setClerkSignedIn((e as CustomEvent).detail?.isSignedIn ?? false);
+    const handler = (e: Event) => {
+      const nowSignedIn = (e as CustomEvent).detail?.isSignedIn ?? false;
+      setClerkSignedIn((prev: boolean) => {
+        // Redirect to Sell Data when signing in, but only if not already on a data page
+        // (buyer checkout flow uses pending_checkout flag and should stay on buy page)
+        if (!prev && nowSignedIn && IS_LOCAL && !window.location.pathname.startsWith('/data/')) {
+          navigate('/data/sell');
+        }
+        return nowSignedIn;
+      });
+    };
     window.addEventListener('clerk-auth-change', handler);
     return () => window.removeEventListener('clerk-auth-change', handler);
-  }, []);
+  }, [navigate]);
 
   // Skeleton interactive state
   const [skeletonRegion, setSkeletonRegion] = useState<string | null>(null);
