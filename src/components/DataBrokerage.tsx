@@ -1888,7 +1888,7 @@ Atlas Data Brokerage is a vertical marketplace for embodied AI training data, bu
 
 1. You will receive a Clerk sign-in link from the Atlas team. Use it to create your account with your work email.
 2. Once signed in, navigate to **Sell Data**. You will be prompted to complete your provider profile (name, email, company).
-3. Click **Continue to Stripe Setup** to connect your Stripe account via Stripe Express. This takes about 2 minutes. You'll need your bank details for payouts.
+3. Click **Continue to Stripe Setup** to connect your payout account via Stripe Express. This creates a connected account under the Atlas platform for the 85/15 revenue split. If you already have a Stripe account, you can link your existing bank details and the process takes under a minute. Otherwise, expect about 2 minutes for identity verification and bank setup.
 
 **API base URL:** \`https://brokerage.humanoids.fyi/v1\`
 
@@ -2101,18 +2101,47 @@ Once your webhook is verified, go to **Sell Data → Create Listing** and add yo
 
 - **Title** — descriptive name (e.g. "Kitchen Activity Egocentric Video")
 - **Modality** — egocentric_video, teleoperation, tactile, motion_capture, etc.
-- **Environment** — indoor, outdoor, mixed, simulation
+- **Environment** — indoor, outdoor, mixed, simulation, laboratory, warehouse, industrial, domestic
 - **Total hours** — how much data is available
 - **Price per hour** — in USD
 - **Minimum hours** — smallest purchase allowed
-- **License type** — commercial, research, or custom
+- **Format** — parquet, rosbag, mp4, hdf5, etc.
+- **License type** — standard, commercial, research, or custom
 - **Description** — what the data contains, how it was collected, quality notes
 
 You can upload sample clips so buyers can preview before purchasing.
 
+After submitting, your listing enters a review queue. The Atlas team will review and approve it (typically within 24 hours). Once approved and published, it appears in the **Buy Data** catalog for OEM buyers.
+
+---
+
+## Step 6 — Collection Programs (Optional)
+
+If you want to crowdsource data collection, you can create collection programs that recruit collectors.
+
+### How it works
+
+1. Go to **Sell Data → My Programs → Create Program**
+2. Define the program: title, description, requirements, compensation, and signup type
+3. Collectors browse programs in the **Collect Data** tab and apply
+4. You review applicants in **My Programs** and accept or reject them
+5. When you accept a collector, Atlas:
+   - Sends a \`collector_accepted\` webhook to your provisioning API (so you can sync them to your system)
+   - Invoices you a $5 referral fee per accepted collector via Stripe (7-day payment terms)
+   - Assigns the collector a unique referral code (e.g. \`ATL-377DKM\`)
+6. The collector does work on your platform using their referral code
+7. Your system reports collector activity back to Atlas via the postback endpoint (section 3c above)
+
+### Signup types
+
+- **Atlas form** — collectors sign up directly on Atlas with name + email. You receive the signup and manage onboarding.
+- **External link** — collectors are redirected to your own signup page with their referral code appended as \`?ref=ATL-XXXXXX\`.
+
 ---
 
 ## Architecture Overview
+
+### Data purchases
 
 \`\`\`
 Buyer browses catalog ──→ Adds to cart ──→ Pays via Stripe
@@ -2134,6 +2163,26 @@ Buyer browses catalog ──→ Adds to cart ──→ Pays via Stripe
                                                     { status: "ready" }
                                                             │
                                                     Buyer gets access
+\`\`\`
+
+### Collection programs
+
+\`\`\`
+Provider creates program ──→ Collector applies ──→ Provider accepts
+                                                        │
+                                          ┌─────────────┴─────────────┐
+                                          │                           │
+                                   Atlas sends webhook          Atlas invoices
+                                  (collector_accepted)          $5 referral fee
+                                          │
+                                   Your system syncs
+                                     the collector
+                                          │
+                                   Collector does work
+                                          │
+                                   Your system reports
+                                   hours via postback
+                                   POST to Atlas API
 \`\`\`
 
 ---
