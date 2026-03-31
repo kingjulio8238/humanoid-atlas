@@ -106,7 +106,7 @@ const TAB_TO_PATH: Record<string, string> = {
   buyer_terms: '/data/buyer-terms',
   collector_terms: '/data/collector-terms',
   account: '/data/account',
-  arena_oems: '/arena/oems',
+  arena_oems: '/arena/humanoids',
   arena_suppliers: '/arena/suppliers',
   arena_vla: '/arena/vla',
   arena_investment: '/arena/investment',
