@@ -127,37 +127,310 @@ for (const rel of relationships) {
   }
 }
 
-const HIDDEN_VALUES = new Set(['not disclosed', 'n/a', '—', '']);
+const HIDDEN_VALUES = new Set(['not disclosed', 'n/a', '—', '', 'unknown', 'tbd']);
 
 function isValidSpec(value: string): boolean {
   return !!value && !HIDDEN_VALUES.has(value.toLowerCase().trim());
+}
+
+// ==================== NORMALIZATION HELPERS ====================
+
+/** Extract the first number from a string (handles ~, ≥, commas) */
+function extractNumber(s: string): number | null {
+  const cleaned = s.replace(/[,≥≈~><]/g, '').trim();
+  const m = cleaned.match(/-?\d+\.?\d*/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+/** Parse speed to m/s from any unit */
+function normalizeSpeed(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const lower = raw.toLowerCase();
+  // Handle multi-mode: "Walk: 1.4, Run: 6.2 m/s" — take first (walk) for fair comparison
+  const walkMatch = lower.match(/walk[:\s]*([~≈]?\d+\.?\d*)\s*(m\/s|km\/h|mph)?/i);
+  if (walkMatch) {
+    const val = parseFloat(walkMatch[1].replace(/[~≈]/g, ''));
+    const unit = walkMatch[2] || 'm/s';
+    return formatSpeed(val, unit);
+  }
+  // Handle "Max: X m/s"
+  const maxMatch = lower.match(/max[:\s]*([~≈]?\d+\.?\d*)\s*(m\/s|km\/h|mph)?/i);
+  if (maxMatch) {
+    const val = parseFloat(maxMatch[1].replace(/[~≈]/g, ''));
+    const unit = maxMatch[2] || 'm/s';
+    return formatSpeed(val, unit);
+  }
+  // Handle range "2-3 m/s" — take midpoint
+  const rangeMatch = lower.match(/([~≈]?\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)\s*(m\/s|km\/h|mph)/i);
+  if (rangeMatch) {
+    const lo = parseFloat(rangeMatch[1].replace(/[~≈]/g, ''));
+    const hi = parseFloat(rangeMatch[2]);
+    const unit = rangeMatch[3];
+    const mid = (lo + hi) / 2;
+    return formatSpeed(mid, unit);
+  }
+  // Simple: "1.1 m/s" or "12.6 km/h" or "4.5 mph"
+  const simpleMatch = lower.match(/([~≈]?\d+\.?\d*)\s*(m\/s|km\/h|mph)/i);
+  if (simpleMatch) {
+    const val = parseFloat(simpleMatch[1].replace(/[~≈]/g, ''));
+    const unit = simpleMatch[2];
+    return formatSpeed(val, unit);
+  }
+  return null;
+}
+
+function formatSpeed(val: number, unit: string): string {
+  let ms = val;
+  const u = unit.toLowerCase();
+  if (u === 'km/h') ms = val / 3.6;
+  else if (u === 'mph') ms = val * 0.44704;
+  return `${ms.toFixed(1)} m/s`;
+}
+
+/** Parse payload to kg */
+function normalizePayload(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const lower = raw.toLowerCase();
+  // Handle "Single-arm Xkg, Dual-arm: Y kg" — take dual-arm or total
+  const dualMatch = lower.match(/dual[- ]?arm[:\s]*([~≈]?\d+\.?\d*)\s*(kg|lbs?)/i);
+  if (dualMatch) {
+    const val = parseFloat(dualMatch[1].replace(/[~≈]/g, ''));
+    const unit = dualMatch[2];
+    return formatPayload(val, unit);
+  }
+  // Handle "Lift: X lbs, Carry: Y lbs" — take carry (sustained)
+  const carryMatch = lower.match(/carry[:\s]*([~≈]?\d+\.?\d*)\s*(kg|lbs?)/i);
+  if (carryMatch) {
+    const val = parseFloat(carryMatch[1].replace(/[~≈]/g, ''));
+    return formatPayload(val, carryMatch[2]);
+  }
+  // Handle "Sustained: X lbs"
+  const sustainMatch = lower.match(/sustain\w*[:\s]*([~≈]?\d+\.?\d*)\s*(kg|lbs?)/i);
+  if (sustainMatch) {
+    const val = parseFloat(sustainMatch[1].replace(/[~≈]/g, ''));
+    return formatPayload(val, sustainMatch[2]);
+  }
+  // Handle "X kg per arm" — double it
+  const perArmMatch = lower.match(/([~≈]?\d+\.?\d*)\s*(kg|lbs?)\s*per\s*arm/i);
+  if (perArmMatch) {
+    const val = parseFloat(perArmMatch[1].replace(/[~≈]/g, '')) * 2;
+    return formatPayload(val, perArmMatch[2], true);
+  }
+  // Handle range "~3-5 kg"
+  const rangeMatch = lower.match(/([~≈]?\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)\s*(kg|lbs?)/i);
+  if (rangeMatch) {
+    const lo = parseFloat(rangeMatch[1].replace(/[~≈]/g, ''));
+    const hi = parseFloat(rangeMatch[2]);
+    const mid = (lo + hi) / 2;
+    return formatPayload(mid, rangeMatch[3]);
+  }
+  // Simple: "55 lbs" or "20 kg"
+  const simpleMatch = lower.match(/([~≈]?\d+\.?\d*)\s*(kg|lbs?)/i);
+  if (simpleMatch) {
+    const val = parseFloat(simpleMatch[1].replace(/[~≈]/g, ''));
+    return formatPayload(val, simpleMatch[2]);
+  }
+  return null;
+}
+
+function formatPayload(val: number, unit: string, isDualArm?: boolean): string {
+  let kg = val;
+  if (unit.toLowerCase().startsWith('lb')) kg = val * 0.453592;
+  const rounded = Math.round(kg * 10) / 10;
+  return isDualArm ? `~${rounded} kg (2-arm)` : `${rounded} kg`;
+}
+
+/** Parse operating time to hours */
+function normalizeRuntime(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const lower = raw.toLowerCase();
+  // Handle "Standing: ~3 hrs, Walking: ~1.5 hrs" — take walking (active use)
+  const walkingMatch = lower.match(/walk\w*[:\s]*([~≈]?\d+\.?\d*)\s*(hrs?|hours?|min)/i);
+  if (walkingMatch) {
+    const val = parseFloat(walkingMatch[1].replace(/[~≈]/g, ''));
+    const unit = walkingMatch[2];
+    return formatRuntime(val, unit);
+  }
+  // Handle battery-swap: "14 hrs (with battery swap)" — note the caveat
+  const swapMatch = lower.match(/(\d+\.?\d*)\s*(hrs?|hours?)\s*\(.*swap/i);
+  if (swapMatch) {
+    return `${swapMatch[1]} hrs*`;
+  }
+  // Handle range "4-8 hrs" — take midpoint
+  const rangeMatch = lower.match(/([~≈]?\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)\s*(hrs?|hours?|min)/i);
+  if (rangeMatch) {
+    const lo = parseFloat(rangeMatch[1].replace(/[~≈]/g, ''));
+    const hi = parseFloat(rangeMatch[2]);
+    const unit = rangeMatch[3];
+    const mid = (lo + hi) / 2;
+    return formatRuntime(mid, unit);
+  }
+  // Handle battery-config: "30-50 min (2Ah)" — take higher
+  const minMatch = lower.match(/(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)\s*min/i);
+  if (minMatch) {
+    const hi = parseFloat(minMatch[2]);
+    return formatRuntime(hi, 'min');
+  }
+  // Handle "Up to X hrs"
+  const uptoMatch = lower.match(/up\s*to\s*([~≈]?\d+\.?\d*)\s*(hrs?|hours?|min)/i);
+  if (uptoMatch) {
+    const val = parseFloat(uptoMatch[1].replace(/[~≈]/g, ''));
+    return formatRuntime(val, uptoMatch[2]);
+  }
+  // Simple: "4 hrs" or "~2 hrs" or "1.5-2 hours"
+  const simpleMatch = lower.match(/([~≈]?\d+\.?\d*)\s*(hrs?|hours?|min)/i);
+  if (simpleMatch) {
+    const val = parseFloat(simpleMatch[1].replace(/[~≈]/g, ''));
+    return formatRuntime(val, simpleMatch[2]);
+  }
+  return null;
+}
+
+function formatRuntime(val: number, unit: string): string {
+  let hrs = val;
+  if (unit.toLowerCase().startsWith('min')) hrs = val / 60;
+  if (hrs < 1) return `${Math.round(hrs * 60)} min`;
+  return `${hrs % 1 === 0 ? hrs : hrs.toFixed(1)} hrs`;
+}
+
+/** Parse mass — already mostly consistent, just clean up */
+function normalizeMass(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const n = extractNumber(raw);
+  if (n === null) return null;
+  // Check for lbs
+  if (raw.toLowerCase().includes('lb')) {
+    return `${Math.round(n * 0.453592)} kg`;
+  }
+  return `${Math.round(n)} kg`;
+}
+
+/** Parse height — already cm, just standardize */
+function normalizeHeight(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const n = extractNumber(raw);
+  if (n === null) return null;
+  // If given in meters
+  if (raw.toLowerCase().includes('m') && !raw.toLowerCase().includes('cm') && n < 10) {
+    return `${Math.round(n * 100)} cm`;
+  }
+  return `${Math.round(n)} cm`;
+}
+
+/** Parse DOF — clean up ranges */
+function normalizeDOF(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const rangeMatch = raw.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}-${rangeMatch[2]}`;
+  }
+  const n = extractNumber(raw);
+  if (n === null) return null;
+  return String(Math.round(n));
+}
+
+/** Parse price to normalized $XXK format */
+function normalizePrice(raw: string): string | null {
+  if (!raw || !isValidSpec(raw)) return null;
+  const lower = raw.toLowerCase();
+  // Handle lease-only: skip
+  if (lower.includes('month') && !lower.includes('purchase') && !lower.includes(',')) return null;
+  // Extract purchase price from "purchase" context or first price
+  let priceStr = raw;
+  const purchaseMatch = lower.match(/\$[\d,.]+k?\s*\(?purchase\)?/i);
+  if (purchaseMatch) priceStr = purchaseMatch[0];
+  // Handle "$150K - $250K" ranges
+  const rangeK = priceStr.match(/\$\s*([\d,.]+)\s*k\s*[-–]\s*\$?\s*([\d,.]+)\s*k/i);
+  if (rangeK) {
+    const lo = parseFloat(rangeK[1].replace(/,/g, ''));
+    const hi = parseFloat(rangeK[2].replace(/,/g, ''));
+    return `$${lo}K-$${hi}K`;
+  }
+  // Handle "$4,999 - $18,000" ranges (non-K)
+  const rangeRaw = priceStr.match(/\$\s*([\d,.]+)\s*[-–]\s*\$?\s*([\d,.]+)/);
+  if (rangeRaw) {
+    const lo = parseFloat(rangeRaw[1].replace(/,/g, ''));
+    const hi = parseFloat(rangeRaw[2].replace(/,/g, ''));
+    return `$${fmtK(lo)}-$${fmtK(hi)}`;
+  }
+  // Single: "$250K" or "~$27K" or "$5.5K"
+  const singleK = priceStr.match(/\$\s*([\d,.]+)\s*k/i);
+  if (singleK) {
+    const val = parseFloat(singleK[1].replace(/,/g, ''));
+    return `$${val}K`;
+  }
+  // Single raw: "$4,999"
+  const singleRaw = priceStr.match(/\$\s*([\d,.]+)/);
+  if (singleRaw) {
+    const val = parseFloat(singleRaw[1].replace(/,/g, ''));
+    return `$${fmtK(val)}`;
+  }
+  return null;
+}
+
+function fmtK(val: number): string {
+  if (val >= 1000) return `${Math.round(val / 1000)}K`;
+  return val.toLocaleString();
+}
+
+/** Parse battery capacity to Wh */
+function normalizeBattery(raw: string): string | null {
+  if (!isValidSpec(raw)) return null;
+  const lower = raw.toLowerCase();
+  // kWh
+  const kwhMatch = lower.match(/([\d,.]+)\s*kwh/i);
+  if (kwhMatch) {
+    const val = parseFloat(kwhMatch[1].replace(/,/g, ''));
+    return `${Math.round(val * 1000)} Wh`;
+  }
+  // Wh
+  const whMatch = lower.match(/([\d,.]+)\s*wh/i);
+  if (whMatch) {
+    const val = parseFloat(whMatch[1].replace(/,/g, ''));
+    return `${Math.round(val)} Wh`;
+  }
+  // mAh with voltage for conversion
+  const mahMatch = lower.match(/([\d,.]+)\s*mah/i);
+  const voltMatch = lower.match(/([\d,.]+)\s*v/i);
+  if (mahMatch && voltMatch) {
+    const mah = parseFloat(mahMatch[1].replace(/,/g, ''));
+    const v = parseFloat(voltMatch[1].replace(/,/g, ''));
+    return `${Math.round((mah * v) / 1000)} Wh`;
+  }
+  // Ah with voltage
+  const ahMatch = lower.match(/([\d,.]+)\s*ah/i);
+  if (ahMatch && voltMatch) {
+    const ah = parseFloat(ahMatch[1].replace(/,/g, ''));
+    const v = parseFloat(voltMatch[1].replace(/,/g, ''));
+    return `${Math.round(ah * v)} Wh`;
+  }
+  // Just type (e.g. "Replaceable Lithium") — not numeric, skip
+  return null;
 }
 
 function companyToOemEntity(c: Company): ArenaEntity {
   const s = c.robotSpecs;
   const rows: { label: string; value: string }[] = [];
   if (s) {
-    const specs = [
-      { label: 'Status', value: s.status },
-      { label: 'Launch', value: s.launchDate },
-      { label: 'Height', value: s.height },
-      { label: 'Mass', value: s.mass },
-      { label: 'DOF', value: s.totalDOF },
-      { label: 'Speed', value: s.speed },
-      { label: 'Runtime', value: s.operatingTime },
-      { label: 'Payload', value: s.payloadCapacity },
-      { label: 'Locomotion', value: s.locomotion },
-      { label: 'Motor', value: s.motor },
-      { label: 'Transmission', value: s.transmission },
-      { label: 'End Effector', value: s.endEffector },
-      { label: 'Ext. Sensors', value: s.externalSensors },
-      { label: 'Compute', value: s.compute },
-      { label: 'Battery', value: s.battery },
-      { label: 'Price', value: s.price || '' },
-      { label: 'BOM', value: s.bom || '' },
-      { label: '2025 Ships', value: s.shipments2025 ? s.shipments2025.toLocaleString() : '' },
+    // Normalized numeric specs for fair comparison
+    const normalized: { label: string; value: string | null }[] = [
+      { label: 'Status', value: isValidSpec(s.status) ? s.status : null },
+      { label: 'Launch', value: isValidSpec(s.launchDate) ? s.launchDate : null },
+      { label: 'Height', value: normalizeHeight(s.height) },
+      { label: 'Mass', value: normalizeMass(s.mass) },
+      { label: 'DOF', value: normalizeDOF(s.totalDOF) },
+      { label: 'Speed', value: normalizeSpeed(s.speed) },
+      { label: 'Runtime', value: normalizeRuntime(s.operatingTime) },
+      { label: 'Payload', value: normalizePayload(s.payloadCapacity) },
+      { label: 'Locomotion', value: isValidSpec(s.locomotion) ? s.locomotion : null },
+      { label: 'Price', value: normalizePrice(s.price || '') },
+      { label: 'Battery', value: normalizeBattery(s.battery) },
+      { label: 'BOM', value: normalizePrice(s.bom || '') },
+      { label: '2025 Ships', value: s.shipments2025 ? s.shipments2025.toLocaleString() : null },
     ];
-    for (const r of specs) { if (isValidSpec(r.value)) rows.push(r); }
+    for (const r of normalized) {
+      if (r.value !== null) rows.push({ label: r.label, value: r.value });
+    }
   }
   return { id: c.id, name: c.name, subtitle: c.country, image: c.robotImage, infoRows: rows };
 }
@@ -743,19 +1016,21 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               <>
                 <div className="arena-card__name">{entity.name}</div>
                 <div className="arena-card__country">{entity.subtitle}</div>
-                {entity.description && (
+                {!voteResult && entity.description && (
                   <div className="arena-card__desc">{entity.description}</div>
                 )}
               </>
             )}
-            <div className="arena-card__specs">
-              {visibleRows.map((r) => (
-                <div key={r.label} className="arena-spec">
-                  <span className="arena-spec__label">{r.label}</span>
-                  <span className="arena-spec__value">{r.value}</span>
-                </div>
-              ))}
-            </div>
+            {!voteResult && (
+              <div className="arena-card__specs">
+                {visibleRows.map((r) => (
+                  <div key={r.label} className="arena-spec">
+                    <span className="arena-spec__label">{r.label}</span>
+                    <span className="arena-spec__value">{r.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           {!voteResult && !matchup?.alreadyVoted && (
             <button

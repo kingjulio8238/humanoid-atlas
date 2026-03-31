@@ -51,11 +51,11 @@ const TABS: { id: string; label: string; group: TabGroup; hidden?: boolean }[] =
   { id: 'account', label: 'Sign Out', group: 'data' },
   // Arena
   { id: 'arena_oems', label: 'OEM Arena', group: 'arena' },
-  { id: 'arena_suppliers', label: 'Supplier Arena', group: 'arena' },
-  { id: 'arena_vla', label: 'VLA Arena', group: 'arena' },
-  { id: 'arena_investment', label: 'Investment Arena', group: 'arena' },
-  { id: 'arena_components', label: 'Component Arena', group: 'arena' },
-  { id: 'arena_scenarios', label: 'Scenario Arena', group: 'arena' },
+  { id: 'arena_suppliers', label: 'Supplier Arena', group: 'arena', hidden: true },
+  { id: 'arena_vla', label: 'VLA Arena', group: 'arena', hidden: true },
+  { id: 'arena_investment', label: 'Investment Arena', group: 'arena', hidden: true },
+  { id: 'arena_components', label: 'Component Arena', group: 'arena', hidden: true },
+  { id: 'arena_scenarios', label: 'Scenario Arena', group: 'arena', hidden: true },
   // Hardware
   { id: 'sensors_general', label: 'Sensors', group: 'hardware' },
   { id: 'compute', label: 'Compute', group: 'hardware' },
@@ -2373,6 +2373,7 @@ export default function App() {
         </div>
       </div>
 
+      {TABS.filter((t) => t.group === activeTabGroup && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).length > 1 && (
       <nav className="component-nav">
         {TABS.filter((t) => t.group === activeTabGroup && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).map((t) => {
           return (
@@ -2386,6 +2387,7 @@ export default function App() {
           );
         })}
       </nav>
+      )}
 
       <main className={activeTabGroup === 'data' ? 'component-view' : activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTabGroup === 'arena' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
         {/* Skeleton tab */}
