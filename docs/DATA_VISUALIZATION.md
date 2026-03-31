@@ -286,46 +286,166 @@ Before merging, test with:
 2. Upload a `.rrd` file → renders in embedded Rerun viewer
 3. Upload a `.rosbag` → renders in Rerun viewer (or graceful fallback)
 4. Upload a `.mcap` → renders in Rerun viewer (or graceful fallback)
-5. Upload a `.parquet` for a `lidar` listing → renders in Rerun viewer
-6. Upload a `.parquet` for an `imu` listing → still shows download card (Phase 3)
+5. Upload a `.parquet` for a `lidar` listing → shows download card (Rerun can't load raw parquet)
+6. Upload a `.parquet` for an `imu` listing → shows download card (Phase 3 will add charts)
 7. Non-Rerun samples (video, image, audio) → unchanged behavior
 8. Initial page load does NOT include WASM bundle (verify with network tab)
 9. Deploy to Vercel — build succeeds
 
 ## Phase 3: Time-Series Charts
 
-**Goal**: Render interactive charts for numeric sensor data (IMU, force/torque, proprioception, tactile).
+**Goal**: Render interactive charts for numeric sensor data (IMU, force/torque, proprioception, tactile) stored in `.parquet` files.
 
-### Changes
+**Status**: Phase 2 complete — `.parquet` and `.hdf5` currently render as download cards. Phase 3 adds client-side parquet reading + chart rendering for time-series modalities.
 
-1. **Install a lightweight chart library** (options):
-   - `recharts` — most React-idiomatic, good for moderate data sizes
-   - `uPlot` — best performance for large time-series (100K+ points)
-   - Decision: start with `recharts`, switch to `uPlot` if performance is an issue
+### Step 3.1: Install dependencies
 
-2. **Server-side preview generation** (recommended approach):
-   - At upload time, if the file is `.parquet` with a time-series modality, the backend generates a small JSON summary (first N rows, column names, basic stats)
-   - Store the JSON summary alongside the sample in R2
-   - The chart component loads the JSON summary, not the full parquet file
-   - This avoids client-side parquet parsing (which requires `parquet-wasm` and is heavy)
+```bash
+pnpm add parquet-wasm recharts
+```
 
-3. **Alternative: Client-side parquet reading** (heavier, more flexible):
-   - Install `parquet-wasm` for in-browser parquet reading
-   - Read first 1000 rows client-side and render as chart
-   - Pro: no backend changes. Con: adds ~2MB WASM to bundle
+- **`parquet-wasm`** (~2MB WASM) — reads Apache Parquet files in the browser via WebAssembly. No server-side changes needed.
+- **`recharts`** — React-idiomatic charting library for time-series visualization.
 
-4. **Create `TimeSeriesChart` component**
-   - Renders multi-line chart with time on X axis
-   - Auto-detects column names from data
-   - Supports zoom/pan for exploring data ranges
-   - Shows basic stats (min, max, mean, sample rate)
+Both should be lazy-loaded (dynamic import) so they don't bloat the main bundle.
 
-5. **Wire into `SampleRenderer` dispatcher**
-   - `.parquet` / `.hdf5` with time-series modalities → TimeSeriesChart
+### Step 3.2: Add `'timeseries'` category to dispatcher
+
+**File**: `src/components/DataBrokerage.tsx`
+
+Update `SampleCategory` type and `getSampleCategory()`:
+
+```typescript
+type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'download';
+
+const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception', 'tactile'];
+
+function getSampleCategory(contentType?: string, filename?: string, modalities?: string[]): SampleCategory {
+  // ... existing video/image/audio/json/rerun checks ...
+  if (ext === 'parquet' && modalities?.some(m => TIME_SERIES_MODALITIES.includes(m))) return 'timeseries';
+  return 'download';
+}
+```
+
+Note: only `.parquet` gets the timeseries treatment — `.hdf5` cannot be read by `parquet-wasm` and remains a download card. Providers with HDF5 time-series data should convert to parquet or `.rrd`.
+
+### Step 3.3: Create lazy-loaded ParquetChartViewer component
+
+**File**: `src/components/DataBrokerage.tsx`
+
+This component:
+1. Fetches the `.parquet` file as an ArrayBuffer
+2. Uses `parquet-wasm` to read the schema and first 1000 rows
+3. Renders a `recharts` `LineChart` with auto-detected numeric columns
+
+```typescript
+const LazyParquetChart = React.lazy(() => import('./ParquetChartViewer'));
+```
+
+### Step 3.4: Create ParquetChartViewer module
+
+**File**: `src/components/ParquetChartViewer.tsx` (new file)
+
+This is a separate file so React.lazy can code-split it (with its parquet-wasm + recharts dependencies).
+
+Core logic:
+1. **Fetch**: `fetch(url).then(r => r.arrayBuffer())`
+2. **Parse**: Use `parquet-wasm` to read the parquet file:
+   ```typescript
+   import { readParquet } from 'parquet-wasm';
+   const table = readParquet(new Uint8Array(buffer));
+   ```
+3. **Extract columns**: Read schema to find numeric columns. Pick the first column as time/index axis. Render remaining numeric columns as line series.
+4. **Limit rows**: Only use the first 1000 rows for rendering performance.
+5. **Render**: `recharts` `LineChart` with `ResponsiveContainer`, one `Line` per numeric column. Include `Tooltip`, `Legend`, `XAxis`, `YAxis`.
+6. **Stats bar**: Below the chart, show column count, row count, and basic stats (min/max/mean for each column).
+7. **Loading/error states**: Show styled fallbacks matching the app's design system.
+
+### Step 3.5: Wire into SampleRenderer
+
+**File**: `src/components/DataBrokerage.tsx`
+
+Add the `'timeseries'` case to `SampleRenderer`:
+
+```typescript
+case 'timeseries':
+  return (
+    <Suspense fallback={<div className="db-chart-loading">Loading chart...</div>}>
+      <LazyParquetChart url={sample.url} filename={sample.filename} />
+    </Suspense>
+  );
+```
+
+Activate the `_modalities` parameter in `getSampleCategory` (currently prefixed with `_` to suppress unused warning — remove the underscore).
+
+### Step 3.6: Add CSS for chart viewer
+
+**File**: `src/App.css`
+
+```css
+.db-chart-container { width: 100%; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg-card); }
+.db-chart-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg-muted); }
+.db-chart-filename { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-secondary); }
+.db-chart-meta { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); }
+.db-chart-body { padding: 12px; height: 350px; }
+.db-chart-stats { display: flex; gap: 16px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg-muted); flex-wrap: wrap; }
+.db-chart-stat { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); }
+.db-chart-stat-label { text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+.db-chart-stat-value { color: var(--text); }
+.db-chart-loading, .db-chart-error { width: 100%; height: 350px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-muted); font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
+```
+
+### Step 3.7: Update ProviderDocs
+
+Add guidance for time-series data providers:
+
+```markdown
+### Time-Series Data (.parquet)
+
+For IMU, force/torque, proprioception, and tactile data, upload `.parquet` samples
+for interactive chart previews. The marketplace reads your parquet file in the browser
+and renders a time-series chart for buyers.
+
+Best practices:
+- Use Apache Parquet format (pandas: `df.to_parquet("sample.parquet")`)
+- Include a time/timestamp column as the first column
+- Keep numeric columns (accel_x, accel_y, accel_z, etc.) as float32/float64
+- Limit sample files to the first 10-30 seconds (~1000-5000 rows)
+- Maximum 500MB per file
+```
+
+### Step 3.8: Handle edge cases
+
+- **Empty parquet files**: Show "No data" message
+- **Non-numeric columns**: Skip them (only chart numeric columns)
+- **Too many columns (>20)**: Show first 10 with a "showing 10 of N columns" note
+- **Large files**: Only read first 1000 rows regardless of file size
+- **WASM load failure**: Fall back to download card with error message
+- **HDF5 files**: Remain as download cards — `parquet-wasm` cannot read HDF5. Provider guidance: convert to parquet or .rrd.
 
 ### Dependencies
-- Chart library (recharts or uPlot)
-- Either server-side JSON preview generation OR `parquet-wasm`
+- `parquet-wasm` — Apache Parquet reader compiled to WASM (~2MB)
+- `recharts` — React charting library (well-maintained, 22k+ GitHub stars)
+
+### Risks & Mitigations
+| Risk | Mitigation |
+|---|---|
+| parquet-wasm WASM bundle (~2MB) | React.lazy + dynamic import — only loads when a parquet chart is viewed |
+| recharts bundle size (~200KB) | Code-split into ParquetChartViewer module |
+| Large parquet files | Read only first 1000 rows; show row count in stats |
+| Non-standard parquet schemas | Auto-detect numeric columns; skip non-numeric; show filename as fallback |
+| HDF5 files not supported | Documented limitation; providers guided to convert to parquet |
+
+### Verification
+1. `npx tsc -b` — zero errors
+2. Upload a `.parquet` file for an `imu` listing → renders interactive line chart
+3. Upload a `.parquet` file for a `force_torque` listing → renders chart with 6 columns
+4. Upload a `.parquet` file for an `rgb` listing → still shows download card (not a time-series modality)
+5. Upload a `.hdf5` file for an `imu` listing → still shows download card
+6. Chart shows column names in legend, tooltip on hover, row count in stats
+7. Rerun viewer (.rrd, .rosbag, .mcap) still works — no regressions
+8. Initial page load does NOT include parquet-wasm or recharts (verify with network tab)
+9. Deploy to Vercel — build succeeds
 
 ## Phase 4: Enhanced Gallery UX
 

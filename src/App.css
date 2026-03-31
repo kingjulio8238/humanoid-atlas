@@ -4538,6 +4538,16 @@ input[type="number"] { -moz-appearance: textfield; }
 .db-download-link:hover { background: var(--accent); color: var(--bg-card); }
 .db-rerun-container { width: 100%; height: 500px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
 .db-rerun-loading { width: 100%; height: 500px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-muted); font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
+.db-chart-container { width: 100%; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg-card); }
+.db-chart-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg-muted); }
+.db-chart-filename { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-secondary); }
+.db-chart-meta { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); }
+.db-chart-body { padding: 12px; height: 350px; }
+.db-chart-stats { display: flex; gap: 16px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--bg-muted); flex-wrap: wrap; }
+.db-chart-stat { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); }
+.db-chart-stat-label { text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+.db-chart-stat-value { color: var(--text); }
+.db-chart-loading, .db-chart-error { width: 100%; height: 350px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-muted); font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
 .db-thumb-strip { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
 .db-thumb-strip::-webkit-scrollbar { display: none; }
 .db-thumb { min-width: 48px; padding: 0 6px; height: 32px; border-radius: 3px; border: 1px solid var(--border); background: var(--bg-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); flex-shrink: 0; transition: border-color 0.15s; }

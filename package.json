@@ -19,11 +19,14 @@
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.10.1",
+    "apache-arrow": "^21.1.0",
     "gsap": "^3.14.2",
+    "parquet-wasm": "^0.7.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.13.1",
+    "recharts": "^3.8.1",
     "three": "^0.183.2"
   },
   "devDependencies": {

@@ -124,12 +124,11 @@ interface Sample {
   content_type?: string;
 }
 
-type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'download';
+type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'download';
 
-// Phase 3: will be used for modality-dependent chart rendering of .parquet/.hdf5
-// const SPATIAL_MODALITIES = ['lidar', 'radar', 'point_cloud', 'motion_capture', 'event_camera', 'rgbd', 'depth'];
+const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception', 'tactile'];
 
-function getSampleCategory(contentType?: string, filename?: string, _modalities?: string[]): SampleCategory {
+function getSampleCategory(contentType?: string, filename?: string, modalities?: string[]): SampleCategory {
   const ct = (contentType ?? '').toLowerCase();
   const ext = (filename ?? '').split('.').pop()?.toLowerCase() ?? '';
   if (ct.startsWith('video/') || ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(ext)) return 'video';
@@ -137,7 +136,7 @@ function getSampleCategory(contentType?: string, filename?: string, _modalities?
   if (ct.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) return 'audio';
   if (ct === 'application/json' || ext === 'json') return 'json';
   if (['rrd', 'rosbag', 'mcap'].includes(ext)) return 'rerun';
-  // .parquet/.hdf5 cannot be loaded by Rerun web viewer — providers should convert to .rrd
+  if (ext === 'parquet' && modalities?.some(m => TIME_SERIES_MODALITIES.includes(m))) return 'timeseries';
   return 'download';
 }
 
@@ -190,6 +189,8 @@ const LazyRerunViewer = React.lazy(() =>
   import('@rerun-io/web-viewer-react').then(mod => ({ default: mod.default }))
 );
 
+const LazyParquetChart = React.lazy(() => import('./ParquetChartViewer'));
+
 function RerunSampleViewer({ url }: { url: string }) {
   return (
     <Suspense fallback={<div className="db-rerun-loading">Loading 3D viewer...</div>}>
@@ -218,6 +219,12 @@ function SampleRenderer({ sample, modalities = [] }: { sample: Sample; modalitie
       return <JsonPreview url={sample.url} filename={sample.filename} />;
     case 'rerun':
       return <RerunSampleViewer url={sample.url} />;
+    case 'timeseries':
+      return (
+        <Suspense fallback={<div className="db-chart-loading">Loading chart...</div>}>
+          <LazyParquetChart url={sample.url} filename={sample.filename} />
+        </Suspense>
+      );
     case 'download':
       return (
         <div className="db-download-card">
@@ -2582,6 +2589,17 @@ rr.save("preview.rrd")
 \`\`\`
 
 Keep preview files **under 50MB** for fast loading. Trim to the first 10–30 seconds of your recording for a representative sample. The .rrd file renders as an interactive 3D viewer in the catalog.
+
+### Time-Series Data (.parquet)
+
+For IMU, force/torque, proprioception, and tactile data, upload \`.parquet\` samples for interactive chart previews. The marketplace reads your parquet file in the browser and renders a time-series chart for buyers.
+
+Best practices:
+- Use Apache Parquet format (pandas: \`df.to_parquet("sample.parquet")\`)
+- Include a time or index column; numeric columns are auto-detected for charting
+- Use float32/float64 for sensor readings (accel_x, accel_y, gyro_z, etc.)
+- Keep sample files to 1000–5000 rows for fast loading
+- Maximum 500MB per file, but smaller is better for preview
 
 After submitting, your listing enters a review queue. The Atlas team will review and approve it (typically within 24 hours). Once approved and published, it appears in the **Buy Data** catalog for OEM buyers.
 
