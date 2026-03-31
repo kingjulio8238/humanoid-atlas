@@ -57,8 +57,9 @@ function ClerkSignUpBtn({ children }: { children: React.ReactNode }) {
 }
 
 interface Listing {
-  id: string; title: string; slug: string; description: string; modality: string;
-  environment: string; use_cases: string[]; tags: string[]; total_hours: number | null;
+  id: string; title: string; slug: string; description: string; modality: string | string[];
+  environment: string | string[]; collection_method?: string | string[]; embodiment_type?: string | string[];
+  task_type?: string | string[]; use_cases: string[]; tags: string[]; total_hours: number | null;
   format: string | null; resolution: string | null; price_per_hour: number; currency: string;
   minimum_hours: number; license_type: string; license_terms: string | null; featured: boolean;
   created_at: string; thumbnail_url?: string | null;
@@ -71,6 +72,45 @@ interface CollectionProgram {
   compensation_description: string | null; signup_type: string; external_url: string | null;
   form_fields: Record<string, unknown> | null; created_at: string;
   providers?: { id: string; name: string; slug: string; logo_url: string | null; website_url: string | null };
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAXONOMY CONSTANTS
+// ═══════════════════════════════════════════════════════════
+
+const MODALITIES = [
+  'rgb', 'rgbd', 'depth', 'lidar', 'radar', 'point_cloud', 'motion_capture',
+  'tactile', 'force_torque', 'proprioception', 'imu', 'audio',
+  'language_annotations', 'thermal', 'event_camera', 'other',
+];
+
+const ENVIRONMENTS = [
+  'domestic', 'kitchen', 'office', 'warehouse', 'retail', 'laboratory',
+  'industrial', 'healthcare', 'restaurant', 'hotel', 'eldercare',
+  'construction', 'logistics', 'outdoor', 'agriculture',
+  'road', 'simulation', 'multi_environment', 'other',
+];
+
+const COLLECTION_METHODS = [
+  'teleoperation', 'kinesthetic_teaching', 'autonomous_policy',
+  'human_demonstration', 'play_data', 'crowdsourced', 'scripted',
+  'simulation_generated', 'other',
+];
+
+const EMBODIMENT_TYPES = [
+  'humanoid', 'quadruped', 'dual_arm', 'single_arm', 'mobile_manipulator',
+  'hand_dexterous', 'drone', 'autonomous_vehicle', 'human', 'other',
+];
+
+const TASK_TYPES = [
+  'pick_and_place', 'pushing', 'stacking', 'pouring', 'folding', 'assembly',
+  'cleaning', 'cooking', 'navigation', 'locomotion', 'articulated_object',
+  'tool_use', 'bin_packing', 'inspection', 'general_manipulation', 'other',
+];
+
+function formatTags(value: string | string[]): string {
+  const arr = Array.isArray(value) ? value : [value];
+  return arr.map(v => v.replace(/_/g, ' ')).join(', ');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -138,8 +178,8 @@ function BuyData() {
   const [loading, setLoading] = useState(true);
   useEffect(() => { api.post('/page-views', { page: 'buy_data' }).catch(() => {}); }, []);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [filters, setFilters] = useState({ modality: '', environment: '', q: '', min_price: '', max_price: '' });
-  const [facets, setFacets] = useState<{ modalities: string[]; environments: string[] }>({ modalities: [], environments: [] });
+  const [filters, setFilters] = useState({ modality: '', environment: '', collection_method: '', embodiment_type: '', task_type: '', q: '', min_price: '', max_price: '' });
+  const [facets, setFacets] = useState<{ modalities: string[]; environments: string[]; collection_methods?: string[]; embodiment_types?: string[]; task_types?: string[] }>({ modalities: [], environments: [] });
   const [showCustomRequest, setShowCustomRequest] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
   const [showCart, setShowCart] = useState(false);
@@ -169,11 +209,14 @@ function BuyData() {
     const params = new URLSearchParams();
     if (filters.modality) params.set('modality', filters.modality);
     if (filters.environment) params.set('environment', filters.environment);
+    if (filters.collection_method) params.set('collection_method', filters.collection_method);
+    if (filters.embodiment_type) params.set('embodiment_type', filters.embodiment_type);
+    if (filters.task_type) params.set('task_type', filters.task_type);
     if (debouncedQ) params.set('q', debouncedQ);
     if (filters.min_price) params.set('min_price', filters.min_price);
     if (filters.max_price) params.set('max_price', filters.max_price);
     api.get<{ data: Listing[] }>(`/catalog?${params}`).then(r => setListings(r.data)).catch(console.error).finally(() => setLoading(false));
-  }, [filters.modality, filters.environment, filters.min_price, filters.max_price, debouncedQ]);
+  }, [filters.modality, filters.environment, filters.collection_method, filters.embodiment_type, filters.task_type, filters.min_price, filters.max_price, debouncedQ]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
   useEffect(() => { api.get<{ data: typeof facets }>('/catalog/facets').then(r => setFacets(r.data)).catch(console.error); }, []);
@@ -196,8 +239,11 @@ function BuyData() {
         <h2 className="api-docs-title">{l.title}</h2>
         <p className="api-docs-desc">{prov ? `by ${prov.name}` : ''}</p>
         <div className="db-badges">
-          <span className="db-badge">{l.modality}</span>
-          <span className="db-badge">{l.environment}</span>
+          {(Array.isArray(l.modality) ? l.modality : [l.modality]).map(m => <span key={m} className="db-badge">{m.replace(/_/g, ' ')}</span>)}
+          {(Array.isArray(l.environment) ? l.environment : [l.environment]).map(e => <span key={e} className="db-badge">{e.replace(/_/g, ' ')}</span>)}
+          {l.collection_method && (Array.isArray(l.collection_method) ? l.collection_method : [l.collection_method]).map(c => <span key={c} className="db-badge">{c.replace(/_/g, ' ')}</span>)}
+          {l.embodiment_type && (Array.isArray(l.embodiment_type) ? l.embodiment_type : [l.embodiment_type]).map(e => <span key={`emb-${e}`} className="db-badge">{e.replace(/_/g, ' ')}</span>)}
+          {l.task_type && (Array.isArray(l.task_type) ? l.task_type : [l.task_type]).map(t => <span key={t} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
           {l.format && <span className="db-badge">{l.format}</span>}
         </div>
 
@@ -207,8 +253,11 @@ function BuyData() {
 
         <div className="api-preamble" style={{ marginTop: 16 }}>
           <div className="db-meta-grid">
-            <div><div className="db-meta-label">Modality</div><div className="db-meta-value">{l.modality}</div></div>
-            <div><div className="db-meta-label">Environment</div><div className="db-meta-value">{l.environment}</div></div>
+            <div><div className="db-meta-label">Modality</div><div className="db-meta-value">{formatTags(l.modality)}</div></div>
+            <div><div className="db-meta-label">Environment</div><div className="db-meta-value">{formatTags(l.environment)}</div></div>
+            {l.collection_method && <div><div className="db-meta-label">Collection Method</div><div className="db-meta-value">{formatTags(l.collection_method)}</div></div>}
+            {l.embodiment_type && <div><div className="db-meta-label">Embodiment</div><div className="db-meta-value">{formatTags(l.embodiment_type)}</div></div>}
+            {l.task_type && <div><div className="db-meta-label">Task Type</div><div className="db-meta-value">{formatTags(l.task_type)}</div></div>}
             <div><div className="db-meta-label">Format</div><div className="db-meta-value">{l.format ?? '—'}</div></div>
             <div><div className="db-meta-label">Hours Available</div><div className="db-meta-value">{l.total_hours?.toLocaleString() ?? '—'}</div></div>
             <div><div className="db-meta-label">Price</div><div className="db-meta-value">${l.price_per_hour}/hr</div></div>
@@ -250,7 +299,7 @@ function BuyData() {
         <MyPurchases />
       ) : (
         <>
-          <div className="db-filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="db-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <input className="db-search" placeholder="Search datasets..." value={filters.q}
               onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} style={{ maxWidth: 280 }} />
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
@@ -265,7 +314,31 @@ function BuyData() {
               <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.environment}
                 onChange={e => setFilters(f => ({ ...f, environment: e.target.value }))}>
                 <option value="">Environment</option>
-                {facets.environments.map(e => <option key={e} value={e}>{e}</option>)}
+                {facets.environments.map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.collection_method}
+                onChange={e => setFilters(f => ({ ...f, collection_method: e.target.value }))}>
+                <option value="">Collection</option>
+                {(facets.collection_methods ?? COLLECTION_METHODS).map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.embodiment_type}
+                onChange={e => setFilters(f => ({ ...f, embodiment_type: e.target.value }))}>
+                <option value="">Embodiment</option>
+                {(facets.embodiment_types ?? EMBODIMENT_TYPES).map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}
+              </select>
+              <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ position: 'relative', flex: '0 0 auto' }}>
+              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.task_type}
+                onChange={e => setFilters(f => ({ ...f, task_type: e.target.value }))}>
+                <option value="">Task Type</option>
+                {(facets.task_types ?? TASK_TYPES).map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
               </select>
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
@@ -301,7 +374,7 @@ function BuyData() {
                     <div className="db-catalog-row__meta">
                       <span className="db-catalog-row__provider">{l.providers?.name ?? ''}</span>
                       <span className="db-catalog-row__details">
-                        {l.modality.replace(/_/g, ' ')} · {l.environment}{l.total_hours ? ` · ${l.total_hours.toLocaleString()} hrs` : ''}
+                        {formatTags(l.modality)} · {formatTags(l.environment)}{l.total_hours ? ` · ${l.total_hours.toLocaleString()} hrs` : ''}
                       </span>
                     </div>
                     <span className="db-catalog-row__price">${l.price_per_hour}/hr</span>
@@ -976,8 +1049,11 @@ function ProviderDashboard() {
                       <span className={`db-status-badge db-status-badge--${String(l.review_status)}`}>{String(l.review_status).replace(/_/g, ' ')}</span>
                     </div>
                     <div className="db-meta-grid">
-                      <div><div className="db-meta-label">Modality</div><div className="db-meta-value">{String(l.modality)}</div></div>
-                      <div><div className="db-meta-label">Environment</div><div className="db-meta-value">{String(l.environment)}</div></div>
+                      <div><div className="db-meta-label">Modality</div><div className="db-meta-value">{formatTags(l.modality as string | string[])}</div></div>
+                      <div><div className="db-meta-label">Environment</div><div className="db-meta-value">{formatTags(l.environment as string | string[])}</div></div>
+                      {l.collection_method && <div><div className="db-meta-label">Collection Method</div><div className="db-meta-value">{formatTags(l.collection_method as string | string[])}</div></div>}
+                      {l.embodiment_type && <div><div className="db-meta-label">Embodiment</div><div className="db-meta-value">{formatTags(l.embodiment_type as string | string[])}</div></div>}
+                      {l.task_type && <div><div className="db-meta-label">Task Type</div><div className="db-meta-value">{formatTags(l.task_type as string | string[])}</div></div>}
                       <div><div className="db-meta-label">Price</div><div className="db-meta-value">${String(l.price_per_hour)}/hr</div></div>
                       <div><div className="db-meta-label">Min hours</div><div className="db-meta-value">{String(l.minimum_hours)}</div></div>
                     </div>
@@ -998,7 +1074,7 @@ function ProviderDashboard() {
               </div>
               <div className="db-catalog-row__line2">
                 <div className="db-catalog-row__meta">
-                  <span className="db-catalog-row__details">{String(l.modality)} · ${String(l.price_per_hour)}/hr</span>
+                  <span className="db-catalog-row__details">{formatTags(l.modality as string | string[])} · ${String(l.price_per_hour)}/hr</span>
                 </div>
                 <span className={`db-status-badge db-status-badge--${String(l.review_status)}`}>{String(l.review_status).replace(/_/g, ' ')}</span>
               </div>
@@ -1019,7 +1095,8 @@ function ProviderDashboard() {
 
 function CreateListingForm() {
   const [form, setForm] = useState({
-    title: '', description: '', modality: 'video', environment: 'domestic',
+    title: '', description: '', modalities: [] as string[], environments: [] as string[],
+    collection_methods: [] as string[], embodiment_types: [] as string[], task_types: [] as string[],
     price_per_hour: '', minimum_hours: '1', total_hours: '', format: 'parquet',
     license_type: 'commercial', license_terms: '',
   });
@@ -1028,16 +1105,29 @@ function CreateListingForm() {
   const [error, setError] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const modalities = ['video', 'motion_capture', 'point_cloud', 'tactile', 'force_torque', 'audio', 'multimodal', 'simulation', 'other'];
-  const environments = ['indoor', 'outdoor', 'industrial', 'domestic', 'laboratory', 'warehouse', 'retail', 'healthcare', 'mixed', 'simulation'];
   const licenses = ['standard', 'exclusive', 'research_only', 'commercial', 'custom'];
   const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'other'];
 
   const update = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
+  const toggleTag = (field: 'modalities' | 'environments' | 'collection_methods' | 'embodiment_types' | 'task_types', value: string) => {
+    setForm(f => {
+      const arr = f[field];
+      return { ...f, [field]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value] };
+    });
+  };
+
   const handleSubmit = async () => {
     if (!form.title || !form.description || !form.price_per_hour) {
       setError('Title, description, and price are required');
+      return;
+    }
+    if (form.modalities.length === 0) {
+      setError('Select at least one modality');
+      return;
+    }
+    if (form.environments.length === 0) {
+      setError('Select at least one environment');
       return;
     }
     setSubmitting(true);
@@ -1046,8 +1136,11 @@ function CreateListingForm() {
       await api.post('/provider/listings', {
         title: form.title,
         description: form.description,
-        modality: form.modality,
-        environment: form.environment,
+        modality: form.modalities,
+        environment: form.environments,
+        collection_method: form.collection_methods.length > 0 ? form.collection_methods : undefined,
+        embodiment_type: form.embodiment_types.length > 0 ? form.embodiment_types : undefined,
+        task_type: form.task_types.length > 0 ? form.task_types : undefined,
         price_per_hour: parseFloat(form.price_per_hour),
         minimum_hours: parseFloat(form.minimum_hours) || 1,
         total_hours: form.total_hours ? parseFloat(form.total_hours) : undefined,
@@ -1056,7 +1149,7 @@ function CreateListingForm() {
         license_terms: form.license_terms || undefined,
       });
       setResult('Listing submitted for review');
-      setForm({ title: '', description: '', modality: 'video', environment: 'domestic', price_per_hour: '', minimum_hours: '1', total_hours: '', format: 'parquet', license_type: 'commercial', license_terms: '' });
+      setForm({ title: '', description: '', modalities: [], environments: [], collection_methods: [], embodiment_types: [], task_types: [], price_per_hour: '', minimum_hours: '1', total_hours: '', format: 'parquet', license_type: 'commercial', license_terms: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create listing');
     } finally {
@@ -1083,18 +1176,63 @@ function CreateListingForm() {
         <input className="db-form-input" placeholder="e.g. Household Cooking - Egocentric Video" value={form.title} onChange={e => update('title', e.target.value)} />
       </div>
 
-      <div className="db-form-row">
-        <div className="db-form-field" style={{ flex: 1 }}>
-          <label className="db-meta-label">Modality</label>
-          <select className="db-form-select" value={form.modality} onChange={e => update('modality', e.target.value)}>
-            {modalities.map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
-          </select>
+      <div className="db-form-field">
+        <label className="db-meta-label">Modalities (select all that apply)</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {MODALITIES.map(m => (
+            <button key={m} type="button" className={`db-filter-pill${form.modalities.includes(m) ? ' db-filter-pill--active' : ''}`}
+              style={{ fontSize: 9 }} onClick={() => toggleTag('modalities', m)}>
+              {m.replace(/_/g, ' ')}
+            </button>
+          ))}
         </div>
-        <div className="db-form-field" style={{ flex: 1 }}>
-          <label className="db-meta-label">Environment</label>
-          <select className="db-form-select" value={form.environment} onChange={e => update('environment', e.target.value)}>
-            {environments.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
+      </div>
+
+      <div className="db-form-field">
+        <label className="db-meta-label">Environments (select all that apply)</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {ENVIRONMENTS.map(e => (
+            <button key={e} type="button" className={`db-filter-pill${form.environments.includes(e) ? ' db-filter-pill--active' : ''}`}
+              style={{ fontSize: 9 }} onClick={() => toggleTag('environments', e)}>
+              {e.replace(/_/g, ' ')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="db-form-field">
+        <label className="db-meta-label">Collection Method</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {COLLECTION_METHODS.map(m => (
+            <button key={m} type="button" className={`db-filter-pill${form.collection_methods.includes(m) ? ' db-filter-pill--active' : ''}`}
+              style={{ fontSize: 9 }} onClick={() => toggleTag('collection_methods', m)}>
+              {m.replace(/_/g, ' ')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="db-form-field">
+        <label className="db-meta-label">Embodiment / Platform</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {EMBODIMENT_TYPES.map(e => (
+            <button key={e} type="button" className={`db-filter-pill${form.embodiment_types.includes(e) ? ' db-filter-pill--active' : ''}`}
+              style={{ fontSize: 9 }} onClick={() => toggleTag('embodiment_types', e)}>
+              {e.replace(/_/g, ' ')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="db-form-field">
+        <label className="db-meta-label">Task Types</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {TASK_TYPES.map(t => (
+            <button key={t} type="button" className={`db-filter-pill${form.task_types.includes(t) ? ' db-filter-pill--active' : ''}`}
+              style={{ fontSize: 9 }} onClick={() => toggleTag('task_types', t)}>
+              {t.replace(/_/g, ' ')}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1767,8 +1905,10 @@ function ProviderAnalytics() {
   // Donut: breakdown by modality from top listings
   const modalityMap = new Map<string, number>();
   for (const l of topListings) {
-    const mod = String((l as Record<string, unknown>).modality ?? 'other');
-    modalityMap.set(mod, (modalityMap.get(mod) ?? 0) + (l.hours as number));
+    const rawMod = (l as Record<string, unknown>).modality;
+    const mods = Array.isArray(rawMod) ? rawMod.map(String) : [String(rawMod ?? 'other')];
+    const perMod = (l.hours as number) / mods.length;
+    for (const mod of mods) modalityMap.set(mod, (modalityMap.get(mod) ?? 0) + perMod);
   }
   const donutColors = ['#1a1a1a', '#8a8580', '#c5c0b8', '#e0ddd8', '#a0a0a0'];
   const donutSegments = [...modalityMap.entries()].map(([name, value], i) => ({
@@ -2004,7 +2144,7 @@ function generateProviderDocsMd(callbackUrl: string): string {
 
 ## What is Atlas Data Brokerage?
 
-Atlas Data Brokerage is a vertical marketplace for embodied AI training data, built into [Humanoid Atlas](https://humanoids.fyi). As a data provider, you list datasets (egocentric video, teleoperation, tactile, motion capture, etc.) and OEM buyers purchase hours of data directly through the platform. Atlas handles discovery, payments (via Stripe), and buyer management. You handle data delivery via a webhook integration.
+Atlas Data Brokerage is a vertical marketplace for embodied AI training data, built into [Humanoid Atlas](https://humanoids.fyi). As a data provider, you list datasets (RGB, depth, tactile, motion capture, etc.) and OEM buyers purchase hours of data directly through the platform. Atlas handles discovery, payments (via Stripe), and buyer management. You handle data delivery via a webhook integration.
 
 **How it works:**
 1. You create listings describing your datasets (modality, hours available, price per hour, license type)
@@ -2235,8 +2375,11 @@ All 3 tests returning PASS means your integration is production-ready.
 Once your webhook is verified, go to **Sell Data → Create Listing** and add your first dataset:
 
 - **Title** — descriptive name (e.g. "Kitchen Activity Egocentric Video")
-- **Modality** — egocentric_video, teleoperation, tactile, motion_capture, etc.
-- **Environment** — indoor, outdoor, mixed, simulation, laboratory, warehouse, industrial, domestic
+- **Modality** — rgb, rgbd, depth, lidar, tactile, motion_capture, proprioception, imu, etc.
+- **Environment** — domestic, kitchen, office, warehouse, laboratory, industrial, simulation, etc.
+- **Collection Method** — teleoperation, human_demonstration, kinesthetic_teaching, etc.
+- **Embodiment** — humanoid, dual_arm, mobile_manipulator, human, etc.
+- **Task Type** — pick_and_place, cooking, navigation, locomotion, assembly, etc.
 - **Total hours** — how much data is available
 - **Price per hour** — in USD
 - **Minimum hours** — smallest purchase allowed
@@ -2860,11 +3003,17 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
 // ═══════════════════════════════════════════════════════════
 
 function CustomRequestModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', modality: '', description: '', hours_needed: '', budget_range: '', timeline: '' });
+  const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', modalities: [] as string[], environments: [] as string[], collection_methods: [] as string[], embodiment_types: [] as string[], task_types: [] as string[], description: '', hours_needed: '', budget_range: '', timeline: '' });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
   const set = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
+  const toggleTag = (field: 'modalities' | 'environments' | 'collection_methods' | 'embodiment_types' | 'task_types', value: string) => {
+    setForm(f => {
+      const arr = f[field];
+      return { ...f, [field]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value] };
+    });
+  };
 
   const handleSubmit = async () => {
     if (!form.contact_name || !form.contact_email || !form.description) {
@@ -2873,8 +3022,14 @@ function CustomRequestModal({ onClose }: { onClose: () => void }) {
     }
     setError('');
     try {
+      const { modalities, environments, collection_methods, embodiment_types, task_types, ...rest } = form;
       await api.post('/custom-requests', {
-        ...form,
+        ...rest,
+        modality: modalities,
+        environment: environments,
+        collection_method: collection_methods.length > 0 ? collection_methods : undefined,
+        embodiment_type: embodiment_types.length > 0 ? embodiment_types : undefined,
+        task_type: task_types.length > 0 ? task_types : undefined,
         hours_needed: form.hours_needed ? parseInt(form.hours_needed) : null,
       });
       setSubmitted(true);
@@ -2920,17 +3075,60 @@ function CustomRequestModal({ onClose }: { onClose: () => void }) {
                 <label className="db-meta-label">Company</label>
                 <input className="db-form-input" value={form.company_name} onChange={e => set('company_name', e.target.value)} placeholder="Company name" />
               </div>
-              <div className="db-form-field">
-                <label className="db-meta-label">Modality</label>
-                <select className="db-form-input" value={form.modality} onChange={e => set('modality', e.target.value)}>
-                  <option value="">Select modality</option>
-                  <option value="video">Video</option>
-                  <option value="teleoperation">Teleoperation</option>
-                  <option value="tactile">Tactile</option>
-                  <option value="motion_capture">Motion Capture</option>
-                  <option value="lidar">LiDAR</option>
-                  <option value="multimodal">Multimodal</option>
-                </select>
+            </div>
+            <div className="db-form-field">
+              <label className="db-meta-label">Modalities needed</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {MODALITIES.map(m => (
+                  <button key={m} type="button" className={`db-filter-pill${form.modalities.includes(m) ? ' db-filter-pill--active' : ''}`}
+                    style={{ fontSize: 9 }} onClick={() => toggleTag('modalities', m)}>
+                    {m.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="db-form-field">
+              <label className="db-meta-label">Environments needed</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {ENVIRONMENTS.map(e => (
+                  <button key={e} type="button" className={`db-filter-pill${form.environments.includes(e) ? ' db-filter-pill--active' : ''}`}
+                    style={{ fontSize: 9 }} onClick={() => toggleTag('environments', e)}>
+                    {e.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="db-form-field">
+              <label className="db-meta-label">Collection Method</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {COLLECTION_METHODS.map(m => (
+                  <button key={m} type="button" className={`db-filter-pill${form.collection_methods.includes(m) ? ' db-filter-pill--active' : ''}`}
+                    style={{ fontSize: 9 }} onClick={() => toggleTag('collection_methods', m)}>
+                    {m.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="db-form-field">
+              <label className="db-meta-label">Embodiment / Platform</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {EMBODIMENT_TYPES.map(e => (
+                  <button key={e} type="button" className={`db-filter-pill${form.embodiment_types.includes(e) ? ' db-filter-pill--active' : ''}`}
+                    style={{ fontSize: 9 }} onClick={() => toggleTag('embodiment_types', e)}>
+                    {e.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="db-form-field">
+              <label className="db-meta-label">Task Types</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                {TASK_TYPES.map(t => (
+                  <button key={t} type="button" className={`db-filter-pill${form.task_types.includes(t) ? ' db-filter-pill--active' : ''}`}
+                    style={{ fontSize: 9 }} onClick={() => toggleTag('task_types', t)}>
+                    {t.replace(/_/g, ' ')}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="db-form-field">

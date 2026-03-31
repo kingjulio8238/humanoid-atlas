@@ -6,7 +6,7 @@ export interface CartItem {
   title: string;
   provider_name: string;
   provider_id: string;
-  modality: string;
+  modality: string | string[];
   price_per_hour: number;
   hours: number;
   added_at: number;
