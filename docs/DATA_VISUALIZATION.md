@@ -609,31 +609,171 @@ useEffect(() => {
 
 ## Phase 5: Provider Tooling
 
-**Goal**: Make it easy for providers to generate high-quality previews.
+**Goal**: Make it easy for providers to generate high-quality previews and incentivize richer sample uploads.
 
-### Changes
+**Status**: Phases 1-4 complete — the frontend can render video, image, audio, JSON, Rerun 3D, parquet charts, with fullscreen and metadata. Phase 5 focuses on the provider side: making it trivial to produce high-quality previews that drive buyer conversion.
 
-1. **Rerun preview generation CLI/guide**
-   - Publish a Python script / notebook that providers can run:
-     ```python
-     # atlas-preview-generator
-     # Reads .rosbag/.mcap/.parquet and produces a trimmed .rrd preview
-     import rerun as rr
-     rr.init("preview")
-     # ... load and log first 10 seconds of data
-     rr.save("preview.rrd")
-     ```
-   - Host in a separate repo or as a downloadable script from provider docs
+### Step 5.1: Create atlas-preview-generator Python package
 
-2. **Auto-preview generation** (stretch goal)
-   - When a provider uploads a `.rosbag` or `.mcap`, the backend automatically generates a `.rrd` preview
-   - Requires server-side Rerun SDK (Python) or a conversion worker
-   - Would eliminate the need for providers to generate previews manually
+**Location**: New repo `atlas-preview-generator` (or `tools/preview-generator/` in this repo)
 
-3. **Preview quality scoring**
-   - Show providers a "preview quality" indicator on their listings
-   - Listings with video/Rerun previews rank higher in catalog search
-   - Encourage richer previews to drive buyer conversion
+A CLI tool that reads common robotics data formats and produces trimmed `.rrd` preview files ready for upload to Atlas.
+
+```
+atlas-preview --input recording.rosbag --output preview.rrd --duration 30
+atlas-preview --input trajectory.parquet --modality imu --output preview.rrd
+atlas-preview --input pointcloud.hdf5 --modality lidar --output preview.rrd
+```
+
+**Supported input formats:**
+- `.rosbag` / `.mcap` → auto-detect topics, log to Rerun (images, point clouds, transforms, IMU)
+- `.parquet` → detect numeric columns, log as time-series scalars or Points3D depending on `--modality`
+- `.hdf5` → read datasets, log based on shape/dtype (images, arrays, scalars)
+- `.mp4` / `.mov` → extract frames, log as Rerun `Image` entities
+
+**Implementation:**
+```python
+# atlas_preview/cli.py
+import click
+import rerun as rr
+
+@click.command()
+@click.option('--input', required=True, help='Input data file')
+@click.option('--output', default='preview.rrd', help='Output .rrd file')
+@click.option('--duration', default=30, help='Max seconds to include')
+@click.option('--modality', default=None, help='Hint for data interpretation')
+def generate(input, output, duration, modality):
+    rr.init("atlas_preview")
+    # ... format-specific loading logic
+    rr.save(output)
+```
+
+**Dependencies**: `rerun-sdk`, `rosbags` (for .rosbag reading), `mcap`, `pandas`, `h5py`, `opencv-python`, `click`
+
+**Distribution**: Publish to PyPI as `atlas-preview-generator`. Install via `pip install atlas-preview-generator`.
+
+### Step 5.2: Add downloadable preview script to ProviderDocs
+
+**File**: `src/components/DataBrokerage.tsx` (ProviderDocs section)
+
+Update the existing .rrd generation guide to reference the CLI tool:
+
+```markdown
+## Generating Preview Files
+
+### Quick start (CLI tool)
+\`\`\`bash
+pip install atlas-preview-generator
+atlas-preview --input recording.rosbag --output preview.rrd --duration 30
+\`\`\`
+
+### Manual (Rerun Python SDK)
+[existing code examples...]
+```
+
+Also add a "Download preview script" link in the SampleUploader UI for non-video modalities, pointing to the PyPI package or a hosted script.
+
+### Step 5.3: Preview quality indicator on provider listings
+
+**File**: `src/components/DataBrokerage.tsx` (ProviderDashboard My Listings)
+
+Show a "Preview Quality" score on each listing in the provider's dashboard:
+
+```typescript
+function getPreviewScore(samples: Sample[]): { score: number; label: string; suggestions: string[] } {
+  if (!samples || samples.length === 0) return { score: 0, label: 'None', suggestions: ['Upload at least one sample'] };
+  
+  const hasVideo = samples.some(s => getSampleCategory(s.content_type, s.filename) === 'video');
+  const hasImage = samples.some(s => getSampleCategory(s.content_type, s.filename) === 'image');
+  const hasRerun = samples.some(s => getSampleCategory(s.content_type, s.filename) === 'rerun');
+  const hasChart = samples.some(s => getSampleCategory(s.content_type, s.filename) === 'timeseries');
+  
+  let score = 1; // base: has at least one sample
+  const suggestions: string[] = [];
+  
+  if (hasVideo || hasImage) score += 1;
+  else suggestions.push('Add a video or image sample for visual preview');
+  
+  if (hasRerun) score += 1;
+  else if (/* listing has spatial modalities */) suggestions.push('Upload a .rrd file for interactive 3D preview');
+  
+  if (hasChart) score += 1;
+  else if (/* listing has time-series modalities */) suggestions.push('Upload a .parquet sample for chart preview');
+  
+  if (samples.length >= 3) score += 1;
+  else suggestions.push('Add more samples (3+ recommended)');
+  
+  const labels = ['None', 'Basic', 'Good', 'Great', 'Excellent', 'Outstanding'];
+  return { score, label: labels[score] ?? 'Outstanding', suggestions };
+}
+```
+
+Render as a small badge + expandable suggestions list on each listing card in My Listings:
+
+```typescript
+<div className="db-preview-score">
+  <span className={`db-preview-score__badge db-preview-score--${score >= 4 ? 'high' : score >= 2 ? 'mid' : 'low'}`}>
+    {label}
+  </span>
+  {suggestions.length > 0 && (
+    <div className="db-preview-score__tips">
+      {suggestions.map((s, i) => <div key={i} className="db-preview-score__tip">{s}</div>)}
+    </div>
+  )}
+</div>
+```
+
+### Step 5.4: Preview quality CSS
+
+**File**: `src/App.css`
+
+```css
+.db-preview-score { margin-top: 8px; }
+.db-preview-score__badge { font-family: 'Share Tech Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 3px; }
+.db-preview-score--high { background: #1a3a1a; color: #4ade80; border: 1px solid #2d5a2d; }
+.db-preview-score--mid { background: #3a3a1a; color: #facc15; border: 1px solid #5a5a2d; }
+.db-preview-score--low { background: #3a1a1a; color: #f87171; border: 1px solid #5a2d2d; }
+.db-preview-score__tips { margin-top: 6px; }
+.db-preview-score__tip { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); line-height: 1.6; }
+.db-preview-score__tip::before { content: '→ '; color: var(--text-dim); }
+```
+
+### Step 5.5: Auto-preview generation (stretch goal — requires backend)
+
+**Scope**: When a provider uploads a `.rosbag` or `.mcap`, the backend automatically generates a `.rrd` preview using the Rerun Python SDK and stores it alongside the sample.
+
+**Architecture**:
+1. After `POST /provider/listings/{id}/samples/confirm`, the backend checks the file extension
+2. If `.rosbag` or `.mcap`, enqueue a background job:
+   - Download the file from R2
+   - Run `atlas-preview-generator` to produce a `.rrd` preview (first 30 seconds)
+   - Upload the `.rrd` back to R2
+   - Update the sample record with a `preview_rrd_url` field
+3. The frontend checks for `preview_rrd_url` on the sample and renders the Rerun viewer using that URL instead of the raw file URL
+
+**This step requires backend changes to `brokerage.humanoids.fyi`** — not implementable frontend-only. Document as a future enhancement.
+
+### Dependencies
+- **Step 5.1**: Python (rerun-sdk, rosbags, mcap, pandas, h5py, click)
+- **Steps 5.2-5.4**: None — frontend-only changes
+- **Step 5.5**: Backend changes (out of scope for frontend repo)
+
+### Risks & Mitigations
+| Risk | Mitigation |
+|---|---|
+| Preview generator CLI has many Python deps | Provide a Docker image as alternative |
+| Score calculation may not match all edge cases | Score is advisory, not blocking — providers can still list without samples |
+| Auto-preview background job could be slow | Queue-based, provider sees "preview generating..." status |
+| .rosbag reading requires specific ROS message type support | Use `rosbags` library which handles standard types; fail gracefully for custom types |
+
+### Verification
+1. `pip install atlas-preview-generator && atlas-preview --help` — CLI works
+2. `atlas-preview --input test.rosbag --output preview.rrd` — produces valid .rrd
+3. Preview quality score renders on provider listings with correct color coding
+4. Actionable suggestions appear for listings missing key sample types
+5. ProviderDocs reference the CLI tool with install instructions
+6. `npx tsc -b` — zero errors for frontend changes (steps 5.2-5.4)
+7. Deploy to Vercel — build succeeds
 
 ## File Format Reference
 

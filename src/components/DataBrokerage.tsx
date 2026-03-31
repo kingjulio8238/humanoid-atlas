@@ -1127,9 +1127,41 @@ function getAcceptFilter(modalities: string[]): string {
 function getUploadHint(modalities: string[]): string | null {
   const spatial = ['lidar', 'radar', 'point_cloud', 'motion_capture', 'event_camera', 'rgbd', 'depth'];
   const timeSeries = ['imu', 'force_torque', 'proprioception', 'tactile'];
-  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files (generated with the Rerun Python SDK) for the best buyer experience.';
-  if (modalities.some(m => timeSeries.includes(m))) return 'For sensor time-series data, upload .rrd preview files or .parquet samples for interactive charts.';
+  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files for interactive viewer. Generate with: pip install atlas-preview-generator';
+  if (modalities.some(m => timeSeries.includes(m))) return 'Upload .parquet for interactive charts, or .rrd for 3D preview. Generate with: pip install atlas-preview-generator';
   return null;
+}
+
+function getPreviewScore(samples: Sample[], modalities: string[]): { score: number; label: string; level: string; suggestions: string[] } {
+  if (!samples || samples.length === 0) return { score: 0, label: 'None', level: 'low', suggestions: ['Upload at least one sample for buyers to preview'] };
+  const suggestions: string[] = [];
+  let score = 1;
+
+  const hasVideo = samples.some(s => getSampleCategory(s.content_type, s.filename, modalities) === 'video');
+  const hasImage = samples.some(s => getSampleCategory(s.content_type, s.filename, modalities) === 'image');
+  const hasRerun = samples.some(s => getSampleCategory(s.content_type, s.filename, modalities) === 'rerun');
+  const hasChart = samples.some(s => getSampleCategory(s.content_type, s.filename, modalities) === 'timeseries');
+
+  if (hasVideo || hasImage) score += 1;
+  else suggestions.push('Add a video or image sample for visual preview');
+
+  const spatial = ['lidar', 'radar', 'point_cloud', 'motion_capture', 'event_camera', 'rgbd', 'depth'];
+  const timeSeries = ['imu', 'force_torque', 'proprioception', 'tactile'];
+  const hasSpatialMod = modalities.some(m => spatial.includes(m));
+  const hasTimeSeriesMod = modalities.some(m => timeSeries.includes(m));
+
+  if (hasRerun) score += 1;
+  else if (hasSpatialMod) suggestions.push('Upload a .rrd file for interactive 3D preview');
+
+  if (hasChart) score += 1;
+  else if (hasTimeSeriesMod) suggestions.push('Upload a .parquet sample for chart preview');
+
+  if (samples.length >= 3) score += 1;
+  else suggestions.push(`Add more samples (${samples.length}/3 recommended)`);
+
+  const labels = ['None', 'Basic', 'Good', 'Great', 'Excellent', 'Outstanding'];
+  const level = score >= 4 ? 'high' : score >= 2 ? 'mid' : 'low';
+  return { score, label: labels[score] ?? 'Outstanding', level, suggestions };
 }
 
 function SampleUploader({ listingId, modalities = [] }: { listingId: string; modalities?: string[] }) {
@@ -1198,6 +1230,19 @@ function SampleUploader({ listingId, modalities = [] }: { listingId: string; mod
       <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6 }}>
         Upload preview clips or sample files. Max 500MB per file. Visible to buyers in the catalog.
       </p>
+      {(() => {
+        const ps = getPreviewScore(samples, modalities);
+        return (
+          <div className="db-preview-score">
+            <span className={`db-preview-score__badge db-preview-score--${ps.level}`}>Preview: {ps.label}</span>
+            {ps.suggestions.length > 0 && (
+              <div className="db-preview-score__tips">
+                {ps.suggestions.map((s, i) => <div key={i} className="db-preview-score__tip">{s}</div>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {uploadHint && (
         <p style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4, fontStyle: 'italic' }}>
           {uploadHint}
@@ -2606,7 +2651,20 @@ You can upload sample files so buyers can preview before purchasing. Video and i
 
 ### Generating .rrd Preview Files
 
-For modalities like point clouds, depth maps, IMU, or motion capture, we recommend generating a \`.rrd\` preview using the [Rerun Python SDK](https://www.rerun.io/docs):
+For modalities like point clouds, depth maps, IMU, or motion capture, we recommend generating a \`.rrd\` preview for an interactive 3D viewer experience.
+
+**Quick start** — use the Atlas Preview Generator CLI:
+
+\`\`\`bash
+pip install atlas-preview-generator
+atlas-preview --input recording.rosbag --output preview.rrd --duration 30
+atlas-preview --input imu_data.parquet --modality imu --output preview.rrd
+atlas-preview --input scene.mcap --output preview.rrd
+\`\`\`
+
+Supports .rosbag, .mcap, .parquet, .hdf5, and video files. Run \`atlas-preview --help\` for all options.
+
+**Manual** — use the Rerun Python SDK directly:
 
 \`\`\`bash
 pip install rerun-sdk
@@ -2631,7 +2689,7 @@ for t, (ax, ay, az) in enumerate(imu_data):
 rr.save("preview.rrd")
 \`\`\`
 
-Keep preview files **under 50MB** for fast loading. Trim to the first 10–30 seconds of your recording for a representative sample. The .rrd file renders as an interactive 3D viewer in the catalog.
+Keep preview files **under 50MB** for fast loading. Trim to the first 10–30 seconds of your recording. The .rrd file renders as an interactive 3D viewer in the catalog.
 
 ### Time-Series Data (.parquet)
 

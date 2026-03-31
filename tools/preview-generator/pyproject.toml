@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-preview-generator"
+version = "0.1.0"
+description = "Generate .rrd preview files for Atlas Data Brokerage listings"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "rerun-sdk>=0.31.0",
+    "click>=8.0",
+    "pandas>=2.0",
+    "rosbags>=0.9.0",
+    "mcap>=1.0",
+    "h5py>=3.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+video = ["opencv-python>=4.8"]
+
+[project.scripts]
+atlas-preview = "atlas_preview.cli:main"
