@@ -263,12 +263,15 @@ function SampleGallery({ samples, modalities = [] }: { samples: Sample[]; modali
     rerun: '3D Visualization', timeseries: 'Sensor Data', download: 'Data Files',
   };
   const catOrder = ['timeseries', 'download', 'rerun', 'json', 'audio'];
+  // Categories that should use thumb strip (one at a time) instead of stacked
+  const stripCats = new Set(['timeseries', 'rerun']);
   for (const cat of catOrder) {
     const items = others.filter(o => o.category === cat);
     if (items.length > 0) {
       const ext = items[0].sample.filename.split('.').pop()?.toUpperCase() ?? '';
       const label = cat === 'download' ? `Data Files (${ext})` : cat === 'json' ? `Language Annotations (JSON)` : cat === 'timeseries' ? `Teleoperation Data (PARQUET)` : catLabels[cat] ?? ext;
-      groups.push({ label, type: 'inline' as const, samples: items.map(o => o.sample), stateKey: cat });
+      const type = stripCats.has(cat) && items.length > 1 ? 'video-strip' as const : 'inline' as const;
+      groups.push({ label, type, samples: items.map(o => o.sample), stateKey: cat });
     }
   }
 
@@ -3014,9 +3017,11 @@ For IMU, force/torque, proprioception, and tactile data, upload \`.parquet\` sam
 
 Best practices:
 - Use Apache Parquet format (pandas: \`df.to_parquet("sample.parquet")\`)
+- **Flatten nested arrays into named columns** — e.g. instead of \`observation.state: [0.1, 0.2, ...]\`, use \`left_shoulder: 0.1, left_elbow: 0.2, ...\`
 - Include a time or index column; numeric columns are auto-detected for charting
 - Use float32/float64 for sensor readings (accel_x, accel_y, gyro_z, etc.)
-- Keep sample files to 1000–5000 rows for fast loading
+- First 10 numeric columns are charted (max); additional columns are noted in header
+- Keep sample files to 500–1000 rows for fast loading
 - Maximum 500MB per file, but smaller is better for preview
 
 ### Submitting for Review
