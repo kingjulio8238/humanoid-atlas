@@ -264,13 +264,12 @@ function SampleGallery({ samples, modalities = [] }: { samples: Sample[]; modali
   };
   const catOrder = ['timeseries', 'download', 'rerun', 'json', 'audio'];
   // Categories that should use thumb strip (one at a time) instead of stacked
-  const stripCats = new Set(['timeseries', 'rerun', 'download', 'audio']);
   for (const cat of catOrder) {
     const items = others.filter(o => o.category === cat);
     if (items.length > 0) {
       const ext = items[0].sample.filename.split('.').pop()?.toUpperCase() ?? '';
       const label = cat === 'download' ? `Data Files (${ext})` : cat === 'json' ? `Language Annotations (JSON)` : cat === 'timeseries' ? `Sensor Data (PARQUET)` : catLabels[cat] ?? ext;
-      const type = stripCats.has(cat) && items.length > 1 ? 'video-strip' as const : 'inline' as const;
+      const type = items.length > 1 ? 'video-strip' as const : 'inline' as const;
       groups.push({ label, type, samples: items.map(o => o.sample), stateKey: cat });
     }
   }
