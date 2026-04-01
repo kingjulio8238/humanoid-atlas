@@ -1700,7 +1700,7 @@ function CreateListingForm() {
   const [error, setError] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'other'];
+  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'other'];
 
   const update = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
