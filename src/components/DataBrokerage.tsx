@@ -416,6 +416,9 @@ function BuyData() {
   const [showCustomRequest, setShowCustomRequest] = useState(false);
   const [customRequestListing, setCustomRequestListing] = useState<Listing | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
+  const [showProviders, setShowProviders] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [listingReferrer, setListingReferrer] = useState<{ providerSlug: string; providerName: string } | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [pendingCheckout, setPendingCheckout] = useState(false);
   const { isSignedIn } = useClerkAuth();
@@ -475,8 +478,9 @@ function BuyData() {
   useEffect(() => { fetchListings(); }, [fetchListings]);
   useEffect(() => { api.get<{ data: typeof facets }>('/catalog/facets').then(r => setFacets(r.data)).catch(console.error); }, []);
 
-  const selectListing = async (slug: string) => {
+  const selectListing = async (slug: string, referrer?: { providerSlug: string; providerName: string }) => {
     try {
+      setListingReferrer(referrer ?? null);
       const r = await api.get<{ data: Listing }>(`/catalog/${slug}`);
       setSelectedListing(r.data);
     } catch (err) { console.error(err); }
@@ -489,10 +493,13 @@ function BuyData() {
     const prov = l.providers;
     return (
       <div className="api-docs">
-        <button className="db-back-btn" onClick={() => setSelectedListing(null)}>← Back to catalog</button>
+        <button className="db-back-btn" onClick={() => {
+          if (listingReferrer) { setShowProviders(true); setSelectedProvider(listingReferrer.providerSlug); setListingReferrer(null); }
+          setSelectedListing(null);
+        }}>← {listingReferrer ? `Back to ${listingReferrer.providerName}` : 'Back to catalog'}</button>
         <h2 className="api-docs-title">{l.title}</h2>
         {l.description && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{l.description}</p>}
-        <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginTop: 4, marginBottom: 12 }}>{prov ? `By ${prov.name}` : ''}</p>
+        {prov && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginTop: 4, marginBottom: 12 }}>By <span className="db-provider-link" onClick={() => { setSelectedListing(null); setShowProviders(true); setSelectedProvider(prov.slug); }}>{prov.name}</span></p>}
         {(() => {
           const tags = Array.isArray(l.tags) ? l.tags as string[] : [];
           return (
@@ -569,20 +576,29 @@ function BuyData() {
           <div>
             <div className="api-docs-title-row">
               <h2 className="api-docs-title">{showPurchases ? 'My Purchases' : 'Buy Data'}</h2>
-              {!showPurchases && <button className="api-md-btn" onClick={() => { setCustomRequestListing(null); setShowCustomRequest(true); }}>Request Custom Dataset</button>}
+              {!showPurchases && !showProviders && <button className="api-md-btn" onClick={() => { setCustomRequestListing(null); setShowCustomRequest(true); }}>Request Custom Dataset</button>}
+              <button className="api-md-btn" onClick={() => { setShowProviders(!showProviders); setShowPurchases(false); setSelectedProvider(null); }}>
+                {showProviders ? 'Browse Catalog' : 'View All Data Providers'}
+              </button>
               {isSignedIn && (
-                <button className="api-md-btn" onClick={() => setShowPurchases(!showPurchases)}>
+                <button className="api-md-btn" onClick={() => { setShowPurchases(!showPurchases); setShowProviders(false); setSelectedProvider(null); }}>
                   {showPurchases ? 'Browse Catalog' : 'My Purchases'}
                 </button>
               )}
             </div>
-            {!showPurchases && <p className="api-docs-desc">Browse and purchase training datasets</p>}
+            {!showPurchases && !showProviders && <p className="api-docs-desc">Browse and purchase training datasets</p>}
           </div>
         </div>
       </div>
 
       {showPurchases ? (
         <MyPurchases />
+      ) : showProviders ? (
+        selectedProvider ? (
+          <ProviderProfile slug={selectedProvider} onBack={() => setSelectedProvider(null)} onSelectListing={(listingSlug: string, provName: string) => { setSelectedProvider(null); setShowProviders(false); selectListing(listingSlug, { providerSlug: selectedProvider!, providerName: provName }); }} />
+        ) : (
+          <ProviderList onSelectProvider={(slug: string) => setSelectedProvider(slug)} />
+        )
       ) : (
         <>
           <div className="db-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -704,7 +720,7 @@ function BuyData() {
                     </div>
                     <div className="db-catalog-row__line2">
                       <div className="db-catalog-row__meta">
-                        <span className="db-catalog-row__provider">{l.providers?.name ?? ''}</span>
+                        <span className="db-catalog-row__provider db-catalog-row__provider--link" onClick={e => { e.stopPropagation(); if (l.providers?.slug) { setShowProviders(true); setSelectedProvider(l.providers.slug); } }}>{l.providers?.name ?? ''}</span>
                         <span className="db-catalog-row__details">
                           {(() => {
                             const parts: string[] = [formatTags(l.modality)];
@@ -1553,12 +1569,20 @@ function ProviderDashboard() {
   const [listings, setListings] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const fetchListingsProvider = useCallback(() => {
     api.get<{ data: Record<string, unknown>[] }>('/provider/listings')
       .then(r => setListings(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get<{ data: { description: string | null } }>('/provider/profile')
+      .then(r => { if (!r.data.description) setProfileIncomplete(true); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { fetchListingsProvider(); }, [fetchListingsProvider]);
@@ -1596,6 +1620,15 @@ function ProviderDashboard() {
 
   return (
     <div>
+      {profileIncomplete && !bannerDismissed && (
+        <div className="db-profile-banner">
+          <span>Your profile is incomplete — buyers can't learn about you yet.</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="db-profile-banner__btn" onClick={() => setActiveTab('stripe')}>Go to Settings</button>
+            <button className="db-profile-banner__dismiss" onClick={() => setBannerDismissed(true)}>&times;</button>
+          </div>
+        </div>
+      )}
       <div className="db-provider-nav">
         {tabs.map(t => (
           <button key={t.id} className={`db-filter-pill${activeTab === t.id ? ' db-filter-pill--active' : ''}`}
@@ -2551,6 +2584,10 @@ function StripeStatus() {
   const [saveMsg, setSaveMsg] = useState('');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  // Profile fields
+  const [profile, setProfile] = useState({ name: '', company_name: '', description: '', logo_url: '', website_url: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -2558,6 +2595,9 @@ function StripeStatus() {
       api.get<{ data: typeof provSettings }>('/provider/settings').then(r => {
         setProvSettings(r.data);
         setApiUrl(r.data?.provisioning_api_url ?? '');
+      }).catch(console.error),
+      api.get<{ data: { name: string; company_name: string | null; description: string | null; logo_url: string | null; website_url: string | null } }>('/provider/profile').then(r => {
+        setProfile({ name: r.data.name ?? '', company_name: r.data.company_name ?? '', description: r.data.description ?? '', logo_url: r.data.logo_url ?? '', website_url: r.data.website_url ?? '' });
       }).catch(console.error),
     ]).finally(() => setLoading(false));
   }, []);
@@ -2606,8 +2646,66 @@ function StripeStatus() {
 
   const isComplete = status?.stripe_onboarding_complete;
 
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    setProfileMsg('');
+    try {
+      await api.patch('/provider/profile', {
+        name: profile.name || undefined,
+        company_name: profile.company_name || null,
+        description: profile.description || null,
+        logo_url: profile.logo_url || null,
+        website_url: profile.website_url || null,
+      });
+      setProfileMsg('Saved');
+      setTimeout(() => setProfileMsg(''), 3000);
+    } catch (err) {
+      setProfileMsg(err instanceof Error ? err.message : 'Failed to save');
+    }
+    setSavingProfile(false);
+  };
+
   return (
     <div>
+      {/* Profile */}
+      <div className="api-preamble" style={{ marginTop: 16 }}>
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Profile</div>
+        <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 16 }}>
+          This information is visible to buyers on your public provider profile.
+        </p>
+        <div className="db-form-row">
+          <div className="db-form-field">
+            <label className="db-meta-label">Name</label>
+            <input className="db-form-input" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Provider name" />
+          </div>
+          <div className="db-form-field">
+            <label className="db-meta-label">Company</label>
+            <input className="db-form-input" value={profile.company_name} onChange={e => setProfile(p => ({ ...p, company_name: e.target.value }))} placeholder="Company name" />
+          </div>
+        </div>
+        <div className="db-form-field">
+          <label className="db-meta-label">Description</label>
+          <textarea className="db-form-input db-form-textarea" value={profile.description} onChange={e => setProfile(p => ({ ...p, description: e.target.value }))}
+            placeholder="Tell buyers about your organization and data collection capabilities" rows={3} />
+        </div>
+        <div className="db-form-row">
+          <div className="db-form-field">
+            <label className="db-meta-label">Logo URL</label>
+            <input className="db-form-input" type="url" value={profile.logo_url} onChange={e => setProfile(p => ({ ...p, logo_url: e.target.value }))} placeholder="https://example.com/logo.png" />
+          </div>
+          <div className="db-form-field">
+            <label className="db-meta-label">Website</label>
+            <input className="db-form-input" type="url" value={profile.website_url} onChange={e => setProfile(p => ({ ...p, website_url: e.target.value }))} placeholder="https://yourcompany.com" />
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button className="db-add-cart-btn" style={{ maxWidth: 160 }} onClick={saveProfile} disabled={savingProfile}>
+            {savingProfile ? 'Saving...' : 'Save Profile'}
+          </button>
+          {profileMsg && <span style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', color: profileMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{profileMsg}</span>}
+        </div>
+      </div>
+
       {/* Stripe */}
       <div className="api-preamble" style={{ marginTop: 16 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>Stripe</div>
@@ -3657,6 +3755,136 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
             </label>
             <button className="db-add-cart-btn" onClick={handleSubmit} disabled={!agreedToTerms}>Submit Application</button>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROVIDER LIST & PROFILE (BUYER VIEW)
+// ═══════════════════════════════════════════════════════════
+
+interface CatalogProvider {
+  id: string; name: string; slug: string; company_name: string | null;
+  description: string | null; logo_url: string | null; website_url: string | null;
+  listing_count?: number;
+  listings?: Array<{ id: string; title: string; slug: string; modality: string | string[]; environment: string | string[]; price_per_hour: number; total_hours: number | null; featured: boolean; created_at: string }>;
+}
+
+function ProviderList({ onSelectProvider }: { onSelectProvider: (slug: string) => void }) {
+  const [providers, setProviders] = useState<CatalogProvider[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<{ data: CatalogProvider[] }>('/catalog/providers')
+      .then(r => setProviders(r.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="db-loading">Loading providers...</div>;
+  if (providers.length === 0) return <div className="db-empty">No data providers yet</div>;
+
+  return (
+    <div>
+      <div className="db-meta-label" style={{ marginBottom: 12 }}>{providers.length} Data Provider{providers.length !== 1 ? 's' : ''}</div>
+      <div className="db-catalog-list">
+        {providers.map(p => (
+          <div key={p.id} className="db-catalog-row" onClick={() => onSelectProvider(p.slug)}>
+            <div className="db-provider-logo">
+              {p.logo_url ? <img src={p.logo_url} alt="" className="db-provider-logo__img" /> : <span className="db-provider-logo__initial">{p.name.charAt(0).toUpperCase()}</span>}
+            </div>
+            <div className="db-catalog-row__content">
+              <div className="db-catalog-row__line1">
+                <span className="db-catalog-row__title">{p.name}</span>
+                <span className="db-catalog-row__view">View →</span>
+              </div>
+              <div className="db-catalog-row__line2">
+                <div className="db-catalog-row__meta">
+                  {p.company_name && p.company_name !== p.name && <span className="db-catalog-row__provider">{p.company_name}</span>}
+                  <span className="db-catalog-row__details">
+                    {p.description ? (p.description.length > 120 ? p.description.slice(0, 120) + '...' : p.description) : 'No description'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProviderProfile({ slug, onBack, onSelectListing }: { slug: string; onBack: () => void; onSelectListing: (slug: string, providerName: string) => void }) {
+  const [provider, setProvider] = useState<CatalogProvider | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get<{ data: CatalogProvider }>(`/catalog/providers/${slug}`)
+      .then(r => setProvider(r.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) return <div className="db-loading">Loading provider...</div>;
+  if (!provider) return <div className="db-empty">Provider not found</div>;
+
+  const listings = provider.listings ?? [];
+
+  return (
+    <div>
+      <button className="db-back-btn" onClick={onBack}>← All Data Providers</button>
+
+      <div className="db-provider-header">
+        <div className="db-provider-logo db-provider-logo--lg">
+          {provider.logo_url ? <img src={provider.logo_url} alt="" className="db-provider-logo__img" /> : <span className="db-provider-logo__initial">{provider.name.charAt(0).toUpperCase()}</span>}
+        </div>
+        <div className="db-provider-header__info">
+          <h2 className="api-docs-title" style={{ marginBottom: 2 }}>{provider.name}</h2>
+          {provider.company_name && provider.company_name !== provider.name && (
+            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{provider.company_name}</div>
+          )}
+          {provider.website_url && (
+            <a href={provider.website_url} target="_blank" rel="noopener noreferrer" className="db-provider-header__link">
+              {provider.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+            </a>
+          )}
+        </div>
+      </div>
+
+      {provider.description && (
+        <div className="db-provider-section">
+          <div className="db-provider-section__label">About</div>
+          <p className="db-provider-section__text">{provider.description}</p>
+        </div>
+      )}
+
+      <div className="db-provider-section">
+        <div className="db-provider-section__label">Datasets ({listings.length})</div>
+        {listings.length === 0 ? (
+          <div className="db-empty">No published datasets yet</div>
+        ) : (
+          <div className="db-catalog-list">
+            {listings.map(l => (
+              <div key={l.id} className="db-catalog-row" onClick={() => onSelectListing(l.slug, provider.name)}>
+                <div className="db-catalog-row__content">
+                  <div className="db-catalog-row__line1">
+                    <span className="db-catalog-row__title">{l.title}</span>
+                    <span className="db-catalog-row__view">View →</span>
+                  </div>
+                  <div className="db-catalog-row__line2">
+                    <span className="db-catalog-row__details">
+                      {formatTags(l.modality)} · {formatTags(l.environment)}
+                      {l.total_hours ? ` · ${Number(l.total_hours).toLocaleString()} hrs` : ''}
+                    </span>
+                    <span className="db-catalog-row__price">${l.price_per_hour}/hr</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
