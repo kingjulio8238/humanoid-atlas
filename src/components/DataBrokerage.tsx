@@ -125,9 +125,10 @@ interface Sample {
   duration_seconds?: number | null;
 }
 
-type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'download';
+type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'tactile' | 'download';
 
-const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception', 'tactile'];
+const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception'];
+const TACTILE_MODALITIES = ['tactile'];
 
 function getSampleCategory(contentType?: string, filename?: string, modalities?: string[]): SampleCategory {
   const ct = (contentType ?? '').toLowerCase();
@@ -137,6 +138,7 @@ function getSampleCategory(contentType?: string, filename?: string, modalities?:
   if (ct.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) return 'audio';
   if (ct === 'application/json' || ext === 'json') return 'json';
   if (['rrd', 'rosbag', 'mcap'].includes(ext)) return 'rerun';
+  if (ext === 'parquet' && modalities?.some(m => TACTILE_MODALITIES.includes(m))) return 'tactile';
   if (ext === 'parquet' && modalities?.some(m => TIME_SERIES_MODALITIES.includes(m))) return 'timeseries';
   return 'download';
 }
@@ -181,6 +183,7 @@ const LazyRerunViewer = React.lazy(() =>
 );
 
 const LazyParquetChart = React.lazy(() => import('./ParquetChartViewer'));
+const LazyTactileHand = React.lazy(() => import('./TactileHandViewer'));
 
 function RerunSampleViewer({ url }: { url: string }) {
   return (
@@ -218,6 +221,12 @@ function SampleRenderer({ sample, modalities = [] }: { sample: Sample; modalitie
           <LazyParquetChart url={sample.url} filename={sample.filename} />
         </Suspense>
       );
+    case 'tactile':
+      return (
+        <Suspense fallback={<div className="db-chart-loading">Loading tactile data...</div>}>
+          <LazyTactileHand url={sample.url} filename={sample.filename} />
+        </Suspense>
+      );
     case 'download':
       return (
         <div className="db-download-card">
@@ -237,6 +246,7 @@ function SampleGallery({ samples, modalities = [] }: { samples: Sample[]; modali
   const videos: Sample[] = [];
   const depthImages: Sample[] = [];
   const rgbImages: Sample[] = [];
+  const thermalImages: Sample[] = [];
   const otherImages: Sample[] = [];
   const others: { sample: Sample; category: SampleCategory }[] = [];
 
@@ -246,6 +256,7 @@ function SampleGallery({ samples, modalities = [] }: { samples: Sample[]; modali
     else if (cat === 'image') {
       const fn = s.filename.toLowerCase();
       if (fn.includes('depth') || fn.includes('disparity')) depthImages.push(s);
+      else if (fn.includes('thermal') || fn.includes('infrared') || fn.includes('ir_')) thermalImages.push(s);
       else if (fn.includes('rgb') || fn.includes('color')) rgbImages.push(s);
       else otherImages.push(s);
     }
@@ -255,20 +266,21 @@ function SampleGallery({ samples, modalities = [] }: { samples: Sample[]; modali
   if (videos.length > 0) groups.push({ label: 'Videos', type: 'video-strip' as const, samples: videos, stateKey: 'video' });
   if (rgbImages.length > 0) groups.push({ label: 'RGB Images', type: 'video-strip' as const, samples: rgbImages, stateKey: 'rgb-img' });
   if (depthImages.length > 0) groups.push({ label: 'Depth Maps', type: 'video-strip' as const, samples: depthImages, stateKey: 'depth-img' });
+  if (thermalImages.length > 0) groups.push({ label: 'Thermal Images', type: 'video-strip' as const, samples: thermalImages, stateKey: 'thermal-img' });
   if (otherImages.length > 0) groups.push({ label: 'Images', type: 'video-strip' as const, samples: otherImages, stateKey: 'other-img' });
 
   // Group remaining by category with readable labels
   const catLabels: Record<string, string> = {
     audio: 'Audio', json: 'Language Annotations',
-    rerun: '3D Visualization', timeseries: 'Sensor Data', download: 'Data Files',
+    rerun: '3D Visualization', timeseries: 'Sensor Data', tactile: 'Tactile Pressure', download: 'Data Files',
   };
-  const catOrder = ['timeseries', 'download', 'rerun', 'json', 'audio'];
+  const catOrder = ['tactile', 'timeseries', 'download', 'rerun', 'json', 'audio'];
   // Categories that should use thumb strip (one at a time) instead of stacked
   for (const cat of catOrder) {
     const items = others.filter(o => o.category === cat);
     if (items.length > 0) {
       const ext = items[0].sample.filename.split('.').pop()?.toUpperCase() ?? '';
-      const label = cat === 'download' ? `Data Files (${ext})` : cat === 'json' ? `Language Annotations (JSON)` : cat === 'timeseries' ? `Sensor Data (PARQUET)` : catLabels[cat] ?? ext;
+      const label = cat === 'download' ? `Data Files (${ext})` : cat === 'json' ? `Language Annotations (JSON)` : cat === 'timeseries' ? `Sensor Data (PARQUET)` : cat === 'tactile' ? `Tactile Pressure` : catLabels[cat] ?? ext;
       const type = items.length > 1 ? 'video-strip' as const : 'inline' as const;
       groups.push({ label, type, samples: items.map(o => o.sample), stateKey: cat });
     }
@@ -2954,12 +2966,15 @@ After creating a listing, you'll be taken to upload samples. **At least 5 sample
 
 Samples are automatically grouped by type in the catalog:
 - **Videos** (.mp4, .webm) — playable video gallery with numbered thumbnails
+- **RGB Images** — color images grouped separately (files with "rgb" or "color" in name)
+- **Depth Maps** — depth images with dark background (files with "depth" or "disparity" in name)
+- **Thermal Images** — infrared/thermal images (files with "thermal" or "infrared" in name)
+- **Tactile Pressure** (.parquet with tactile modality) — interactive 3D hand pressure visualization with animated playback, plus chart toggle
+- **Sensor Data** (.parquet with imu/force_torque/proprioception modality) — interactive time-series chart with auto-detected columns
 - **Language Annotations** (.json) — pretty-printed preview with expand
-- **Teleoperation / Sensor Data** (.parquet) — interactive chart for IMU/F-T data, download card otherwise
 - **3D Visualization** (.rrd, .rosbag, .mcap) — embedded Rerun 3D viewer
-- **Images** (.png, .jpg) — inline image display
 - **Audio** (.wav, .mp3) — native audio player
-- **Other files** (.hdf5, .ply, etc.) — download card with filename
+- **Data Files** (.hdf5, .ply, .pcd, etc.) — download card with filename
 
 ### Best Practices for Samples
 

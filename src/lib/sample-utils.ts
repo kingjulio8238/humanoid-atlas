@@ -11,9 +11,10 @@ export interface Sample {
   duration_seconds?: number | null;
 }
 
-export type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'download';
+export type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'tactile' | 'download';
 
-export const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception', 'tactile'];
+export const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception'];
+export const TACTILE_MODALITIES = ['tactile'];
 
 export function formatTags(value: string | string[]): string {
   const arr = Array.isArray(value) ? value : [value];
@@ -28,6 +29,7 @@ export function getSampleCategory(contentType?: string, filename?: string, modal
   if (ct.startsWith('audio/') || ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(ext)) return 'audio';
   if (ct === 'application/json' || ext === 'json') return 'json';
   if (['rrd', 'rosbag', 'mcap'].includes(ext)) return 'rerun';
+  if (ext === 'parquet' && modalities?.some(m => TACTILE_MODALITIES.includes(m))) return 'timeseries';
   if (ext === 'parquet' && modalities?.some(m => TIME_SERIES_MODALITIES.includes(m))) return 'timeseries';
   return 'download';
 }

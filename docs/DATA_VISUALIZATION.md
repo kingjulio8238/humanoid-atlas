@@ -30,14 +30,25 @@ Sample file arrives → check content_type / extension
   │     │   Providers must convert to .rrd for 3D preview.
   │     │   Motion capture .parquet (skeleton/joint data) renders as
   │     │   download card — use .rrd for animated 3D skeleton preview.
+  │     ├── tactile modality
+  │     │   (tactile)      → 3D hand pressure viewer with animated playback
+  │     │                    Auto-maps column names to hand regions
+  │     │                    Falls back to chart if columns don't match
   │     ├── time-series modalities
-  │     │   (imu, force_torque, proprioception, tactile)
+  │     │   (imu, force_torque, proprioception)
   │     │                  → Time-series chart (Phase 3)
   │     ├── text modalities
   │     │   (language_annotations)
   │     │                  → JSON / text viewer
   │     └── other          → Download link
   └── anything else        → Download link with file metadata
+
+Image Grouping by Filename:
+  Images are auto-grouped by filename keywords:
+  - Files with "depth" or "disparity" → "Depth Maps" group (dark background)
+  - Files with "thermal" or "infrared" → "Thermal Images" group
+  - Files with "rgb" or "color" → "RGB Images" group
+  - Other images → generic "Images" group
 ```
 
 ## Modality-Aware Upload Validation
@@ -316,16 +327,24 @@ Both should be lazy-loaded (dynamic import) so they don't bloat the main bundle.
 Update `SampleCategory` type and `getSampleCategory()`:
 
 ```typescript
-type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'download';
+type SampleCategory = 'video' | 'image' | 'audio' | 'json' | 'rerun' | 'timeseries' | 'tactile' | 'download';
 
-const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception', 'tactile'];
+const TIME_SERIES_MODALITIES = ['imu', 'force_torque', 'proprioception'];
+const TACTILE_MODALITIES = ['tactile'];
 
 function getSampleCategory(contentType?: string, filename?: string, modalities?: string[]): SampleCategory {
   // ... existing video/image/audio/json/rerun checks ...
+  if (ext === 'parquet' && modalities?.some(m => TACTILE_MODALITIES.includes(m))) return 'tactile';
   if (ext === 'parquet' && modalities?.some(m => TIME_SERIES_MODALITIES.includes(m))) return 'timeseries';
   return 'download';
 }
 ```
+
+**Parquet Data Best Practices:**
+- **Flatten nested arrays into named columns** — e.g., instead of `observation.state: [0.1, 0.2, ...]`, use `left_shoulder: 0.1, left_elbow: 0.2, ...`
+- For tactile glove data, use `l_` and `r_` prefixed column names with finger/joint keywords (e.g., `l_thumb_tip`, `r_index_mid`, `l_palm_center`) for automatic 3D hand mapping
+- First 10 numeric columns are charted (max); additional columns noted in header
+- Index columns (`timestamp`, `frame`, `index`, `step`) are automatically excluded from charts
 
 Note: only `.parquet` gets the timeseries treatment — `.hdf5` cannot be read by `parquet-wasm` and remains a download card. Providers with HDF5 time-series data should convert to parquet or `.rrd`.
 
@@ -895,4 +914,4 @@ This requires backend support for storing saved searches and sending notificatio
 | **Phase 3**: Time-series charts | Medium | Medium | Complete |
 | **Phase 4**: Enhanced gallery UX | Medium | Medium | Complete |
 | **Phase 5**: Provider tooling | Large | High | Complete |
-| **Phase 6**: Search, discovery & comparison | Medium | High | Proposed |
+| **Phase 6**: Search, discovery & comparison | Medium | High | Complete |

@@ -360,12 +360,12 @@ describe('getPreviewScore', () => {
 // ═══════════════════════════════════════════════════════════
 
 describe('TIME_SERIES_MODALITIES', () => {
-  it('contains exactly 4 modalities', () => {
-    expect(TIME_SERIES_MODALITIES).toHaveLength(4);
+  it('contains exactly 3 modalities (tactile has its own category)', () => {
+    expect(TIME_SERIES_MODALITIES).toHaveLength(3);
     expect(TIME_SERIES_MODALITIES).toContain('imu');
     expect(TIME_SERIES_MODALITIES).toContain('force_torque');
     expect(TIME_SERIES_MODALITIES).toContain('proprioception');
-    expect(TIME_SERIES_MODALITIES).toContain('tactile');
+    expect(TIME_SERIES_MODALITIES).not.toContain('tactile');
   });
   it('does not contain spatial modalities', () => {
     expect(TIME_SERIES_MODALITIES).not.toContain('lidar');
