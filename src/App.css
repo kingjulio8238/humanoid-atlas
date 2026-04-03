@@ -4698,6 +4698,16 @@ input[type="number"] { -moz-appearance: textfield; }
 .db-status-badge--approved { background: #e8f5e9; color: var(--green); }
 .db-status-badge--rejected { background: #ffebee; color: var(--red); }
 .db-status-badge--changes_requested { background: #fff3e0; color: #e65100; }
+.db-status-badge--deactivated { background: #f5f5f5; color: #757575; }
+.db-status-badge--draft { background: #f3e8ff; color: #7c3aed; }
+.db-status-badge--pending_review { background: #fff8e1; color: #d69e2e; }
+
+/* ─── LISTING EDIT ───────────────────────────────────── */
+.db-edit-warning { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: #d69e2e; background: #fff8e1; border: 1px solid #f6e05e; border-radius: 4px; padding: 8px 12px; margin-bottom: 12px; }
+.db-edit-actions { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+.db-form-input:disabled, .db-form-select:disabled, .db-form-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+.db-regen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.db-listing-deactivated { opacity: 0.5; }
 
 /* ─── COLLECTION PROGRAMS ────────────────────────────── */
 .db-program-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }

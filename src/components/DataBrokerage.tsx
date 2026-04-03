@@ -63,6 +63,7 @@ interface Listing {
   format: string | null; resolution: string | null; price_per_hour: number; currency: string;
   minimum_hours: number; license_type: string; license_terms: string | null; featured: boolean;
   created_at: string; thumbnail_url?: string | null;
+  review_status?: string; has_purchases?: boolean; is_active?: boolean;
   providers?: { id: string; name: string; slug: string; logo_url: string | null };
   samples?: Array<{ id: string; url: string; filename: string; content_type: string; duration_seconds: number | null }>;
 }
@@ -1501,7 +1502,7 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
   const acceptFilter = getAcceptFilter(modalities);
   const uploadHint = getUploadHint(modalities);
   const minSamples = 5;
-  const canSubmitForReview = samples.length >= minSamples && (!reviewStatus || reviewStatus === 'draft' || reviewStatus === 'pending' || reviewStatus === 'pending_review');
+  const canSubmitForReview = samples.length >= minSamples && (!reviewStatus || reviewStatus === 'draft' || reviewStatus === 'pending' || reviewStatus === 'pending_review' || reviewStatus === 'rejected' || reviewStatus === 'changes_requested');
 
   const [submittingForReview, setSubmittingForReview] = useState(false);
   const [importUrl, setImportUrl] = useState('');
@@ -1774,65 +1775,31 @@ function ProviderDashboard() {
       {activeTab === 'listings' && (
         loading ? <div className="db-loading">Loading listings...</div> :
         selectedListingId ? (
-          <div>
-            <button className="db-back-btn" onClick={() => setSelectedListingId(null)}>&larr; Back to listings</button>
-            {(() => {
-              const l = listings.find(x => String(x.id) === selectedListingId);
-              if (!l) return <div className="db-empty">Listing not found</div>;
-              const tags = Array.isArray(l.tags) ? (l.tags as string[]) : [];
-              const collectionTags = tags.filter(t => String(t).startsWith('collection:')).map(t => String(t).replace('collection:', ''));
-              const embodimentTags = tags.filter(t => String(t).startsWith('embodiment:')).map(t => String(t).replace('embodiment:', ''));
-              const taskTags = tags.filter(t => String(t).startsWith('task:')).map(t => String(t).replace('task:', ''));
-              const allModalities = Array.isArray(l.modality) ? l.modality.map(String) : [String(l.modality ?? '')].filter(Boolean);
-
-              return (
-                <div>
-                  <div className="api-preamble" style={{ marginTop: 12, padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                      <div>
-                        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 500, color: 'var(--text)', letterSpacing: '0.5px' }}>{String(l.title)}</div>
-                        {l.description ? <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5, marginTop: 4 }}>{String(l.description).slice(0, 120)}{String(l.description).length > 120 ? '...' : ''}</div> : null}
-                      </div>
-                      <span className={`db-status-badge db-status-badge--${String(l.review_status)}`} style={{ flexShrink: 0, marginLeft: 16 }}>{String(l.review_status).replace(/_/g, ' ')}</span>
-                    </div>
-
-                    <div className="db-badges" style={{ marginBottom: 20 }}>
-                      {allModalities.map(m => <span key={m} className="db-badge">{String(m).replace(/_/g, ' ')}</span>)}
-                      <span className="db-badge">{String(l.environment).replace(/_/g, ' ')}</span>
-                      {collectionTags.map(t => <span key={`c-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
-                      {embodimentTags.map(t => <span key={`e-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
-                      {taskTags.map(t => <span key={`t-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
-                      {l.format ? <span className="db-badge">{String(l.format)}</span> : null}
-                    </div>
-
-                    <div className="db-meta-grid">
-                      <div><div className="db-meta-label">Price</div><div className="db-meta-value">${String(l.price_per_hour)}/hr</div></div>
-                      <div><div className="db-meta-label">Min Purchase</div><div className="db-meta-value">{String(l.minimum_hours)} hrs</div></div>
-                      {l.total_hours ? <div><div className="db-meta-label">Total Hours</div><div className="db-meta-value">{Number(l.total_hours).toLocaleString()}</div></div> : null}
-                    </div>
-                  </div>
-                  <SampleUploader listingId={String(l.id)} modalities={allModalities} reviewStatus={String(l.review_status ?? '')} />
-                </div>
-              );
-            })()}
-          </div>
+          (() => {
+            const l = listings.find(x => String(x.id) === selectedListingId);
+            if (!l) return <div className="db-empty">Listing not found</div>;
+            return <ListingDetail listing={l} onBack={() => setSelectedListingId(null)} onListingUpdated={fetchListingsProvider} />;
+          })()
         ) :
         listings.length === 0 ? <div className="db-empty">No listings yet - create your first listing</div> :
         <div>
-          {listings.map(l => (
-            <div key={String(l.id)} className="db-catalog-row" onClick={() => setSelectedListingId(String(l.id))}>
-              <div className="db-catalog-row__line1">
-                <span className="db-catalog-row__title">{String(l.title)}</span>
-                <span className="db-catalog-row__view">Manage →</span>
-              </div>
-              <div className="db-catalog-row__line2">
-                <div className="db-catalog-row__meta">
-                  <span className="db-catalog-row__details">{formatTags(l.modality as string | string[])} · ${String(l.price_per_hour)}/hr</span>
+          {listings.map(l => {
+            const rowStatus = l.is_active === false ? 'deactivated' : String(l.review_status);
+            return (
+              <div key={String(l.id)} className={`db-catalog-row${l.is_active === false ? ' db-listing-deactivated' : ''}`} onClick={() => setSelectedListingId(String(l.id))}>
+                <div className="db-catalog-row__line1">
+                  <span className="db-catalog-row__title">{String(l.title)}</span>
+                  <span className="db-catalog-row__view">Manage &rarr;</span>
                 </div>
-                <span className={`db-status-badge db-status-badge--${String(l.review_status)}`}>{String(l.review_status).replace(/_/g, ' ')}</span>
+                <div className="db-catalog-row__line2">
+                  <div className="db-catalog-row__meta">
+                    <span className="db-catalog-row__details">{formatTags(l.modality as string | string[])} · ${String(l.price_per_hour)}/hr</span>
+                  </div>
+                  <span className={`db-status-badge db-status-badge--${rowStatus}`}>{rowStatus.replace(/_/g, ' ')}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1870,6 +1837,329 @@ function TagSection({ label, required, selected, options, onToggle, defaultOpen 
               {v.replace(/_/g, ' ')}
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListingDetail({ listing, onBack, onListingUpdated }: {
+  listing: Record<string, unknown>;
+  onBack: () => void;
+  onListingUpdated: () => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', price_per_hour: '', minimum_hours: '', total_hours: '',
+    format: '', license_terms: '', modalities: [] as string[], environments: [] as string[],
+    collection_methods: [] as string[], embodiment_types: [] as string[], task_types: [] as string[],
+    license_type: 'commercial',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [togglingActive, setTogglingActive] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'other'];
+
+  // Derived state
+  const reviewStatus = String(listing.review_status ?? '');
+  const hasPurchases = Boolean(listing.has_purchases);
+  const isActive = listing.is_active !== false;
+  const displayStatus = !isActive ? 'deactivated' : reviewStatus;
+  const isModalityLocked = hasPurchases;
+  const isLicenseTypeLocked = hasPurchases;
+  const willTriggerReReview = reviewStatus === 'approved';
+
+  // Parse tags and modalities from listing
+  const tags = Array.isArray(listing.tags) ? (listing.tags as string[]) : [];
+  const collectionTags = tags.filter(t => String(t).startsWith('collection:')).map(t => String(t).replace('collection:', ''));
+  const embodimentTags = tags.filter(t => String(t).startsWith('embodiment:')).map(t => String(t).replace('embodiment:', ''));
+  const taskTags = tags.filter(t => String(t).startsWith('task:')).map(t => String(t).replace('task:', ''));
+  const envTags = tags.filter(t => String(t).startsWith('environment:')).map(t => String(t).replace('environment:', ''));
+  const allModalities = Array.isArray(listing.modality) ? (listing.modality as string[]).map(String) : [String(listing.modality ?? '')].filter(Boolean);
+  const allEnvironments = [String(listing.environment ?? '')].filter(Boolean).concat(envTags);
+
+  const toggleEditTag = (field: 'modalities' | 'environments' | 'collection_methods' | 'embodiment_types' | 'task_types', value: string) => {
+    setEditForm(f => {
+      const arr = f[field];
+      return { ...f, [field]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value] };
+    });
+  };
+
+  const enterEditMode = () => {
+    setEditForm({
+      title: String(listing.title ?? ''),
+      description: String(listing.description ?? ''),
+      price_per_hour: String(listing.price_per_hour ?? ''),
+      minimum_hours: String(listing.minimum_hours ?? '1'),
+      total_hours: listing.total_hours ? String(listing.total_hours) : '',
+      format: String(listing.format ?? 'parquet'),
+      license_terms: String(listing.license_terms ?? ''),
+      license_type: String(listing.license_type ?? 'commercial'),
+      modalities: [...allModalities],
+      environments: [...allEnvironments],
+      collection_methods: [...collectionTags],
+      embodiment_types: [...embodimentTags],
+      task_types: [...taskTags],
+    });
+    setIsEditing(true);
+    setSaveError('');
+    setSaveMsg('');
+  };
+
+  const handleSave = async () => {
+    if (!editForm.title || !editForm.description || !editForm.price_per_hour) {
+      setSaveError('Title, description, and price are required');
+      return;
+    }
+    if (!isModalityLocked && editForm.modalities.length === 0) {
+      setSaveError('Select at least one modality');
+      return;
+    }
+    if (editForm.environments.length === 0) {
+      setSaveError('Select at least one environment');
+      return;
+    }
+    setSaving(true);
+    setSaveError('');
+    setSaveMsg('');
+    try {
+      const body: Record<string, unknown> = {
+        title: editForm.title,
+        description: editForm.description,
+        price_per_hour: parseFloat(editForm.price_per_hour),
+        minimum_hours: parseFloat(editForm.minimum_hours) || 1,
+        total_hours: editForm.total_hours ? parseFloat(editForm.total_hours.replace(/,/g, '')) : null,
+        format: editForm.format || null,
+        license_terms: editForm.license_terms || null,
+      };
+      // Modality + license_type only if unlocked
+      if (!isModalityLocked) {
+        body.modality = editForm.modalities[0];
+        body.tags = [
+          ...editForm.modalities.slice(1).map(v => `modality:${v}`),
+          ...editForm.environments.slice(1).map(v => `environment:${v}`),
+          ...editForm.collection_methods.map(v => `collection:${v}`),
+          ...editForm.embodiment_types.map(v => `embodiment:${v}`),
+          ...editForm.task_types.map(v => `task:${v}`),
+        ].filter(Boolean);
+      } else {
+        // Preserve existing modality tags when modalities are locked
+        const existingModalityTags = tags.filter(t => String(t).startsWith('modality:'));
+        body.tags = [
+          ...existingModalityTags,
+          ...editForm.environments.slice(1).map(v => `environment:${v}`),
+          ...editForm.collection_methods.map(v => `collection:${v}`),
+          ...editForm.embodiment_types.map(v => `embodiment:${v}`),
+          ...editForm.task_types.map(v => `task:${v}`),
+        ].filter(Boolean);
+      }
+      if (!isLicenseTypeLocked) body.license_type = editForm.license_type;
+      if (editForm.environments.length > 0) body.environment = editForm.environments[0];
+
+      await api.patch(`/provider/listings/${String(listing.id)}`, body);
+      setSaveMsg('Saved');
+      setTimeout(() => setSaveMsg(''), 3000);
+      setIsEditing(false);
+      onListingUpdated();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save');
+    }
+    setSaving(false);
+  };
+
+  const handleToggleActive = async () => {
+    const action = isActive ? 'deactivate' : 'reactivate';
+    if (isActive && !window.confirm('Deactivate this listing? It will be hidden from the catalog. Existing purchases are unaffected.')) return;
+    setTogglingActive(true);
+    try {
+      await api.post(`/provider/listings/${String(listing.id)}/${action}`);
+      onListingUpdated();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : `Failed to ${action}`);
+    }
+    setTogglingActive(false);
+  };
+
+  const handleWithdraw = async () => {
+    if (!window.confirm('Withdraw this listing from review? It will return to draft status.')) return;
+    setWithdrawing(true);
+    try {
+      await api.post(`/provider/listings/${String(listing.id)}/withdraw`);
+      onListingUpdated();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to withdraw');
+    }
+    setWithdrawing(false);
+  };
+
+  const updateField = (field: string, value: string) => setEditForm(f => ({ ...f, [field]: value }));
+
+  // Re-review check: did the user change title or description from the original?
+  const titleChanged = isEditing && editForm.title !== String(listing.title ?? '');
+  const descChanged = isEditing && editForm.description !== String(listing.description ?? '');
+  const showReReviewWarning = willTriggerReReview && (titleChanged || descChanged);
+
+  return (
+    <div>
+      <button className="db-back-btn" onClick={onBack}>&larr; Back to listings</button>
+
+      <div className="api-preamble" style={{ marginTop: 12, padding: '24px 28px' }}>
+        {/* Header: title + status + action buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {isEditing ? (
+              <input className="db-form-input" style={{ fontSize: 15, fontWeight: 500, fontFamily: "'Share Tech Mono', monospace" }}
+                value={editForm.title} onChange={e => updateField('title', e.target.value)} />
+            ) : (
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 500, color: 'var(--text)', letterSpacing: '0.5px' }}>{String(listing.title)}</div>
+            )}
+            {isEditing ? (
+              <textarea className="db-form-textarea" rows={3} style={{ marginTop: 6, fontSize: 11 }}
+                value={editForm.description} onChange={e => updateField('description', e.target.value)} />
+            ) : (
+              listing.description ? <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5, marginTop: 4 }}>{String(listing.description).slice(0, 120)}{String(listing.description).length > 120 ? '...' : ''}</div> : null
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 16 }}>
+            <span className={`db-status-badge db-status-badge--${displayStatus}`}>{displayStatus.replace(/_/g, ' ')}</span>
+            {!isEditing && (
+              <button className="db-regen-btn" style={{ margin: 0 }} onClick={enterEditMode}>Edit</button>
+            )}
+            {!isEditing && (reviewStatus === 'pending_review' || reviewStatus === 'pending') && (
+              <button className="db-regen-btn" style={{ margin: 0, fontSize: 8 }} onClick={handleWithdraw} disabled={withdrawing}>
+                {withdrawing ? '...' : 'Withdraw'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {showReReviewWarning && (
+          <div className="db-edit-warning">Changing title or description will require re-review for this listing</div>
+        )}
+
+        {saveError && <div className="db-form-error" style={{ marginBottom: 12 }}>{saveError}</div>}
+
+        {isEditing ? (
+          /* ─── Edit Mode ─── */
+          <div>
+            {isModalityLocked ? (
+              <div className="db-form-field">
+                <label className="db-meta-label">Modalities (locked — active purchases)</label>
+                <div className="db-badges">{allModalities.map(m => <span key={m} className="db-badge">{m.replace(/_/g, ' ')}</span>)}</div>
+              </div>
+            ) : (
+              <TagSection label="Modalities" required selected={editForm.modalities} options={MODALITIES}
+                onToggle={v => toggleEditTag('modalities', v)} />
+            )}
+
+            <TagSection label="Environments" required selected={editForm.environments} options={ENVIRONMENTS}
+              onToggle={v => toggleEditTag('environments', v)} />
+
+            <TagSection label="Collection Method" selected={editForm.collection_methods} options={COLLECTION_METHODS}
+              onToggle={v => toggleEditTag('collection_methods', v)} />
+
+            <TagSection label="Embodiment / Platform" selected={editForm.embodiment_types} options={EMBODIMENT_TYPES}
+              onToggle={v => toggleEditTag('embodiment_types', v)} />
+
+            <TagSection label="Task Types" selected={editForm.task_types} options={TASK_TYPES}
+              onToggle={v => toggleEditTag('task_types', v)} />
+
+            <div className="db-form-row" style={{ marginTop: 12 }}>
+              <div className="db-form-field" style={{ flex: 1 }}>
+                <label className="db-meta-label">Price per hour (USD)</label>
+                <input className="db-form-input" type="text" inputMode="decimal" value={editForm.price_per_hour}
+                  onChange={e => updateField('price_per_hour', e.target.value.replace(/[^0-9.]/g, ''))}
+                  onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateField('price_per_hour', v.toFixed(2)); }} />
+              </div>
+              <div className="db-form-field" style={{ flex: 1 }}>
+                <label className="db-meta-label">Minimum hours</label>
+                <input className="db-form-input" type="text" inputMode="numeric" value={editForm.minimum_hours}
+                  onChange={e => updateField('minimum_hours', e.target.value.replace(/[^0-9]/g, ''))} />
+              </div>
+              <div className="db-form-field" style={{ flex: 1 }}>
+                <label className="db-meta-label">Total hours available</label>
+                <input className="db-form-input" type="text" inputMode="numeric" value={editForm.total_hours}
+                  onChange={e => updateField('total_hours', e.target.value.replace(/[^0-9]/g, ''))}
+                  onBlur={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) updateField('total_hours', v.toLocaleString()); }} />
+              </div>
+            </div>
+
+            <div className="db-form-field" style={{ marginTop: 12 }}>
+              <label className="db-meta-label">Format</label>
+              <select className="db-form-select" value={editForm.format} onChange={e => updateField('format', e.target.value)}>
+                {formats.map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+              </select>
+            </div>
+
+            {isLicenseTypeLocked ? (
+              <div className="db-form-field" style={{ marginTop: 12 }}>
+                <label className="db-meta-label">License (locked — active purchases)</label>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{String(listing.license_type)}</div>
+              </div>
+            ) : (
+              <div className="db-form-field" style={{ marginTop: 12 }}>
+                <label className="db-meta-label">License</label>
+                <select className="db-form-select" value={editForm.license_type} onChange={e => updateField('license_type', e.target.value)}>
+                  <option value="commercial">Commercial</option>
+                  <option value="research">Research Only</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+            )}
+
+            <div className="db-form-field" style={{ marginTop: 12 }}>
+              <label className="db-meta-label">License terms (optional)</label>
+              <textarea className="db-form-textarea" rows={2} value={editForm.license_terms}
+                onChange={e => updateField('license_terms', e.target.value)} />
+            </div>
+
+            <div className="db-edit-actions">
+              <button className="db-add-cart-btn" style={{ maxWidth: 120 }} onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              <button className="db-regen-btn" style={{ margin: 0 }} onClick={() => setIsEditing(false)} disabled={saving}>Cancel</button>
+              {saveMsg && <span style={{ fontSize: 10, fontFamily: "'Share Tech Mono', monospace", color: 'var(--green)' }}>{saveMsg}</span>}
+            </div>
+          </div>
+        ) : (
+          /* ─── View Mode ─── */
+          <>
+            <div className="db-badges" style={{ marginBottom: 20 }}>
+              {allModalities.map(m => <span key={m} className="db-badge">{m.replace(/_/g, ' ')}</span>)}
+              {allEnvironments.map(e => <span key={`env-${e}`} className="db-badge">{e.replace(/_/g, ' ')}</span>)}
+              {collectionTags.map(t => <span key={`c-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
+              {embodimentTags.map(t => <span key={`e-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
+              {taskTags.map(t => <span key={`t-${t}`} className="db-badge">{t.replace(/_/g, ' ')}</span>)}
+              {listing.format ? <span className="db-badge">{String(listing.format)}</span> : null}
+            </div>
+
+            <div className="db-meta-grid">
+              <div><div className="db-meta-label">Price</div><div className="db-meta-value">${String(listing.price_per_hour)}/hr</div></div>
+              <div><div className="db-meta-label">Min Purchase</div><div className="db-meta-value">{String(listing.minimum_hours)} hrs</div></div>
+              {listing.total_hours ? <div><div className="db-meta-label">Total Hours</div><div className="db-meta-value">{Number(listing.total_hours).toLocaleString()}</div></div> : null}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Sample uploader */}
+      <SampleUploader listingId={String(listing.id)} modalities={allModalities} reviewStatus={reviewStatus} />
+
+      {/* Deactivate / Reactivate action bar */}
+      {(reviewStatus === 'approved' || !isActive) && (
+        <div className="api-preamble" style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
+          <div>
+            <div className="db-meta-label">{isActive ? 'Listing is live' : 'Listing is deactivated'}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+              {isActive ? 'Visible to buyers in the catalog' : 'Hidden from catalog. Reactivate to make visible again.'}
+            </div>
+          </div>
+          <button className="db-regen-btn" style={{ margin: 0 }} onClick={handleToggleActive} disabled={togglingActive}>
+            {togglingActive ? '...' : isActive ? 'Deactivate' : 'Reactivate'}
+          </button>
         </div>
       )}
     </div>
