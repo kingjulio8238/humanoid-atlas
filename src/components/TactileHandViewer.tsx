@@ -97,47 +97,13 @@ export default function TactileHandViewer({ url, filename }: TactileHandViewerPr
         <span className="db-chart-filename">{filename}</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span className="db-chart-meta">{data.length} frames · {columns.length} sensors</span>
-          {hasMappableData && (
-            <button className="db-tactile-toggle" onClick={() => setShowChart(!showChart)}>
-              {showChart ? '3D Hand View' : 'Chart View'}
-            </button>
-          )}
+          {/* 3D Hand View toggle disabled for now */}
         </div>
       </div>
 
-      {showChart || !hasMappableData ? (
-        <Suspense fallback={<div className="db-chart-loading">Loading chart...</div>}>
-          <LazyChart url={url} filename={filename} />
-        </Suspense>
-      ) : (
-        <>
-          <TactileHand3DScene
-            pressures={currentFrame}
-            taxelToBone={taxelToBone}
-            hasLeft={hasLeft}
-            hasRight={hasRight}
-          />
-          <div className="db-tactile-controls">
-            <button className="db-tactile-play" onClick={() => setPlaying(!playing)}>
-              {playing ? '❚❚' : '▶'}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={data.length - 1}
-              value={frame}
-              onChange={handleScrub}
-              className="db-tactile-scrubber"
-            />
-            <span className="db-tactile-frame">Frame {frame + 1}/{data.length}</span>
-          </div>
-          <div className="db-tactile-legend">
-            <span className="db-tactile-legend-label">0%</span>
-            <div className="db-tactile-legend-bar" />
-            <span className="db-tactile-legend-label">100%</span>
-          </div>
-        </>
-      )}
+      <Suspense fallback={<div className="db-chart-loading">Loading chart...</div>}>
+        <LazyChart url={url} filename={filename} />
+      </Suspense>
     </div>
   );
 }
