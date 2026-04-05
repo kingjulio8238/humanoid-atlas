@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import React from 'react';
-import { autoMapTaxels, TactileHand3DScene } from './TactileHand3D';
 
 /**
  * Tactile Pressure Viewer
- * Shows 3D hand with pressure overlay (if columns map to hand regions)
- * + always shows a chart fallback via ParquetChartViewer.
+ * Currently shows chart view only. 3D hand view disabled for now.
  */
 
 const LazyChart = React.lazy(() => import('./ParquetChartViewer'));
@@ -18,10 +16,7 @@ interface TactileHandViewerProps {
 export default function TactileHandViewer({ url, filename }: TactileHandViewerProps) {
   const [data, setData] = useState<Record<string, number>[] | null>(null);
   const [columns, setColumns] = useState<string[]>([]);
-  const [frame, setFrame] = useState(0);
-  const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showChart, setShowChart] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -65,31 +60,8 @@ export default function TactileHandViewer({ url, filename }: TactileHandViewerPr
     })();
   }, [url]);
 
-  // Animation loop
-  useEffect(() => {
-    if (!playing || !data) return;
-    const interval = setInterval(() => {
-      setFrame(f => (f + 1) % data.length);
-    }, 30);
-    return () => clearInterval(interval);
-  }, [playing, data]);
-
-  const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFrame(parseInt(e.target.value));
-    setPlaying(false);
-  }, []);
-
   if (error) return <div className="db-chart-error">{error}</div>;
   if (!data) return <div className="db-chart-loading">Loading tactile data...</div>;
-
-  // Auto-map columns to hand bones
-  const taxelToBone = autoMapTaxels(columns);
-  const mappedCount = Object.keys(taxelToBone).length;
-  const hasMappableData = mappedCount >= 4; // At least 4 columns map to hand regions
-  const hasLeft = columns.some(c => c.startsWith('l_') || c.toLowerCase().startsWith('left'));
-  const hasRight = columns.some(c => c.startsWith('r_') || c.toLowerCase().startsWith('right'));
-
-  const currentFrame = data[frame] ?? {};
 
   return (
     <div className="db-tactile-viewer">
@@ -97,7 +69,6 @@ export default function TactileHandViewer({ url, filename }: TactileHandViewerPr
         <span className="db-chart-filename">{filename}</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span className="db-chart-meta">{data.length} frames · {columns.length} sensors</span>
-          {/* 3D Hand View toggle disabled for now */}
         </div>
       </div>
 
