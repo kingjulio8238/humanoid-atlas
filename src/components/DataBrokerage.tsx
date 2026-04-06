@@ -890,7 +890,7 @@ function BuyData() {
             <div className="db-empty">No datasets found. Try adjusting your filters.</div>
           ) : (
             <div className="db-catalog-list">
-              {listings.map(l => (
+              {[...listings].sort((a, b) => (watchlist.has(b.id) ? 1 : 0) - (watchlist.has(a.id) ? 1 : 0)).map(l => (
                 <div key={l.id} className="db-catalog-row" onClick={() => selectListing(l.slug)}>
                   <input type="checkbox" className="db-compare-check" checked={compareIds.has(l.id)} onClick={e => toggleCompare(l.id, e)} onChange={() => {}} title="Compare" />
                   {l.thumbnail_url && <img className="db-catalog-row__thumb" src={l.thumbnail_url} alt="" />}
@@ -898,8 +898,10 @@ function BuyData() {
                     <div className="db-catalog-row__line1">
                       <span className="db-catalog-row__title">{l.title}</span>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button className={`db-watchlist-btn-sm${watchlist.has(l.id) ? ' db-watchlist-btn-sm--active' : ''}`} onClick={e => { e.stopPropagation(); toggleWatchlist(l.id); }} title={watchlist.has(l.id) ? 'Remove from saved' : 'Save'}>
-                          {watchlist.has(l.id) ? '★' : '☆'}
+                        <button className={`db-watchlist-btn-sm${watchlist.has(l.id) ? ' db-watchlist-btn-sm--active' : ''}`} onClick={e => { e.stopPropagation(); toggleWatchlist(l.id); }} title={watchlist.has(l.id) ? 'Unpin' : 'Pin to top'}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={watchlist.has(l.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 4v6l-2 4v2h10v-2l-2-4V4" /><line x1="12" y1="16" x2="12" y2="22" /><line x1="8" y1="4" x2="16" y2="4" />
+                          </svg>
                         </button>
                         <span className="db-catalog-row__view">View →</span>
                       </div>
@@ -2675,11 +2677,332 @@ function CopyableCode({ label, code }: { label: string; code: string }) {
   );
 }
 
+// ═══════════════════════════════════════════════════════════
+// HUGGINGFACE DATASET CARD
+// ═══════════════════════════════════════════════════════════
+
+function generateDatasetCard(listing: Record<string, unknown>, providerName: string, hours: number): string {
+  const title = String(listing.title ?? 'Dataset');
+  const description = String(listing.description ?? '');
+  const modality = String(listing.modality ?? '');
+  const environment = String(listing.environment ?? '');
+  const format = String(listing.format ?? '');
+  const licenseType = String(listing.license_type ?? 'commercial');
+  const totalHoursAvail = listing.total_hours ? Number(listing.total_hours) : null;
+  const tags = Array.isArray(listing.tags) ? (listing.tags as string[]) : [];
+  const modalityPrices = listing.modality_prices as Record<string, number> | null;
+
+  const allMods = [modality, ...tags.filter(t => t.startsWith('modality:')).map(t => t.replace('modality:', ''))].filter(Boolean);
+  const allEnvs = [environment, ...tags.filter(t => t.startsWith('environment:')).map(t => t.replace('environment:', ''))].filter(Boolean);
+  const collections = tags.filter(t => t.startsWith('collection:')).map(t => t.replace('collection:', '').replace(/_/g, ' '));
+  const embodiments = tags.filter(t => t.startsWith('embodiment:')).map(t => t.replace('embodiment:', '').replace(/_/g, ' '));
+  const taskTypes = tags.filter(t => t.startsWith('task:')).map(t => t.replace('task:', '').replace(/_/g, ' '));
+
+  const licenseMap: Record<string, string> = { commercial: 'other', research_only: 'cc-by-nc-4.0', standard: 'cc-by-4.0', custom: 'other' };
+  const hfLicense = licenseMap[licenseType] ?? 'other';
+  const sizeCategory = hours >= 1000 ? '10K<n<100K' : hours >= 100 ? '1K<n<10K' : hours >= 10 ? '1K<n<10K' : 'n<1K';
+
+  const yamlTags = [
+    'atlas-data-brokerage',
+    'robotics',
+    'physical-ai',
+    ...allMods.map(m => m.replace(/_/g, '-')),
+    ...allEnvs.map(e => e.replace(/_/g, '-')),
+    ...embodiments.map(e => e.replace(/ /g, '-')),
+    ...(format.includes('lerobot') ? ['lerobot'] : []),
+  ];
+
+  // Build details table rows, skipping empty values
+  const rows: string[] = [];
+  rows.push(`| **Provider** | ${providerName} |`);
+  if (allMods.length > 0) rows.push(`| **Modalities** | ${allMods.map(m => '\`' + m.replace(/_/g, ' ') + '\`').join(', ')} |`);
+  if (allEnvs.length > 0) rows.push(`| **Environment** | ${allEnvs.map(e => e.replace(/_/g, ' ')).join(', ')} |`);
+  if (collections.length > 0) rows.push(`| **Collection Method** | ${collections.join(', ')} |`);
+  if (embodiments.length > 0) rows.push(`| **Embodiment** | ${embodiments.join(', ')} |`);
+  if (taskTypes.length > 0) rows.push(`| **Task Types** | ${taskTypes.join(', ')} |`);
+  rows.push(`| **Hours Purchased** | ${hours} |`);
+  if (totalHoursAvail) rows.push(`| **Total Available** | ${totalHoursAvail.toLocaleString()} hours |`);
+  if (format) rows.push(`| **Format** | ${format} |`);
+  rows.push(`| **License** | ${licenseType.replace(/_/g, ' ')} |`);
+
+  return `---
+license: ${hfLicense}
+task_categories:
+  - robotics
+tags:
+${yamlTags.map(t => `  - ${t}`).join('\n')}
+pretty_name: ${JSON.stringify(title)}
+size_categories:
+  - ${sizeCategory}
+---
+
+# ${title}
+
+> Purchased via [Atlas Data Brokerage](https://humanoids.fyi) - broker for physical AI training data.
+
+${description}
+
+---
+
+## Dataset Details
+
+| Field | Value |
+|---|---|
+${rows.join('\n')}
+${modalityPrices ? `
+## Modality Breakdown
+
+| Modality | Price/hr | Description |
+|---|---|---|
+${Object.entries(modalityPrices).map(([m, p]) => {
+  const modDesc: Record<string, string> = {
+    rgb: 'RGB camera video/images', depth: 'Depth maps', rgbd: 'RGB-D paired data',
+    imu: 'Inertial measurement unit (accel/gyro)', force_torque: 'Contact force/torque readings',
+    proprioception: 'Joint encoder positions/velocities', joint_trajectory: 'End-effector/task-space trajectories',
+    tactile: 'Tactile sensor pressure data', motion_capture: 'Full-body skeleton tracking',
+    audio: 'Environment/contact audio', language_annotations: 'Natural language task instructions',
+  };
+  return `| \`${m.replace(/_/g, ' ')}\` | $${p}/hr | ${modDesc[m] ?? ''} |`;
+}).join('\n')}
+` : ''}
+## Data Structure
+${allMods.length > 1 ? `
+This is a **multi-modal dataset** containing ${allMods.length} synchronized sensor modalities:
+
+${allMods.map(m => `- **${m.replace(/_/g, ' ')}**`).join('\n')}
+
+Each episode contains time-aligned data across all modalities.
+` : `
+This dataset contains **${allMods[0]?.replace(/_/g, ' ') ?? 'sensor'}** data.
+`}
+## Download Data
+
+This repo includes a fast parallel download script that fetches the full dataset from the provider's storage.
+
+\`\`\`bash
+pip install requests tqdm
+cd data
+python download.py
+\`\`\`
+
+The script reads the access URL from \`data/ACCESS_URL.txt\`, auto-detects manifests, and downloads all files with 8 parallel workers and progress bars.
+
+## Usage
+
+${format.includes('lerobot') ? `### LeRobot (recommended)
+
+\`\`\`python
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+dataset = LeRobotDataset("path/to/this/dataset")
+sample = dataset[0]
+# Keys: ${allMods.map(m => m === 'rgb' ? 'observation.images.*' : m === 'proprioception' ? 'observation.state' : m === 'joint_trajectory' ? 'action' : 'observation.' + m).join(', ')}
+\`\`\`
+
+### Pandas
+` : '### Pandas\n'}\`\`\`python
+import pandas as pd
+
+df = pd.read_parquet("data/episode_000.parquet")
+print(f"Columns: {df.columns.tolist()}")
+print(f"Shape: {df.shape}")
+print(df.head())
+\`\`\`
+
+### PyTorch DataLoader
+
+\`\`\`python
+from torch.utils.data import Dataset, DataLoader
+import pandas as pd
+import glob
+
+class AtlasDataset(Dataset):
+    def __init__(self, data_dir):
+        self.files = sorted(glob.glob(f"{data_dir}/**/*.parquet", recursive=True))
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        df = pd.read_parquet(self.files[idx])
+        return {col: df[col].values for col in df.columns}
+
+dataset = AtlasDataset("path/to/data")
+loader = DataLoader(dataset, batch_size=32, shuffle=True)
+\`\`\`
+
+## Citation
+
+\`\`\`bibtex
+@misc{${title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_atlas,
+  title={${title}},
+  author={${providerName}},
+  year={${new Date().getFullYear()}},
+  publisher={Atlas Data Brokerage},
+  url={https://humanoids.fyi}
+}
+\`\`\`
+
+## Source
+
+Purchased via [Atlas Data Brokerage](https://humanoids.fyi) from **${providerName}**.
+`;
+}
+
+function downloadDatasetCard(listing: Record<string, unknown>, providerName: string, hours: number) {
+  const md = generateDatasetCard(listing, providerName, hours);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'README.md';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function publishToHuggingFace(
+  token: string, repoName: string, cardContent: string,
+  opts?: { accessUrl?: string; onProgress?: (msg: string) => void }
+): Promise<{ url: string } | { error: string }> {
+  const log = opts?.onProgress ?? (() => {});
+  try {
+    // 1. Create dataset repo
+    log('Creating repository...');
+    const createRes = await fetch('https://huggingface.co/api/repos/create', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'dataset', name: repoName, private: true }),
+    });
+
+    let repoId: string;
+    if (createRes.ok) {
+      const data = await createRes.json();
+      repoId = data.url?.split('/').slice(-2).join('/') ?? `${repoName}`;
+    } else if (createRes.status === 409) {
+      const whoami = await fetch('https://huggingface.co/api/whoami-v2', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!whoami.ok) return { error: 'Failed to get Hugging Face user info' };
+      const user = await whoami.json();
+      repoId = `${user.name}/${repoName}`;
+    } else {
+      const err = await createRes.json().catch(() => ({}));
+      return { error: (err as Record<string, string>).error ?? `Failed to create repo (${createRes.status})` };
+    }
+
+    // 2. Build commit files — always include README
+    const commitFiles: Array<{ path: string; content: string }> = [
+      { path: 'README.md', content: cardContent },
+    ];
+
+    // 3. Include access URL reference and download script if provided
+    if (opts?.accessUrl) {
+      log('Adding data access files...');
+      commitFiles.push({ path: 'data/ACCESS_URL.txt', content: opts.accessUrl });
+      commitFiles.push({ path: 'data/download.py', content: `"""Fast dataset downloader for Atlas Data Brokerage.
+
+Usage: cd data && python download.py
+Requires: pip install requests tqdm
+"""
+import json, os, sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from urllib.parse import urlparse
+
+import requests
+from tqdm import tqdm
+
+CHUNK_SIZE = 8 * 1024 * 1024  # 8MB chunks for throughput
+WORKERS = 8
+
+def download_file(url, dest):
+    """Download a single file with progress bar."""
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    resp = requests.get(url, stream=True, timeout=300)
+    resp.raise_for_status()
+    total = int(resp.headers.get("content-length", 0))
+    name = dest.name[:40]
+    with open(dest, "wb") as f, tqdm(total=total, unit="B", unit_scale=True, desc=name, leave=False) as bar:
+        for chunk in resp.iter_content(CHUNK_SIZE):
+            f.write(chunk)
+            bar.update(len(chunk))
+    return dest
+
+def fname_from_url(url):
+    return os.path.basename(urlparse(url).path).split("?")[0] or "download"
+
+# Read access URL
+url_file = os.path.join(os.path.dirname(__file__), "ACCESS_URL.txt")
+ACCESS_URL = open(url_file).read().strip()
+OUT_DIR = Path(os.path.dirname(__file__))
+
+print(f"Atlas Data Brokerage - Dataset Downloader")
+print(f"Access URL: {ACCESS_URL[:80]}...")
+print()
+
+# Detect manifest vs single file
+filename = fname_from_url(ACCESS_URL)
+is_manifest = filename.endswith(".json") or "manifest" in filename
+
+if is_manifest:
+    print("Fetching manifest...")
+    manifest = requests.get(ACCESS_URL, timeout=60).json()
+    files = manifest if isinstance(manifest, list) else manifest.get("files", [])
+    urls = []
+    for f in files:
+        if isinstance(f, str):
+            urls.append((f, OUT_DIR / fname_from_url(f)))
+        elif isinstance(f, dict) and f.get("url"):
+            urls.append((f["url"], OUT_DIR / f.get("path", fname_from_url(f["url"]))))
+    print(f"Found {len(urls)} files - downloading with {WORKERS} parallel workers")
+    print()
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        futures = {pool.submit(download_file, u, d): d for u, d in urls}
+        for fut in as_completed(futures):
+            p = fut.result()
+            tqdm.write(f"  Saved {p.name} ({p.stat().st_size:,} bytes)")
+else:
+    print(f"Downloading {filename}...")
+    download_file(ACCESS_URL, OUT_DIR / filename)
+
+print(f"\\nDone - files saved to {OUT_DIR.resolve()}")
+` });
+    }
+
+    // 4. Commit all files
+    log(`Uploading ${commitFiles.length} file(s)...`);
+    const uploadRes = await fetch(`https://huggingface.co/api/datasets/${repoId}/commit/main`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summary: 'Add dataset card and data from Atlas Data Brokerage',
+        files: commitFiles.map(f => ({ path: f.path, content: f.content })),
+      }),
+    });
+    if (!uploadRes.ok) {
+      const err = await uploadRes.text().catch(() => '');
+      return { error: `Failed to upload (${uploadRes.status}${err ? ': ' + err.slice(0, 100) : ''})` };
+    }
+
+    log('Done!');
+    return { url: `https://huggingface.co/datasets/${repoId}` };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to publish' };
+  }
+}
+
 function MyPurchases() {
   const [purchases, setPurchases] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPurchase, setSelectedPurchase] = useState<Record<string, unknown> | null>(null);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [hfToken, setHfToken] = useState(() => localStorage.getItem('hf_token') ?? '');
+  const [hfPublishing, setHfPublishing] = useState(false);
+  const [hfResult, setHfResult] = useState<{ url?: string; error?: string } | null>(null);
+  const [cardDownloaded, setCardDownloaded] = useState(false);
+  const [purchaseTab, setPurchaseTab] = useState<'access' | 'quickstart' | 'card'>('access');
+  const [hfProgress, setHfProgress] = useState('');
 
   useEffect(() => {
     api.get<{ data: Array<Record<string, unknown>> }>('/purchases')
@@ -2744,55 +3067,117 @@ function MyPurchases() {
 
         {status === 'ready' && accessUrl ? (
           <>
-            <div className="api-preamble" style={{ marginTop: 12 }}>
-              <div className="db-meta-label" style={{ marginBottom: 12 }}>Data access</div>
-              {access?.access_instructions ? (
-                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{String(access.access_instructions)}</p>
-              ) : null}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                <a href={accessUrl} target="_blank" rel="noopener noreferrer" className="db-regen-btn"
-                  style={{ margin: 0, background: 'var(--accent)', color: 'var(--bg-card)', borderColor: 'var(--accent)', textDecoration: 'none' }}>Access dataset</a>
-                <button className="db-regen-btn" style={{ margin: 0 }} onClick={copyUrl}>
-                  {urlCopied ? 'Copied' : 'Copy URL'}
+            <div className="db-filter-bar" style={{ marginTop: 16, marginBottom: 12 }}>
+              {(['access', 'quickstart', 'card'] as const).map(t => (
+                <button key={t} className={`db-filter-pill${purchaseTab === t ? ' db-filter-pill--active' : ''}`}
+                  onClick={() => setPurchaseTab(t)}>
+                  {t === 'access' ? 'Access' : t === 'quickstart' ? 'Quick Start' : 'Dataset Card'}
                 </button>
-              </div>
-              <div className="db-code-block" style={{ fontSize: 9, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
-                {accessUrl}
-              </div>
+              ))}
             </div>
 
-            <div className="api-preamble" style={{ marginTop: 12 }}>
-              <div className="db-meta-label" style={{ marginBottom: 12 }}>Quick start</div>
-              {(() => {
-                const fname = (() => { try { const p = new URL(accessUrl).pathname; return p.split('/').pop() || 'dataset'; } catch { return 'dataset'; } })();
-                return (
-                  <>
-                    <CopyableCode label="curl" code={`curl -L -o ${fname} \\\n  "${accessUrl}"`} />
-                    <CopyableCode label="Python" code={`import requests\n\nurl = "${accessUrl}"\nresponse = requests.get(url, stream=True)\n\nwith open("${fname}", "wb") as f:\n    for chunk in response.iter_content(chunk_size=8192):\n        f.write(chunk)\n\nprint(f"Downloaded successfully")`} />
-                    <CopyableCode label="wget" code={`wget -O ${fname} \\\n  "${accessUrl}"`} />
-                  </>
-                );
-              })()}
-            </div>
-
-            {items.some(i => {
-              const listing = i.listings as Record<string, unknown> | null;
-              return listing?.format && String(listing.format).includes('lerobot');
-            }) && (
-              <div className="api-preamble" style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div className="db-meta-label" style={{ margin: 0 }}>LeRobot compatibility</div>
-                  <span className="db-badge db-badge--lerobot" style={{ fontSize: 8 }}>LeRobot</span>
+            {purchaseTab === 'access' && (
+              <div className="api-preamble">
+                {access?.access_instructions ? (
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{String(access.access_instructions)}</p>
+                ) : null}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <a href={accessUrl} target="_blank" rel="noopener noreferrer" className="db-regen-btn"
+                    style={{ margin: 0, background: 'var(--accent)', color: 'var(--bg-card)', borderColor: 'var(--accent)', textDecoration: 'none' }}>Access dataset</a>
+                  <button className="db-regen-btn" style={{ margin: 0 }} onClick={copyUrl}>
+                    {urlCopied ? 'Copied' : 'Copy URL'}
+                  </button>
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
-                  This dataset is LeRobot compatible. Load it directly in your training pipeline:
-                </p>
-                <pre className="db-code-block">{`from lerobot.datasets.lerobot_dataset import LeRobotDataset
+                <div className="db-code-block" style={{ fontSize: 9, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                  {accessUrl}
+                </div>
+
+                {items.some(i => {
+                  const listing = i.listings as Record<string, unknown> | null;
+                  return listing?.format && String(listing.format).includes('lerobot');
+                }) && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span className="db-badge db-badge--lerobot" style={{ fontSize: 8 }}>LeRobot</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>This dataset is LeRobot compatible</span>
+                    </div>
+                    <pre className="db-code-block">{`from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
 dataset = LeRobotDataset("path/to/downloaded/data")
 sample = dataset[0]`}</pre>
-                <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}>
-                  The downloaded data follows LeRobot v3.0 directory structure with meta/info.json, episode parquets, and video files.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {purchaseTab === 'quickstart' && (
+              <div className="api-preamble">
+                {(() => {
+                  const fname = (() => { try { const p = new URL(accessUrl).pathname; return p.split('/').pop() || 'dataset'; } catch { return 'dataset'; } })();
+                  return (
+                    <>
+                      <CopyableCode label="curl" code={`curl -L -o ${fname} \\\n  "${accessUrl}"`} />
+                      <CopyableCode label="Python" code={`import requests\n\nurl = "${accessUrl}"\nresponse = requests.get(url, stream=True)\n\nwith open("${fname}", "wb") as f:\n    for chunk in response.iter_content(chunk_size=8192):\n        f.write(chunk)\n\nprint(f"Downloaded successfully")`} />
+                      <CopyableCode label="wget" code={`wget -O ${fname} \\\n  "${accessUrl}"`} />
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {purchaseTab === 'card' && (
+              <div className="api-preamble" style={{ padding: '20px 24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                    Generate a Hugging Face-compatible dataset card, or publish directly to your Hugging Face account.
+                  </p>
+                  <button className="api-md-btn" style={{ flexShrink: 0, marginLeft: 16 }} onClick={() => {
+                    const listing = items[0]?.listings as Record<string, unknown> | null;
+                    if (listing) { downloadDatasetCard(listing, providerName, totalHours); setCardDownloaded(true); setTimeout(() => setCardDownloaded(false), 3000); }
+                  }}>{cardDownloaded ? 'Downloaded!' : 'Download Card'}</button>
+                </div>
+                <div className="db-meta-label" style={{ marginBottom: 6 }}>Hugging Face token</div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+                  <input className="db-form-input" type="password" placeholder="hf_..." value={hfToken}
+                    style={{ flex: 1 }}
+                    onChange={e => { setHfToken(e.target.value); localStorage.setItem('hf_token', e.target.value); }} />
+                  <button className="db-add-cart-btn" style={{ maxWidth: 180, marginTop: 0, flexShrink: 0 }}
+                    disabled={!hfToken || hfPublishing}
+                    onClick={async () => {
+                      const listing = items[0]?.listings as Record<string, unknown> | null;
+                      if (!listing) return;
+                      setHfPublishing(true);
+                      setHfResult(null);
+                      setHfProgress('');
+                      const slug = String(listing.slug ?? listing.title ?? 'atlas-dataset').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+                      const card = generateDatasetCard(listing, providerName, totalHours);
+                      const result = await publishToHuggingFace(hfToken, slug, card, {
+                        accessUrl: accessUrl ?? undefined,
+                        onProgress: setHfProgress,
+                      });
+                      setHfResult(result);
+                      setHfPublishing(false);
+                    }}>
+                    {hfPublishing ? 'Publishing...' : 'Publish to HF'}
+                  </button>
+                </div>
+                {hfPublishing && hfProgress && (
+                  <div style={{ marginTop: 8, fontSize: 10, fontFamily: "'Share Tech Mono', monospace", color: 'var(--text-dim)' }}>
+                    {hfProgress}
+                  </div>
+                )}
+                {hfResult && (
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 4, fontSize: 10, fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.5, background: 'url' in hfResult ? 'rgba(0,128,0,0.05)' : 'rgba(200,0,0,0.05)' }}>
+                    {'url' in hfResult ? (
+                      <span style={{ color: '#2a7a2a' }}>Published: <a href={hfResult.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7a2a', textDecoration: 'underline' }}>{hfResult.url}</a></span>
+                    ) : (
+                      <span style={{ color: 'var(--red)' }}>{hfResult.error}</span>
+                    )}
+                  </div>
+                )}
+                <p style={{ fontSize: 9, color: 'var(--text-dim)', marginTop: 10, lineHeight: 1.4 }}>
+                  Token stored locally, never sent to Atlas.
+                  Get one at <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>huggingface.co/settings/tokens</a> (write access required).
                 </p>
               </div>
             )}
@@ -3639,6 +4024,29 @@ Atlas sends webhook events to your API endpoint when purchases and collector eve
 
 This is the URL your system uses to call back to Atlas for async provisioning and collector activity reporting.
 
+### CORS Configuration
+
+If your data is stored in a cloud bucket (R2, S3, GCS), configure CORS to allow Atlas to access your data for buyer previews and Hugging Face integration.
+
+**Cloudflare R2** - Go to R2 > Your bucket > Settings > CORS Policy and add:
+- **Allowed Origins:** \`https://humanoids.fyi\`, \`http://localhost:5173\`, \`http://localhost:5174\`
+- **Allowed Methods:** \`GET\`, \`PUT\`, \`HEAD\`
+- **Allowed Headers:** \`Content-Type\`, \`Authorization\`
+
+**AWS S3** - Add a CORS configuration to your bucket:
+\`\`\`json
+[{
+  "AllowedOrigins": ["https://humanoids.fyi"],
+  "AllowedMethods": ["GET"],
+  "AllowedHeaders": ["*"]
+}]
+\`\`\`
+
+**Google Cloud Storage** - Set CORS on your bucket:
+\`\`\`bash
+gsutil cors set cors.json gs://your-bucket
+\`\`\`
+
 ---
 
 ## Step 3 — Implement Webhook Handlers
@@ -4229,7 +4637,27 @@ Content-Type: application/json
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>5. LeRobot format compatibility</div>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>5. CORS configuration</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+          If your data is stored in a cloud bucket (R2, S3, GCS), configure CORS to allow Atlas to access your data for buyer previews and Hugging Face integration.
+        </p>
+        <CopyableCodeBlock label="Cloudflare R2 - CORS settings" code={`Allowed Origins:
+  https://humanoids.fyi
+  http://localhost:5173
+  http://localhost:5174
+
+Allowed Methods: GET, PUT, HEAD
+Allowed Headers: Content-Type, Authorization`} />
+        <div style={{ marginTop: 12 }} />
+        <CopyableCodeBlock label="AWS S3 - CORS JSON" code={`[{
+  "AllowedOrigins": ["https://humanoids.fyi"],
+  "AllowedMethods": ["GET"],
+  "AllowedHeaders": ["*"]
+}]`} />
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>6. LeRobot format compatibility</div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           <a href="https://github.com/huggingface/lerobot" target="_blank" rel="noopener" style={{ color: 'var(--text)', textDecoration: 'underline' }}>LeRobot</a> is the emerging standard for robot learning datasets. Listings marked as LeRobot compatible get a distinctive badge and buyers can load data directly with <code>LeRobotDataset()</code>. Select <strong>lerobot</strong> in the Formats field when creating a listing.
         </p>
