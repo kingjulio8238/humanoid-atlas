@@ -4726,6 +4726,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .db-custom-tag-input:focus { border-color: var(--text-dim); }
 .db-custom-tag-input::placeholder { color: var(--text-dim); }
 .db-filter-pill--custom { border-style: dashed; }
+.db-badge--lerobot { background: #1a1a1a; color: #f5f2ed; font-weight: 600; letter-spacing: 0.5px; }
 
 /* ─── COLLECTION PROGRAMS ────────────────────────────── */
 .db-program-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }

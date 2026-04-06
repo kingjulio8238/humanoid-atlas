@@ -76,8 +76,8 @@ export function getAcceptFilter(modalities: string[]): string {
 export function getUploadHint(modalities: string[]): string | null {
   const spatial = ['lidar', 'point_cloud', 'motion_capture', 'rgbd', 'depth'];
   const timeSeries = ['imu', 'force_torque', 'proprioception', 'joint_trajectory', 'tactile'];
-  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files for interactive viewer. Generate with: pip install atlas-preview-generator';
-  if (modalities.some(m => timeSeries.includes(m))) return 'Upload .parquet for interactive charts, or .rrd for 3D preview. Generate with: pip install atlas-preview-generator';
+  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files for interactive viewer';
+  if (modalities.some(m => timeSeries.includes(m))) return 'Upload .parquet files for interactive chart previews';
   return null;
 }
 

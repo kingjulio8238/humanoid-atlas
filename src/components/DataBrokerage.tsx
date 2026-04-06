@@ -678,7 +678,11 @@ function BuyData() {
               {tags.filter(t => t.startsWith('collection:')).map(t => <span key={t} className="db-badge">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
               {tags.filter(t => t.startsWith('embodiment:')).map(t => <span key={t} className="db-badge">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
               {tags.filter(t => t.startsWith('task:')).map(t => <span key={t} className="db-badge">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
-              {l.format && <span className="db-badge">{l.format}</span>}
+              {l.format && String(l.format).split(',').map(f => f.trim()).filter(Boolean).map(f =>
+                f === 'lerobot'
+                  ? <span key={f} className="db-badge db-badge--lerobot">LeRobot</span>
+                  : <span key={f} className="db-badge">{f}</span>
+              )}
               <span className="db-badge">${l.price_per_hour}/hr{l.modality_prices ? ' (bundle)' : ''}</span>
               {l.total_hours && <span className="db-badge">{l.total_hours.toLocaleString()} hrs</span>}
               <span className="db-badge">min {l.minimum_hours} hrs</span>
@@ -919,6 +923,7 @@ function BuyData() {
                           })()}
                         </span>
                       </div>
+                      {l.format && String(l.format).includes('lerobot') && <span className="db-badge db-badge--lerobot" style={{ fontSize: 8, padding: '2px 6px', marginRight: 6 }}>LeRobot</span>}
                       <span className="db-catalog-row__price">${l.price_per_hour}/hr</span>
                     </div>
                   </div>
@@ -1547,8 +1552,8 @@ function getAcceptFilter(modalities: string[]): string {
 function getUploadHint(modalities: string[]): string | null {
   const spatial = ['lidar', 'point_cloud', 'motion_capture', 'rgbd', 'depth'];
   const timeSeries = ['imu', 'force_torque', 'proprioception', 'tactile'];
-  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files for interactive viewer. Generate with: pip install atlas-preview-generator';
-  if (modalities.some(m => timeSeries.includes(m))) return 'Upload .parquet for interactive charts, or .rrd for 3D preview. Generate with: pip install atlas-preview-generator';
+  if (modalities.some(m => spatial.includes(m))) return 'For 3D/spatial data, upload .rrd preview files for interactive viewer';
+  if (modalities.some(m => timeSeries.includes(m))) return 'Upload .parquet files for interactive chart previews';
   return null;
 }
 
@@ -2081,7 +2086,7 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
   const [togglingActive, setTogglingActive] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
-  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'other'];
+  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'lerobot', 'other'];
 
   // Derived state
   const reviewStatus = String(listing.review_status ?? '');
@@ -2450,7 +2455,7 @@ function CreateListingForm() {
   const [error, setError] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'other'];
+  const formats = ['parquet', 'rosbag', 'mp4', 'hdf5', 'csv', 'json', 'mcap', 'zarr', 'tfrecord', 'png', 'wav', 'ply', 'pcd', 'rrd', 'lerobot', 'other'];
 
   const update = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
@@ -2769,6 +2774,28 @@ function MyPurchases() {
                 );
               })()}
             </div>
+
+            {items.some(i => {
+              const listing = i.listings as Record<string, unknown> | null;
+              return listing?.format && String(listing.format).includes('lerobot');
+            }) && (
+              <div className="api-preamble" style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div className="db-meta-label" style={{ margin: 0 }}>LeRobot compatibility</div>
+                  <span className="db-badge db-badge--lerobot" style={{ fontSize: 8 }}>LeRobot</span>
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+                  This dataset is LeRobot compatible. Load it directly in your training pipeline:
+                </p>
+                <pre className="db-code-block">{`from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+dataset = LeRobotDataset("path/to/downloaded/data")
+sample = dataset[0]`}</pre>
+                <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}>
+                  The downloaded data follows LeRobot v3.0 directory structure with meta/info.json, episode parquets, and video files.
+                </p>
+              </div>
+            )}
           </>
         ) : status === 'ready' && !accessUrl ? (
           <div className="api-preamble" style={{ marginTop: 12 }}>
@@ -3854,18 +3881,7 @@ For spatial modalities (point cloud, LiDAR, motion capture, depth, RGBD), \`.par
 
 **Note:** Motion capture \`.parquet\` files (skeleton/joint data) render as download cards, not charts. This is by design — joint trajectories are best viewed as 3D skeleton animations in Rerun, not 2D line charts. Generate a \`.rrd\` preview to show buyers an interactive 3D skeleton visualization.
 
-**Quick start** — use the Atlas Preview Generator CLI:
-
-\`\`\`bash
-pip install atlas-preview-generator
-atlas-preview --input recording.rosbag --output preview.rrd --duration 30
-atlas-preview --input imu_data.parquet --modality imu --output preview.rrd
-atlas-preview --input scene.mcap --output preview.rrd
-\`\`\`
-
-Supports .rosbag, .mcap, .parquet, .hdf5, and video files. Run \`atlas-preview --help\` for all options.
-
-**Manual** — use the Rerun Python SDK directly:
+**Generating .rrd files** — use the Rerun Python SDK:
 
 \`\`\`bash
 pip install rerun-sdk
@@ -4031,6 +4047,65 @@ Provider creates program ──→ Collector applies ──→ Provider accepts
 
 ---
 
+## LeRobot Format Compatibility
+
+[LeRobot](https://github.com/huggingface/lerobot) is the emerging standard for robot learning datasets. Listings marked as LeRobot compatible get a distinctive badge and buyers can load data directly with \`LeRobotDataset()\`.
+
+Select **lerobot** in the Formats field when creating a listing.
+
+### Required directory structure (v3.0)
+
+\`\`\`
+dataset/
+  meta/
+    info.json              # Schema, robot_type, fps, features
+    tasks.parquet          # Task descriptions
+    stats.json             # Feature statistics
+    episodes/
+      chunk-000/
+        file-000.parquet   # Episode metadata
+  data/
+    chunk-000/
+      file-000.parquet     # Frame-by-frame observations + actions
+  videos/
+    observation.images.cam_high/
+      chunk-000/
+        file-000.mp4       # RGB video per camera
+\`\`\`
+
+### Atlas modality → LeRobot feature mapping
+
+| Atlas modality | LeRobot feature key | dtype |
+|---|---|---|
+| rgb | \`observation.images.{cam_name}\` | video |
+| depth | \`observation.images.depth\` | video |
+| proprioception | \`observation.state\` | float32 |
+| joint_trajectory | \`action\` | float32 |
+| force_torque | \`observation.effort\` | float32 |
+| imu | \`observation.imu\` | float32 |
+| language_annotations | \`observation.language\` | string |
+
+### Atlas embodiment → LeRobot robot_type
+
+| Atlas embodiment | robot_type |
+|---|---|
+| humanoid | \`unitree_g1\`, \`reachy2\` |
+| dual_arm, bimanual_fixed | \`aloha\` |
+| single_arm | \`koch\`, \`so100\` |
+| (any) | custom string |
+
+### Buyer usage
+
+\`\`\`python
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+dataset = LeRobotDataset("path/to/downloaded/atlas_data")
+sample = dataset[0]
+# Keys: observation.state, action, observation.images.cam_high, timestamp, etc.
+\`\`\`
+
+---
+
 ## Support
 
 Contact the Atlas team at **juliansaks@gmail.com** for onboarding help, API questions, or issues.
@@ -4151,6 +4226,91 @@ Content-Type: application/json
         <pre className="db-code-block">{`{
   "received": true
 }`}</pre>
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>5. LeRobot format compatibility</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          <a href="https://github.com/huggingface/lerobot" target="_blank" rel="noopener" style={{ color: 'var(--text)', textDecoration: 'underline' }}>LeRobot</a> is the emerging standard for robot learning datasets. Listings marked as LeRobot compatible get a distinctive badge and buyers can load data directly with <code>LeRobotDataset()</code>. Select <strong>lerobot</strong> in the Formats field when creating a listing.
+        </p>
+
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Required directory structure (v3.0)</div>
+        <pre className="db-code-block">{`dataset/
+  meta/
+    info.json              # Schema, robot_type, fps, features
+    tasks.parquet          # Task descriptions
+    stats.json             # Feature statistics (min/max/mean/std)
+    episodes/
+      chunk-000/
+        file-000.parquet   # Episode metadata
+  data/
+    chunk-000/
+      file-000.parquet     # Frame-by-frame observations + actions
+  videos/
+    observation.images.cam_high/
+      chunk-000/
+        file-000.mp4       # RGB video per camera`}</pre>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Atlas modality → LeRobot feature mapping</div>
+        <pre className="db-code-block">{`Atlas modality         → LeRobot feature key           dtype
+─────────────────────────────────────────────────────────────
+rgb                    → observation.images.{cam_name}  video
+depth                  → observation.images.depth       video
+proprioception         → observation.state              float32
+joint_trajectory       → action                         float32
+force_torque           → observation.effort             float32
+imu                    → observation.imu                float32
+language_annotations   → observation.language            string`}</pre>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Atlas embodiment → LeRobot robot_type</div>
+        <pre className="db-code-block">{`Atlas embodiment       → robot_type
+───────────────────────────────────
+humanoid               → unitree_g1, reachy2
+dual_arm, bimanual     → aloha
+single_arm             → koch, so100
+(custom)               → any string`}</pre>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Example info.json</div>
+        <pre className="db-code-block">{`{
+  "codebase_version": "v3.0",
+  "robot_type": "aloha",
+  "fps": 50,
+  "total_episodes": 100,
+  "total_frames": 50000,
+  "total_tasks": 1,
+  "chunks_size": 1000,
+  "data_files_size_in_mb": 100,
+  "video_files_size_in_mb": 500,
+  "splits": { "train": "0:100" },
+  "data_path": "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet",
+  "video_path": "videos/{video_key}/chunk-{chunk_index:03d}/file-{file_index:03d}.mp4",
+  "features": {
+    "observation.state": {
+      "dtype": "float32", "shape": [14],
+      "names": { "motors": ["joint_1", "joint_2", "..."] }
+    },
+    "action": {
+      "dtype": "float32", "shape": [14],
+      "names": { "motors": ["joint_1", "joint_2", "..."] }
+    },
+    "observation.images.cam_high": {
+      "dtype": "video", "shape": [480, 640, 3],
+      "names": ["height", "width", "channel"],
+      "video_info": { "video.fps": 50, "video.codec": "av1", "video.pix_fmt": "yuv420p" }
+    },
+    "timestamp": { "dtype": "float32", "shape": [1], "names": null },
+    "frame_index": { "dtype": "int64", "shape": [1], "names": null },
+    "episode_index": { "dtype": "int64", "shape": [1], "names": null },
+    "index": { "dtype": "int64", "shape": [1], "names": null },
+    "task_index": { "dtype": "int64", "shape": [1], "names": null }
+  }
+}`}</pre>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}>
+          Buyers can load your data with: <code>LeRobotDataset("path/to/downloaded/data")</code>
+        </p>
       </div>
 
     </div>
