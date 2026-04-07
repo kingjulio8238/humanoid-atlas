@@ -885,7 +885,7 @@ function BuyData() {
           {loading ? (
             <div className="db-loading">Loading datasets...</div>
           ) : listings.length === 0 ? (
-            <div className="db-empty">No datasets found. Try adjusting your filters.</div>
+            <div className="db-empty">{listings.length === 0 && !filters.modality && !filters.environment && !filters.collection_method && !filters.embodiment_type && !filters.task_type && !filters.q ? 'No datasets found. Coming soon.' : 'No datasets found. Try adjusting your filters.'}</div>
           ) : (
             <div className="db-catalog-list">
               {[...listings].sort((a, b) => (watchlist.has(b.id) ? 1 : 0) - (watchlist.has(a.id) ? 1 : 0)).map(l => (
@@ -1381,7 +1381,7 @@ function SellData({ viewCount }: { viewCount: number | null }) {
 
         <div className="db-sell-hero">
           <div className="db-sell-hero__stat">
-            <div className="db-sell-hero__num">{viewCount ? viewCount.toLocaleString() + '+' : '...'}</div>
+            <div className="db-sell-hero__num">{viewCount ? (Math.floor(viewCount / 10) * 10).toLocaleString() + '+' : '...'}</div>
             <div className="db-sell-hero__label">Site visits</div>
           </div>
           <div className="db-sell-hero__divider" />
