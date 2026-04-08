@@ -4164,10 +4164,16 @@ If your data is stored in a cloud bucket (R2, S3, GCS), configure CORS to allow 
 }]
 \`\`\`
 
-**Google Cloud Storage** - Set CORS on your bucket:
-\`\`\`bash
-gsutil cors set cors.json gs://your-bucket
+**Google Cloud Storage** - Create a \`cors.json\` file:
+\`\`\`json
+[{
+  "origin": ["https://humanoids.fyi"],
+  "method": ["GET", "HEAD"],
+  "responseHeader": ["*"],
+  "maxAgeSeconds": 86400
+}]
 \`\`\`
+Then apply: \`gsutil cors set cors.json gs://your-bucket\`
 
 ---
 
@@ -4531,7 +4537,7 @@ All file paths are relative to the manifest's parent directory. If your manifest
 
 **Generating your manifest:**
 
-Download the manifest generator script from the .md file and run:
+Save the script below as \`manifest-generator.py\` and run:
 
 \`\`\`bash
 python manifest-generator.py ./samples/ -o manifest.json
@@ -4541,9 +4547,87 @@ python manifest-generator.py ./samples/ -o manifest.json --thumbnails
 
 The script discovers video files, matches annotations by episode ID, extracts durations (if ffprobe available), and generates thumbnails on request. Supports flat, by-type, and by-episode folder structures.
 
+\`\`\`python
+"""Atlas Sample Manifest Generator — save as manifest-generator.py"""
+import os, json, argparse, subprocess, re
+from pathlib import Path
+
+VIDEO_EXT = {'.mp4', '.webm', '.mov', '.avi', '.mkv'}
+ANN_EXT = {'.json', '.jsonl'}
+
+def get_duration(path):
+    try:
+        r = subprocess.run(['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', str(path)], capture_output=True, text=True, timeout=10)
+        return float(json.loads(r.stdout)['format'].get('duration', 0)) if r.returncode == 0 else None
+    except Exception: return None
+
+def gen_thumb(video, thumb):
+    try:
+        thumb.parent.mkdir(parents=True, exist_ok=True)
+        return subprocess.run(['ffmpeg', '-y', '-i', str(video), '-vframes', '1', '-q:v', '5', '-vf', 'scale=320:-1', str(thumb)], capture_output=True, timeout=30).returncode == 0
+    except Exception: return False
+
+def find_ann(ep_id, video, root):
+    for ext in ANN_EXT:
+        for c in [video.with_suffix(ext), video.parent / f'{ep_id}{ext}', root / 'annotations' / f'{ep_id}{ext}']:
+            if c.exists(): return str(c.relative_to(root))
+    return None
+
+def extract_info(ann_path):
+    try:
+        data = json.load(open(ann_path))
+        instr = None; tags = {}
+        if isinstance(data, dict):
+            for k in ['instruction', 'caption', 'text', 'description']:
+                if k in data and isinstance(data[k], str): instr = data[k]; break
+            for k in ['environment', 'task', 'task_type', 'scene', 'location']:
+                if k in data and isinstance(data[k], str): tags[k] = data[k]
+        return instr, tags
+    except Exception: return None, {}
+
+def main():
+    p = argparse.ArgumentParser(description='Generate Atlas sample manifest')
+    p.add_argument('directory'); p.add_argument('-o', '--output', default='manifest.json')
+    p.add_argument('--thumbnails', action='store_true'); p.add_argument('-v', '--verbose', action='store_true')
+    args = p.parse_args()
+    root = Path(args.directory).resolve()
+    videos = sorted(f for f in root.rglob('*') if f.suffix.lower() in VIDEO_EXT and not f.name.startswith('.'))
+    if not videos: print('No videos found'); return
+    seen, episodes = {}, []
+    for v in videos:
+        rel = v.relative_to(root)
+        ep_id = rel.parts[-2] if len(rel.parts) >= 2 and v.stem.lower() in ('video','rgb','main') else re.sub(r'(_rgb|_video|_cam)$', '', v.stem)
+        if ep_id in seen: c = 2;
+        while ep_id in seen: ep_id = f'{ep_id}_{c}'; c += 1
+        seen[ep_id] = True
+        ann = find_ann(ep_id, v, root); dur = get_duration(v)
+        instr, tags = extract_info(root / ann) if ann else (None, {})
+        thumb = None
+        for ext in ['.jpg','.png']:
+            for c in [root/'thumbnails'/f'{ep_id}{ext}', v.with_suffix(ext)]:
+                if c.exists(): thumb = str(c.relative_to(root)); break
+            if thumb: break
+        if not thumb and args.thumbnails:
+            tp = root / 'thumbnails' / f'{ep_id}.jpg'
+            if gen_thumb(v, tp): thumb = str(tp.relative_to(root))
+        ep = {'id': ep_id, 'video': str(v.relative_to(root))}
+        if dur and dur > 0: ep['duration_seconds'] = round(dur, 1)
+        if thumb: ep['thumbnail'] = thumb
+        if ann: ep['annotations'] = ann
+        if instr: ep['instruction'] = instr
+        if tags: ep['tags'] = tags
+        episodes.append(ep)
+        if args.verbose: print(f'  {ep_id}')
+    json.dump({'version': 1, 'episodes': episodes}, open(args.output, 'w'), indent=2)
+    hrs = sum(e.get('duration_seconds', 0) for e in episodes) / 3600
+    print(f'Manifest: {len(episodes)} episodes, {hrs:.1f} hrs -> {args.output}')
+
+if __name__ == '__main__': main()
+\`\`\`
+
 **CORS for Sample Explorer:**
 
-The Sample Explorer on humanoids.fyi loads videos directly from your storage. Your bucket must allow cross-origin requests from \`https://humanoids.fyi\`. See the CORS section in Step 3 for configuration by storage provider.
+The Sample Explorer on humanoids.fyi loads videos directly from your storage. Your bucket must allow cross-origin requests from \`https://humanoids.fyi\`. See the CORS section in Step 2 for configuration by storage provider.
 
 Test with: \`curl -I -H "Origin: https://humanoids.fyi" https://your-storage.com/path/to/video.mp4\`
 
@@ -4887,7 +4971,7 @@ Allowed Headers: Content-Type, Authorization`} />
         <div style={{ marginTop: 16 }} />
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Generate your manifest</div>
         <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
-          Download the manifest generator script from the .md file above, then run:
+          Save the manifest generator script from the .md file above as <code>manifest-generator.py</code>, then run:
         </p>
         <pre className="db-code-block">{`python manifest-generator.py ./samples/ -o manifest.json
 # With thumbnails (requires ffmpeg):
@@ -4897,7 +4981,7 @@ python manifest-generator.py ./samples/ -o manifest.json --thumbnails`}</pre>
         <div className="db-meta-label" style={{ marginBottom: 8 }}>CORS for Sample Explorer</div>
         <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
           The Sample Explorer loads videos directly from your storage. Your bucket must allow requests from <code>humanoids.fyi</code>.
-          Add this origin to your CORS policy (see section 5 above for full configs).
+          Add this origin to your CORS policy (see CORS section above for full configs).
         </p>
 
         <div style={{ marginTop: 16 }} />
