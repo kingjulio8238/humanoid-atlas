@@ -9,6 +9,7 @@ import RewardChart from './components/RewardChart';
 import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
 import DataBrokerage from './components/DataBrokerage';
+import SampleExplorer from './components/SampleExplorer';
 import Arena from './components/Arena';
 import './App.css';
 
@@ -2069,6 +2070,12 @@ export default function App() {
         </footer>
       </div>
     );
+  }
+
+  // ==================== SAMPLE EXPLORER VIEW ====================
+  const exploreMatch = location.pathname.match(/^\/data\/explore\/(.+)$/);
+  if (exploreMatch) {
+    return <SampleExplorer slug={exploreMatch[1]} />;
   }
 
   // ==================== CHANGELOG VIEW ====================

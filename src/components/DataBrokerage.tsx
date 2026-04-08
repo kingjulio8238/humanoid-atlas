@@ -62,6 +62,8 @@ interface Listing {
   minimum_hours: number; license_type: string; license_terms: string | null; featured: boolean;
   created_at: string; thumbnail_url?: string | null;
   review_status?: string; has_purchases?: boolean; is_active?: boolean;
+  sample_manifest_url?: string | null;
+  manifest_summary?: { episode_count: number; total_duration_hours: number } | null;
   providers?: { id: string; name: string; slug: string; logo_url: string | null };
   samples?: Array<{ id: string; url: string; filename: string; content_type: string; duration_seconds: number | null }>;
 }
@@ -705,6 +707,17 @@ function BuyData() {
           return <SampleGallery samples={l.samples} modalities={allMods} />;
         })()}
 
+        {/* View All Samples — links to Sample Explorer */}
+        {l.sample_manifest_url && l.manifest_summary && (
+          <div className="api-preamble" style={{ marginTop: 12, textAlign: 'center', padding: '16px 24px' }}>
+            <p style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 8 }}>
+              {l.manifest_summary!.episode_count} episodes · {l.manifest_summary!.total_duration_hours} hours of sample data
+            </p>
+            <a href={`/data/explore/${l.slug}`} className="db-add-cart-btn" style={{ display: 'inline-block', textDecoration: 'none', padding: '10px 28px' }}>
+              Explore All Samples &rarr;
+            </a>
+          </div>
+        )}
 
         <PurchaseSection listing={l} cart={cart} onCartOpen={() => {}} />
 
@@ -1703,11 +1716,78 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
   const acceptFilter = getAcceptFilter(modalities);
   const uploadHint = getUploadHint(modalities);
   const minSamples = 5;
-  const canSubmitForReview = samples.length >= minSamples && (!reviewStatus || reviewStatus === 'draft' || reviewStatus === 'pending' || reviewStatus === 'pending_review' || reviewStatus === 'rejected' || reviewStatus === 'changes_requested');
 
   const [submittingForReview, setSubmittingForReview] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // Manifest state
+  const [manifestUrl, setManifestUrl] = useState('');
+  const [manifestStatus, setManifestStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [manifestInfo, setManifestInfo] = useState<{ episode_count: number; total_duration_hours: number } | null>(null);
+  const [manifestErrors, setManifestErrors] = useState<Array<{ field: string; message: string }>>([]);
+  const [manifestLoaded, setManifestLoaded] = useState(false);
+
+  // Fetch existing manifest status on mount
+  useEffect(() => {
+    api.get<{ data: { manifest_url: string; validation_status: string; episode_count: number; total_duration_hours: number; validation_errors: Array<{ field: string; message: string }> | null } | null }>(`/provider/listings/${listingId}/manifest`)
+      .then(r => {
+        if (r.data) {
+          setManifestUrl(r.data.manifest_url);
+          if (r.data.validation_status === 'valid') {
+            setManifestStatus('valid');
+            setManifestInfo({ episode_count: r.data.episode_count, total_duration_hours: r.data.total_duration_hours });
+          } else if (r.data.validation_status === 'invalid') {
+            setManifestStatus('invalid');
+            setManifestErrors(r.data.validation_errors ?? []);
+          }
+        }
+        setManifestLoaded(true);
+      })
+      .catch(() => setManifestLoaded(true));
+  }, [listingId]);
+
+  const manifestValid = manifestStatus === 'valid';
+  const canSubmitForReview = samples.length >= minSamples && manifestValid && (!reviewStatus || reviewStatus === 'draft' || reviewStatus === 'pending' || reviewStatus === 'pending_review' || reviewStatus === 'rejected' || reviewStatus === 'changes_requested');
+
+  const handleValidateManifest = async () => {
+    if (!manifestUrl.trim()) return;
+    setManifestStatus('validating');
+    setManifestErrors([]);
+    setManifestInfo(null);
+    try {
+      const res = await api.post<{ data: { validation_status: string; episode_count?: number; total_duration_hours?: number; errors?: Array<{ field: string; message: string }> } }>(`/provider/listings/${listingId}/manifest`, { manifest_url: manifestUrl.trim() });
+      if (res.data.validation_status === 'valid') {
+        setManifestStatus('valid');
+        setManifestInfo({ episode_count: res.data.episode_count ?? 0, total_duration_hours: res.data.total_duration_hours ?? 0 });
+      } else {
+        setManifestStatus('invalid');
+        setManifestErrors(res.data.errors ?? []);
+      }
+    } catch (err) {
+      setManifestStatus('invalid');
+      setManifestErrors([{ field: 'manifest_url', message: err instanceof Error ? err.message : 'Validation failed' }]);
+    }
+  };
+
+  const handleRefreshManifest = async () => {
+    setManifestStatus('validating');
+    setManifestErrors([]);
+    setManifestInfo(null);
+    try {
+      const res = await api.post<{ data: { validation_status: string; episode_count?: number; total_duration_hours?: number; errors?: Array<{ field: string; message: string }> } }>(`/provider/listings/${listingId}/manifest/refresh`);
+      if (res.data.validation_status === 'valid') {
+        setManifestStatus('valid');
+        setManifestInfo({ episode_count: res.data.episode_count ?? 0, total_duration_hours: res.data.total_duration_hours ?? 0 });
+      } else {
+        setManifestStatus('invalid');
+        setManifestErrors(res.data.errors ?? []);
+      }
+    } catch (err) {
+      setManifestStatus('invalid');
+      setManifestErrors([{ field: 'manifest_url', message: err instanceof Error ? err.message : 'Refresh failed' }]);
+    }
+  };
 
   const handleImportUrl = async () => {
     if (!importUrl.trim()) return;
@@ -1851,6 +1931,46 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
       )}
 
     </div>
+
+    {/* Sample Repository (Manifest) */}
+    {manifestLoaded && (
+      <div className="api-preamble" style={{ marginTop: 12 }}>
+        <div className="db-meta-label" style={{ marginBottom: 10 }}>Sample Repository (Required)</div>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 10 }}>
+          Host a manifest.json in your storage that indexes your sample episodes. See the <strong>Docs</strong> tab for format details and a generator script.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input className="db-form-input" style={{ flex: 1, fontSize: 11, padding: '8px 12px', fontFamily: "'Share Tech Mono', monospace" }}
+            placeholder="https://storage.example.com/dataset/manifest.json"
+            value={manifestUrl} onChange={e => { setManifestUrl(e.target.value); if (manifestStatus !== 'idle') setManifestStatus('idle'); }}
+            disabled={manifestStatus === 'validating'} />
+          {manifestStatus === 'valid' ? (
+            <button className="db-regen-btn" style={{ margin: 0, padding: '8px 16px', fontSize: 10 }}
+              onClick={handleRefreshManifest}>
+              Refresh
+            </button>
+          ) : (
+            <button className="db-add-cart-btn" style={{ padding: '8px 20px', fontSize: 10, width: 'auto', marginTop: 0 }}
+              onClick={handleValidateManifest} disabled={manifestStatus === 'validating' || !manifestUrl.trim()}>
+              {manifestStatus === 'validating' ? 'Validating...' : 'Validate'}
+            </button>
+          )}
+        </div>
+        {manifestStatus === 'valid' && manifestInfo && (
+          <p style={{ fontSize: 10, color: 'var(--green, #276749)', marginTop: 6 }}>
+            Manifest valid — {manifestInfo.episode_count} episodes, {manifestInfo.total_duration_hours} hours
+          </p>
+        )}
+        {manifestStatus === 'invalid' && manifestErrors.length > 0 && (
+          <div style={{ marginTop: 6 }}>
+            {manifestErrors.map((e, i) => (
+              <p key={i} style={{ fontSize: 10, color: 'var(--red, #c53030)', marginTop: 2 }}>{e.message}</p>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
     {reviewStatus === 'approved' ? (
       <div className="api-preamble" style={{ marginTop: 12, textAlign: 'center', padding: '16px 24px' }}>
         <button className="db-add-cart-btn" disabled style={{ background: 'var(--green, #276749)', borderColor: 'var(--green, #276749)', color: '#fff', cursor: 'default' }}>
@@ -1890,7 +2010,7 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
               {submittingForReview ? 'Verifying...' : 'Submit for Review'}
             </button>
             <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8 }}>
-              {canSubmitForReview ? 'Verifies your provisioning API before submitting' : `Upload ${minSamples - samples.length} more sample${minSamples - samples.length !== 1 ? 's' : ''} to submit`}
+              {canSubmitForReview ? 'Verifies your provisioning API before submitting' : samples.length < minSamples ? `Upload ${minSamples - samples.length} more sample${minSamples - samples.length !== 1 ? 's' : ''} to submit` : !manifestValid ? 'Validate your sample manifest to submit' : 'Complete all requirements to submit'}
             </p>
           </>
         )}
@@ -4256,9 +4376,15 @@ Once your webhook is verified, go to **Sell Data → Create Listing** and add yo
 - **Formats** — select all applicable formats (parquet, mp4, png, hdf5, rosbag, etc.)
 - **Description** — what the data contains, how it was collected, quality notes
 
-After creating a listing, you'll be taken to upload samples. **At least 5 samples are required** before you can submit for review. Samples are displayed to buyers grouped by type.
+After creating a listing, you'll be taken to upload samples and configure your sample repository.
 
-### Uploading Samples
+Atlas uses a **two-tier sample system**:
+- **Inline previews** — 5+ curated files uploaded to Atlas (max 500MB each). These display directly in the catalog listing.
+- **Sample repository** — a manifest.json hosted in your storage that indexes your full sample dataset (can be hundreds of hours). Buyers browse this via the Sample Explorer page.
+
+Both are required before submitting for review.
+
+### Uploading Inline Samples
 
 **Import from URL** (recommended) — paste a direct link to a file in your storage (S3, R2, GCS presigned URL). Atlas fetches and stores it.
 
@@ -4376,13 +4502,61 @@ If a file has no modality keyword but only one listing modality matches its form
 
 Single-modality listings skip these checks.
 
+### Sample Repository (Required)
+
+Every listing requires a **sample manifest** — a JSON file hosted in your storage that indexes your sample episodes. This powers the **Sample Explorer** page where buyers can browse, filter, and preview your full sample dataset.
+
+**Manifest format:**
+
+\`\`\`json
+{
+  "version": 1,
+  "episodes": [
+    {
+      "id": "episode_001",
+      "video": "videos/episode_001.mp4",
+      "thumbnail": "thumbnails/episode_001.jpg",
+      "annotations": "annotations/episode_001.json",
+      "duration_seconds": 720,
+      "instruction": "Pick up the coffee mug",
+      "tags": { "environment": "kitchen", "task": "pick_and_place" }
+    }
+  ]
+}
+\`\`\`
+
+**Required per episode:** \`id\`, \`video\`. **Optional:** \`title\`, \`duration_seconds\`, \`thumbnail\`, \`annotations\`, \`instruction\`, \`tags\`, \`files\` (for multi-modality).
+
+All file paths are relative to the manifest's parent directory. If your manifest is at \`https://storage.example.com/dataset/manifest.json\`, then \`"video": "videos/ep_001.mp4"\` resolves to \`https://storage.example.com/dataset/videos/ep_001.mp4\`.
+
+**Generating your manifest:**
+
+Download the manifest generator script from the .md file and run:
+
+\`\`\`bash
+python manifest-generator.py ./samples/ -o manifest.json
+# With thumbnails (requires ffmpeg):
+python manifest-generator.py ./samples/ -o manifest.json --thumbnails
+\`\`\`
+
+The script discovers video files, matches annotations by episode ID, extracts durations (if ffprobe available), and generates thumbnails on request. Supports flat, by-type, and by-episode folder structures.
+
+**CORS for Sample Explorer:**
+
+The Sample Explorer on humanoids.fyi loads videos directly from your storage. Your bucket must allow cross-origin requests from \`https://humanoids.fyi\`. See the CORS section in Step 3 for configuration by storage provider.
+
+Test with: \`curl -I -H "Origin: https://humanoids.fyi" https://your-storage.com/path/to/video.mp4\`
+
+**Validation:** When you submit, Atlas checks that the manifest URL is accessible, the JSON schema is valid, and 5 randomly selected video URLs resolve. Fix any errors shown and re-validate.
+
 ### Submitting for Review
 
-Once you have 5+ samples uploaded, the **Submit for Review** button activates. Clicking it:
+Once you have 5+ inline samples uploaded and a valid sample manifest, the **Submit for Review** button activates. Clicking it:
 1. Validates cross-modality sample alignment (for multi-modality listings)
-2. Tests your provisioning API (verifies your webhook is reachable)
-3. Submits the listing for Atlas team review (typically approved within 24 hours)
-4. Once approved and published, your listing appears in the **Buy Data** catalog for OEM buyers
+2. Verifies your sample manifest is valid
+3. Tests your provisioning API (verifies your webhook is reachable)
+4. Submits the listing for Atlas team review (typically approved within 24 hours)
+5. Once approved and published, your listing appears in the **Buy Data** catalog with a Sample Explorer link
 
 ---
 
@@ -4684,7 +4858,58 @@ Allowed Headers: Content-Type, Authorization`} />
       </div>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ marginBottom: 16 }}>6. LeRobot format compatibility</div>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>6. Sample repository</div>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+          Every listing requires a <strong>sample manifest</strong> — a JSON file hosted in your storage that indexes your sample episodes.
+          This powers the Sample Explorer page where buyers can browse your full sample dataset. Inline preview samples (uploaded above) are the storefront — the manifest is the full catalog.
+        </p>
+
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Manifest format</div>
+        <pre className="db-code-block">{`{
+  "version": 1,
+  "episodes": [
+    {
+      "id": "episode_001",
+      "video": "videos/episode_001.mp4",
+      "thumbnail": "thumbnails/episode_001.jpg",
+      "annotations": "annotations/episode_001.json",
+      "duration_seconds": 720,
+      "instruction": "Pick up the coffee mug",
+      "tags": { "environment": "kitchen", "task": "pick_and_place" }
+    }
+  ]
+}`}</pre>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
+          Required per episode: <code>id</code>, <code>video</code>. Optional: <code>title</code>, <code>duration_seconds</code>, <code>thumbnail</code>, <code>annotations</code>, <code>instruction</code>, <code>tags</code>, <code>files</code>.
+          All paths are relative to the manifest's parent directory.
+        </p>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Generate your manifest</div>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
+          Download the manifest generator script from the .md file above, then run:
+        </p>
+        <pre className="db-code-block">{`python manifest-generator.py ./samples/ -o manifest.json
+# With thumbnails (requires ffmpeg):
+python manifest-generator.py ./samples/ -o manifest.json --thumbnails`}</pre>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>CORS for Sample Explorer</div>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
+          The Sample Explorer loads videos directly from your storage. Your bucket must allow requests from <code>humanoids.fyi</code>.
+          Add this origin to your CORS policy (see section 5 above for full configs).
+        </p>
+
+        <div style={{ marginTop: 16 }} />
+        <div className="db-meta-label" style={{ marginBottom: 8 }}>Validation</div>
+        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+          When you submit your listing, Atlas validates: manifest URL is accessible, JSON schema is correct, and 5 random video URLs resolve.
+          Fix any errors and re-validate before submitting.
+        </p>
+      </div>
+
+      <div className="api-preamble" style={{ marginBottom: 20 }}>
+        <div className="db-meta-label" style={{ marginBottom: 16 }}>7. LeRobot format compatibility</div>
         <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           <a href="https://github.com/huggingface/lerobot" target="_blank" rel="noopener" style={{ color: 'var(--text)', textDecoration: 'underline' }}>LeRobot</a> is the emerging standard for robot learning datasets. Listings marked as LeRobot compatible get a distinctive badge and buyers can load data directly with <code>LeRobotDataset()</code>. Select <strong>lerobot</strong> in the Formats field when creating a listing.
         </p>
@@ -5644,7 +5869,7 @@ function SellerTerms() {
 
       <TermsSection title="Content & review">
         <p>All listings are reviewed by Atlas before publication. Edits to published listings require re-review. Atlas may reject, suspend, or remove listings at its discretion.</p>
-        <p style={{ marginTop: 8 }}>Preview samples (max 500MB) are stored on Atlas infrastructure and are publicly accessible to potential buyers browsing the catalog.</p>
+        <p style={{ marginTop: 8 }}>Inline preview samples (max 500MB each) are stored on Atlas infrastructure and are publicly accessible to potential buyers browsing the catalog. Your sample repository (manifest + data files) is hosted on your own infrastructure and must remain publicly accessible for as long as your listing is active.</p>
       </TermsSection>
 
       <TermsSection title="Data sharing">
