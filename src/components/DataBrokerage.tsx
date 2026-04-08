@@ -2461,13 +2461,13 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
               onToggle={v => toggleEditTag('environments', v)} />
 
             <TagSection label="Collection Method" selected={editForm.collection_methods} options={COLLECTION_METHODS}
-              onToggle={v => toggleEditTag('collection_methods', v)} />
+              onToggle={v => toggleEditTag('collection_methods', v)} required />
 
             <TagSection label="Embodiment / Platform" selected={editForm.embodiment_types} options={EMBODIMENT_TYPES}
-              onToggle={v => toggleEditTag('embodiment_types', v)} />
+              onToggle={v => toggleEditTag('embodiment_types', v)} required />
 
             <TagSection label="Task Types" selected={editForm.task_types} options={TASK_TYPES}
-              onToggle={v => toggleEditTag('task_types', v)} allowCustom />
+              onToggle={v => toggleEditTag('task_types', v)} allowCustom required />
 
             <div className="db-form-row" style={{ marginTop: 12 }}>
               {editForm.modalities.length <= 1 && (
@@ -2720,13 +2720,13 @@ function CreateListingForm() {
         onToggle={v => toggleTag('environments', v)} />
 
       <TagSection label="Collection Method" selected={form.collection_methods} options={COLLECTION_METHODS}
-        onToggle={v => toggleTag('collection_methods', v)} />
+        onToggle={v => toggleTag('collection_methods', v)} required />
 
       <TagSection label="Embodiment / Platform" selected={form.embodiment_types} options={EMBODIMENT_TYPES}
-        onToggle={v => toggleTag('embodiment_types', v)} />
+        onToggle={v => toggleTag('embodiment_types', v)} required />
 
       <TagSection label="Task Types" selected={form.task_types} options={TASK_TYPES}
-        onToggle={v => toggleTag('task_types', v)} allowCustom />
+        onToggle={v => toggleTag('task_types', v)} allowCustom required />
 
       <div className="db-form-field">
         <label className="db-meta-label">Description</label>
@@ -5750,11 +5750,11 @@ function CustomRequestModal({ onClose, sourceListing }: { onClose: () => void; s
                 <TagSection label="Environments needed" required selected={form.environments} options={ENVIRONMENTS}
                   onToggle={v => toggleTag('environments', v)} />
                 <TagSection label="Collection Method" selected={form.collection_methods} options={COLLECTION_METHODS}
-                  onToggle={v => toggleTag('collection_methods', v)} />
+                  onToggle={v => toggleTag('collection_methods', v)} required />
                 <TagSection label="Embodiment / Platform" selected={form.embodiment_types} options={EMBODIMENT_TYPES}
-                  onToggle={v => toggleTag('embodiment_types', v)} />
+                  onToggle={v => toggleTag('embodiment_types', v)} required />
                 <TagSection label="Task Types" selected={form.task_types} options={TASK_TYPES}
-                  onToggle={v => toggleTag('task_types', v)} allowCustom />
+                  onToggle={v => toggleTag('task_types', v)} allowCustom required />
               </>
             )}
             <div className="db-form-field">
