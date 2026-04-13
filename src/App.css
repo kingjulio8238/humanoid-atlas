@@ -4497,7 +4497,9 @@ input[type="number"] { -moz-appearance: textfield; }
 .db-catalog-row__line1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .db-catalog-row__title { font-size: 14px; font-weight: 500; color: var(--text); }
 .db-catalog-row__price { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text); flex-shrink: 0; margin-left: 16px; }
-.db-catalog-row__line2 { display: flex; justify-content: space-between; align-items: baseline; }
+.db-catalog-row__line2 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.db-catalog-row__tags-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.db-catalog-row__tags { display: flex; flex-wrap: nowrap; gap: 4px; flex: 1; min-width: 0; overflow: hidden; }
 .db-catalog-row__meta { display: flex; align-items: baseline; gap: 12px; }
 .db-catalog-row__provider { font-family: 'Share Tech Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
 .db-catalog-row__details { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-secondary); }

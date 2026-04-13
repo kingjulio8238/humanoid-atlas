@@ -927,7 +927,10 @@ function BuyData() {
                   <input type="checkbox" className="db-compare-check" checked={compareIds.has(l.id)} onClick={e => toggleCompare(l.id, e)} onChange={() => {}} title="Compare" />
                                     <div className="db-catalog-row__content">
                     <div className="db-catalog-row__line1">
-                      <span className="db-catalog-row__title">{l.title}</span>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                        <span className="db-catalog-row__title">{l.title}</span>
+                        {l.providers?.name && <span className="db-catalog-row__provider db-catalog-row__provider--link" onClick={e => { e.stopPropagation(); if (l.providers?.slug) { setShowProviders(true); setSelectedProvider(l.providers.slug); } }}>By {l.providers.name}</span>}
+                      </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <button className={`db-watchlist-btn-sm${watchlist.has(l.id) ? ' db-watchlist-btn-sm--active' : ''}`} onClick={e => { e.stopPropagation(); toggleWatchlist(l.id); }} title={watchlist.has(l.id) ? 'Unpin' : 'Pin to top'}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill={watchlist.has(l.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -937,26 +940,16 @@ function BuyData() {
                         <span className="db-catalog-row__view">View →</span>
                       </div>
                     </div>
-                    <div className="db-catalog-row__line2">
-                      <div className="db-catalog-row__meta">
-                        <span className="db-catalog-row__provider db-catalog-row__provider--link" onClick={e => { e.stopPropagation(); if (l.providers?.slug) { setShowProviders(true); setSelectedProvider(l.providers.slug); } }}>{l.providers?.name ?? ''}</span>
-                        <span className="db-catalog-row__details">
-                          {(() => {
-                            const parts: string[] = [formatTags(l.modality)];
-                            if (l.format) parts.push(String(l.format));
-                            parts.push(formatTags(l.environment));
-                            if (Array.isArray(l.tags)) {
-                              const tags = l.tags as string[];
-                              tags.filter(t => t.startsWith('embodiment:')).forEach(t => parts.push(t.split(':')[1].replace(/_/g, ' ')));
-                              tags.filter(t => t.startsWith('task:')).forEach(t => parts.push(t.split(':')[1].replace(/_/g, ' ')));
-                              tags.filter(t => t.startsWith('collection:')).forEach(t => parts.push(t.split(':')[1].replace(/_/g, ' ')));
-                            }
-                            if (l.total_hours) parts.push(`${Number(l.total_hours).toLocaleString()} hrs`);
-                            return parts.join(' · ');
-                          })()}
-                        </span>
+                    <div className="db-catalog-row__tags-row">
+                      <div className="db-catalog-row__tags">
+                        {(Array.isArray(l.modality) ? l.modality : [l.modality]).map(m => <span key={m} className="db-badge db-badge--sm">{String(m).replace(/_/g, ' ')}</span>)}
+                        {(Array.isArray(l.environment) ? l.environment : [l.environment]).map(e => <span key={e} className="db-badge db-badge--sm">{String(e).replace(/_/g, ' ')}</span>)}
+                        {Array.isArray(l.tags) && (l.tags as string[]).filter(t => t.startsWith('embodiment:')).map(t => <span key={t} className="db-badge db-badge--sm">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
+                        {Array.isArray(l.tags) && (l.tags as string[]).filter(t => t.startsWith('task:')).map(t => <span key={t} className="db-badge db-badge--sm">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
+                        {Array.isArray(l.tags) && (l.tags as string[]).filter(t => t.startsWith('collection:')).map(t => <span key={t} className="db-badge db-badge--sm">{t.split(':')[1].replace(/_/g, ' ')}</span>)}
+                        {l.format && String(l.format).split(',').map(f => f.trim()).filter(Boolean).map(f => f === 'lerobot' ? <span key={f} className="db-badge db-badge--sm db-badge--lerobot">LeRobot</span> : <span key={f} className="db-badge db-badge--sm">{f}</span>)}
+                        {l.total_hours && <span className="db-badge db-badge--sm">{Number(l.total_hours).toLocaleString()} hrs</span>}
                       </div>
-                      {l.format && String(l.format).includes('lerobot') && <span className="db-badge db-badge--lerobot" style={{ fontSize: 8, padding: '2px 6px', marginRight: 6 }}>LeRobot</span>}
                       <span className="db-catalog-row__price">${l.price_per_hour}/hr</span>
                     </div>
                   </div>
