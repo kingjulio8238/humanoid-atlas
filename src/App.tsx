@@ -2095,6 +2095,34 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.8rem' }}>
 
             <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 8, 2026</span>
+              <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <li>Added sample explorer for browsing datasets</li>
+              </ul>
+            </div>
+
+            <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 7, 2026</span>
+              <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <li>Added Atlas Data Brokerage</li>
+              </ul>
+            </div>
+
+            <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 29, 2026</span>
+              <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <li>Added Atlas Arena</li>
+              </ul>
+            </div>
+
+            <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 25, 2026</span>
+              <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <li>Added Vibe Robotics (Vibe A1)</li>
+              </ul>
+            </div>
+
+            <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 23, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <li>Added LLM summaries of Atlas</li>
