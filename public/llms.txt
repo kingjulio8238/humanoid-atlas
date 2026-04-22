@@ -9,7 +9,7 @@ https://www.humanoids.fyi
 Humanoid Atlas is an interactive data tool tracking the full humanoid robotics ecosystem. It is free, open-source, and updated regularly.
 
 ### Overview
-- 29 humanoid robot OEMs worldwide with full robot specifications (height, weight, DOF, sensors, compute, battery, actuators, price)
+- 30 humanoid robot OEMs worldwide with full robot specifications (height, weight, DOF, sensors, compute, battery, actuators, price)
 - 41+ component suppliers mapped across the hardware supply chain
 - Geopolitical analysis of US vs China vs Rest of World supplier dependencies
 - Interactive supply chain network graph showing all OEM-supplier relationships
@@ -38,7 +38,7 @@ Humanoid Atlas is an interactive data tool tracking the full humanoid robotics e
 - Camera configurations, depth approaches, LiDAR usage, audio systems, and interactive features per robot
 
 ## Key OEMs Tracked
-Tesla (Optimus), Figure (02/03), 1X Technologies (NEO), Unitree (G1/H1), Agility Robotics (Digit), Boston Dynamics (Atlas), Apptronik (Apollo), Sanctuary AI (Phoenix), NEURA Robotics (4NE-1), Fourier (GR-2), XPeng (Iron), UBTech (Walker S2), Kepler (Forerunner), AgiBot (A2), Sunday Robotics (Memo), and 14 more
+Tesla (Optimus), Figure (02/03), 1X Technologies (NEO), Unitree (G1/H1), Agility Robotics (Digit), Boston Dynamics (Atlas), Apptronik (Apollo), Sanctuary AI (Phoenix), NEURA Robotics (4NE-1), Fourier (GR-2), XPeng (Iron), UBTech (Walker S2), Kepler (Forerunner), AgiBot (A2), Sunday Robotics (Memo), Ultra Robotics (Operator 1), and 14 more
 
 ## Data Sources
 Company websites, SEC filings, technical papers (arXiv, ICLR, NeurIPS, CoRL, ICRA, IROS), founder questionnaires, press coverage, and open-source repositories

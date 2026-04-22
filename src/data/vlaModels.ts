@@ -368,6 +368,13 @@ export const vlaModels: VLAModel[] = [
           { label: 'Astribot + Physical Intelligence pi0', url: 'https://mikekalil.com/blog/astribot-physical-intelligence/' },
         ],
       },
+      {
+        companyId: 'ultra',
+        relationship: 'partner',
+        sources: [
+          { label: 'Ultra Robotics - Operator 1', url: 'https://www.ultra.tech/' },
+        ],
+      },
     ],
   },
   {
