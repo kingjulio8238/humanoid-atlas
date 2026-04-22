@@ -1082,7 +1082,6 @@ export const companies: Company[] = [
     robotSpecs: {
       status: 'In Production',
       launchDate: 'Apr 2026',
-      shipments2025: 100,
       targetUse: ['Logistics', 'Order fulfillment', 'Packing / sorting / kitting'],
       mass: '159 kg (350 lbs)',
       height: '147 cm (0-300 cm reach)',
