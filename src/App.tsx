@@ -2095,6 +2095,13 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.8rem' }}>
 
             <div>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 22, 2026</span>
+              <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <li>Added Ultra Robotics (Operator 1)</li>
+              </ul>
+            </div>
+
+            <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 8, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                 <li>Added sample explorer for browsing datasets</li>
