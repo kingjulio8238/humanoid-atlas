@@ -9,6 +9,7 @@ import RewardChart from './components/RewardChart';
 import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
 import DataBrokerage from './components/DataBrokerage';
+import EquipmentPage from './components/EquipmentPage';
 import SampleExplorer from './components/SampleExplorer';
 import Arena from './components/Arena';
 import './App.css';
@@ -16,13 +17,14 @@ import './App.css';
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
 
-type TabGroup = 'overview' | 'industry' | 'data' | 'arena' | 'hardware' | 'software' | 'hri' | 'cli' | 'api';
+type TabGroup = 'overview' | 'industry' | 'shop' | 'arena' | 'hardware' | 'software' | 'hri' | 'cli' | 'api';
 
+type ShopSubTab = 'data' | 'equipment' | 'components';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'industry', label: 'Industry' },
-  { id: 'data' as TabGroup, label: 'Data' },
+  { id: 'shop' as TabGroup, label: 'Shop' },
   { id: 'arena', label: 'Arena' },
   { id: 'hardware', label: 'Hardware' },
   { id: 'software', label: 'Software' },
@@ -31,7 +33,15 @@ const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'api', label: 'API' },
 ];
 
-const TABS: { id: string; label: string; group: TabGroup; hidden?: boolean }[] = [
+// Sub-tabs rendered under the Shop parent. Data redirects to /data/buy on
+// click; Equipment and Components are placeholders.
+const SHOP_SUB_TABS: { id: ShopSubTab; label: string; defaultPath: string }[] = [
+  { id: 'data', label: 'Data', defaultPath: '/data/buy' },
+  { id: 'equipment', label: 'Equipment', defaultPath: '/shop/equipment' },
+  { id: 'components', label: 'Components', defaultPath: '/shop/components' },
+];
+
+const TABS: { id: string; label: string; group: TabGroup; subTab?: ShopSubTab; hidden?: boolean }[] = [
   // Overview
   { id: 'skeleton', label: 'Skeleton', group: 'overview' },
   { id: 'all_oems', label: 'All OEMs', group: 'overview' },
@@ -41,14 +51,17 @@ const TABS: { id: string; label: string; group: TabGroup; hidden?: boolean }[] =
   { id: 'funding', label: 'Funding', group: 'industry' },
   { id: 'timeline', label: 'Buildout', group: 'industry' },
   { id: 'factories', label: 'Factories', group: 'industry' },
-  // Data
-  { id: 'buy_data', label: 'Buy Data', group: 'data' },
-  { id: 'sell_data', label: 'Sell Data', group: 'data' },
-  { id: 'collect_data', label: 'Collect Data', group: 'data' },
-  { id: 'seller_terms', label: '', group: 'data', hidden: true },
-  { id: 'buyer_terms', label: '', group: 'data', hidden: true },
-  { id: 'collector_terms', label: '', group: 'data', hidden: true },
-  { id: 'account', label: 'Account', group: 'data' },
+  // Shop > Data
+  { id: 'buy_data', label: 'Buy', group: 'shop', subTab: 'data' },
+  { id: 'sell_data', label: 'Sell', group: 'shop', subTab: 'data' },
+  { id: 'collect_data', label: 'Collect', group: 'shop', subTab: 'data' },
+  { id: 'seller_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
+  { id: 'buyer_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
+  { id: 'collector_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
+  { id: 'account', label: 'Account', group: 'shop', subTab: 'data' },
+  // Shop > Equipment / Components (placeholders)
+  { id: 'equipment', label: 'Equipment', group: 'shop', subTab: 'equipment' },
+  { id: 'components', label: 'Components', group: 'shop', subTab: 'components' },
   // Arena
   { id: 'arena_oems', label: 'Atlas Arena', group: 'arena' },
   { id: 'arena_suppliers', label: 'Supplier Arena', group: 'arena', hidden: true },
@@ -106,6 +119,8 @@ const TAB_TO_PATH: Record<string, string> = {
   buyer_terms: '/data/buyer-terms',
   collector_terms: '/data/collector-terms',
   account: '/data/account',
+  equipment: '/shop/equipment',
+  components: '/shop/components',
   arena_oems: '/arena/humanoids',
   arena_suppliers: '/arena/suppliers',
   arena_vla: '/arena/vla',
@@ -148,6 +163,9 @@ const PATH_TO_TAB: Record<string, string> = {
   // Legacy redirects (moved from overview to industry)
   '/geopolitics': 'geopolitics',
   '/buildout': 'timeline',
+  // Shop parent → default to Buy Data; Data sub-tab → same default
+  '/shop': 'buy_data',
+  '/shop/data': 'buy_data',
 };
 
 // Per-tab SEO meta content
@@ -163,6 +181,8 @@ const TAB_META: Record<string, { title: string; description: string }> = {
   sell_data: { title: 'Sell Training Data | Atlas Data Brokerage', description: 'List your training datasets on Atlas Data Brokerage. Reach OEM buyers, set your own prices, get paid via Stripe.' },
   collect_data: { title: 'Collect Training Data | Atlas Data Brokerage', description: 'Join data collection programs and earn by gathering training data for humanoid robots.' },
   account: { title: 'Account | Atlas Data Brokerage', description: 'Manage your Atlas Data Brokerage account.' },
+  equipment: { title: 'Equipment | Atlas Shop', description: 'NDAA-compliant Japanese-sourced equipment for US humanoid robotics defense buyers. Coming soon.' },
+  components: { title: 'Components | Atlas Shop', description: 'NDAA-compliant Japanese-sourced components for US humanoid robotics defense buyers. Coming soon.' },
   arena_oems: { title: 'Atlas Arena - Vote on the Best Humanoid | Atlas Arena', description: 'Head-to-head humanoid matchups. Vote on best specs, best value, most production-ready, and best design. Community-driven Elo rankings across 38 OEMs.' },
   arena_suppliers: { title: 'Supplier Arena - Vote on the Best Robotics Supplier | Atlas Arena', description: 'Head-to-head supplier matchups by component category. Compare motors, reducers, batteries, compute and more. Community-driven Elo rankings.' },
   arena_vla: { title: 'VLA Arena - Vote on the Best Vision-Language-Action Model | Atlas Arena', description: 'Head-to-head VLA model matchups. Compare Helix, pi0, GR00T, OpenVLA, Gemini Robotics and more. Community-driven Elo rankings across 19 models.' },
@@ -1147,6 +1167,7 @@ export default function App() {
   }, [location.pathname]);
 
   const activeTabGroup = TABS.find((t) => t.id === activeTab)?.group || 'overview';
+  const activeShopSubTab: ShopSubTab = TABS.find((t) => t.id === activeTab)?.subTab || 'data';
   const [companyId, setCompanyId] = useState<string | null>(searchParams.get('company') || null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
   const [chainFocus, setChainFocus] = useState<string | null>(null);
@@ -2459,20 +2480,34 @@ export default function App() {
               {g.id === 'cli' && <div className="filter-bar__separator" />}
               <button
                 className={`tab-group-pill ${activeTabGroup === g.id ? 'tab-group-pill--active' : ''}`}
-                style={g.id === 'data' ? { position: 'relative', paddingRight: 22 } : undefined}
+                style={g.id === 'shop' ? { position: 'relative', paddingRight: 22 } : undefined}
                 onClick={() => {
                   const firstTab = TABS.find((t) => t.group === g.id);
                   if (firstTab) { navigate(TAB_TO_PATH[firstTab.id] || '/'); setChainFocus(null); }
                 }}
-              >{g.label}{g.id === 'data' && <span className="tab-new-badge">NEW</span>}</button>
+              >{g.label}{g.id === 'shop' && <span className="tab-new-badge">NEW</span>}</button>
             </Fragment>
           ))}
         </div>
       </div>
 
-      {TABS.filter((t) => t.group === activeTabGroup && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).length > 1 && (
+      {activeTabGroup === 'shop' && (
       <nav className="component-nav">
-        {TABS.filter((t) => t.group === activeTabGroup && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).map((t) => {
+        {SHOP_SUB_TABS.map((s) => (
+          <button
+            key={s.id}
+            className={`component-btn ${activeShopSubTab === s.id ? 'component-btn--active' : ''}`}
+            onClick={() => { navigate(s.defaultPath); setChainFocus(null); }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+      )}
+
+      {activeTabGroup !== 'shop' && TABS.filter((t) => t.group === activeTabGroup && !t.hidden).length > 1 && (
+      <nav className="component-nav">
+        {TABS.filter((t) => t.group === activeTabGroup && !t.hidden).map((t) => {
           return (
             <button
               key={t.id}
@@ -2486,7 +2521,22 @@ export default function App() {
       </nav>
       )}
 
-      <main className={activeTabGroup === 'data' ? 'component-view' : activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTabGroup === 'arena' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
+      <main className={activeTabGroup === 'shop' ? 'component-view' : activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTabGroup === 'arena' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
+        {/* Inline Buy/Sell/Collect/Account selector inside the Data sub-section */}
+        {activeTabGroup === 'shop' && activeShopSubTab === 'data' && (
+          <nav className="component-nav">
+            {TABS.filter((t) => t.subTab === 'data' && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).map((t) => (
+              <button
+                key={t.id}
+                className={`component-btn ${activeTab === t.id ? 'component-btn--active' : ''}`}
+                onClick={() => { navigate(TAB_TO_PATH[t.id] || '/'); setChainFocus(null); }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        )}
+
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className={`skeleton-interactive${skeletonRegion && skeletonSidebarOpen && !isMobile ? ' skeleton-interactive--sidebar-open' : ''}`}>
@@ -4455,8 +4505,16 @@ export default function App() {
           <Arena activeSubTab={activeTab} />
         )}
 
-        {activeTabGroup === 'data' && (
+        {activeTabGroup === 'shop' && activeShopSubTab === 'data' && (
           <DataBrokerage activeSubTab={activeTab} viewCount={viewCount} />
+        )}
+
+        {activeTabGroup === 'shop' && activeShopSubTab === 'equipment' && (
+          <EquipmentPage />
+        )}
+
+        {activeTabGroup === 'shop' && activeShopSubTab === 'components' && (
+          <div className="shop-coming-soon">// COMPONENTS — COMING SOON</div>
         )}
 
         {activeTabGroup === 'cli' && (
