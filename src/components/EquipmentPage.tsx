@@ -67,7 +67,7 @@ function Hero({ product, onRequest }: { product: EquipmentProduct; onRequest: ()
         </dl>
 
         <button className="eq-cta" onClick={onRequest}>
-          Request Quote <span className="eq-cta__arrow">&rarr;</span>
+          Request Suits
         </button>
         <div className="eq-hero__pricing-note">Pricing provided after request.</div>
       </div>
@@ -152,7 +152,7 @@ function FooterCTA({ onRequest }: { onRequest: () => void }) {
         Ready to integrate motion capture into your humanoid program?
       </div>
       <button className="eq-cta" onClick={onRequest}>
-        Request Quote <span className="eq-cta__arrow">&rarr;</span>
+        Request Suits
       </button>
     </section>
   );

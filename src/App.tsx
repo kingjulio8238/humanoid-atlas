@@ -36,8 +36,8 @@ const TAB_GROUPS: { id: TabGroup; label: string }[] = [
 // Sub-tabs rendered under the Shop parent. Data redirects to /data/buy on
 // click; Equipment and Components are placeholders.
 const SHOP_SUB_TABS: { id: ShopSubTab; label: string; defaultPath: string }[] = [
-  { id: 'data', label: 'Data', defaultPath: '/data/buy' },
   { id: 'equipment', label: 'Equipment', defaultPath: '/shop/equipment' },
+  { id: 'data', label: 'Data', defaultPath: '/data/buy' },
   { id: 'components', label: 'Components', defaultPath: '/shop/components' },
 ];
 
@@ -51,6 +51,8 @@ const TABS: { id: string; label: string; group: TabGroup; subTab?: ShopSubTab; h
   { id: 'funding', label: 'Funding', group: 'industry' },
   { id: 'timeline', label: 'Buildout', group: 'industry' },
   { id: 'factories', label: 'Factories', group: 'industry' },
+  // Shop > Equipment (default)
+  { id: 'equipment', label: 'Equipment', group: 'shop', subTab: 'equipment' },
   // Shop > Data
   { id: 'buy_data', label: 'Buy', group: 'shop', subTab: 'data' },
   { id: 'sell_data', label: 'Sell', group: 'shop', subTab: 'data' },
@@ -59,8 +61,7 @@ const TABS: { id: string; label: string; group: TabGroup; subTab?: ShopSubTab; h
   { id: 'buyer_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
   { id: 'collector_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
   { id: 'account', label: 'Account', group: 'shop', subTab: 'data' },
-  // Shop > Equipment / Components (placeholders)
-  { id: 'equipment', label: 'Equipment', group: 'shop', subTab: 'equipment' },
+  // Shop > Components (placeholder)
   { id: 'components', label: 'Components', group: 'shop', subTab: 'components' },
   // Arena
   { id: 'arena_oems', label: 'Atlas Arena', group: 'arena' },
@@ -163,8 +164,8 @@ const PATH_TO_TAB: Record<string, string> = {
   // Legacy redirects (moved from overview to industry)
   '/geopolitics': 'geopolitics',
   '/buildout': 'timeline',
-  // Shop parent → default to Buy Data; Data sub-tab → same default
-  '/shop': 'buy_data',
+  // Shop parent → default to Equipment; Data sub-tab → Buy Data
+  '/shop': 'equipment',
   '/shop/data': 'buy_data',
 };
 
@@ -1167,7 +1168,7 @@ export default function App() {
   }, [location.pathname]);
 
   const activeTabGroup = TABS.find((t) => t.id === activeTab)?.group || 'overview';
-  const activeShopSubTab: ShopSubTab = TABS.find((t) => t.id === activeTab)?.subTab || 'data';
+  const activeShopSubTab: ShopSubTab = TABS.find((t) => t.id === activeTab)?.subTab || 'equipment';
   const [companyId, setCompanyId] = useState<string | null>(searchParams.get('company') || null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
   const [chainFocus, setChainFocus] = useState<string | null>(null);
@@ -4514,7 +4515,7 @@ export default function App() {
         )}
 
         {activeTabGroup === 'shop' && activeShopSubTab === 'components' && (
-          <div className="shop-coming-soon">// COMPONENTS — COMING SOON</div>
+          <div className="shop-coming-soon">COMING SOON</div>
         )}
 
         {activeTabGroup === 'cli' && (
