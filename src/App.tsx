@@ -12,7 +12,49 @@ import DataBrokerage from './components/DataBrokerage';
 import EquipmentPage from './components/EquipmentPage';
 import SampleExplorer from './components/SampleExplorer';
 import Arena from './components/Arena';
+import { LocaleToggle, useLocale } from './i18n';
+import { slugKey } from './i18n/slugKey';
 import './App.css';
+
+type TxFn = (key: string, enFallback: string) => string;
+const identTx: TxFn = (_key, enFallback) => enFallback;
+
+function geoCompCategoryLabel(en: string, tx: TxFn) {
+  return tx(`geo.compLabel.${slugKey(en)}`, en);
+}
+
+function supplyCompLabel(en: string, tx: TxFn) {
+  return tx(`supply.comp.${slugKey(en)}`, en);
+}
+
+function companySpecValue(value: string | undefined, tx: TxFn): string {
+  if (!value) return '';
+  if (value === 'Not disclosed') return tx('detail.spec.notDisclosed', 'Not disclosed');
+  return tx(`company.specv.${slugKey(value)}`, value);
+}
+
+function companySpecList(values: string[] | undefined, tx: TxFn) {
+  if (!values || values.length === 0) return '';
+  return values.map((value) => companySpecValue(value, tx) || value).join(', ');
+}
+
+function translateKeyedMetrics(tx: TxFn, compId: string, km: Record<string, string> | undefined) {
+  if (!km) return undefined;
+  return Object.fromEntries(
+    Object.entries(km).map(([k, v]) => [
+      tx(`hwcat.${compId}.mk.${slugKey(k)}`, k),
+      tx(`hwcat.${compId}.mv.${slugKey(k)}`, String(v)),
+    ]),
+  );
+}
+
+function metricLabel(tx: TxFn, en: string) {
+  return tx(`metric.${slugKey(en)}`, en);
+}
+
+function tmRecord(tx: TxFn, obj: Record<string, string>) {
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [metricLabel(tx, k), v]));
+}
 
 // Start fetching the skeleton model immediately on module load
 preloadPLY('/models/skeleton.ply');
@@ -276,6 +318,19 @@ const ACTUATOR_INFO = {
     },
   },
 };
+
+function localizeActuatorInfo(tx: TxFn, actuatorType: 'linear' | 'rotary') {
+  const info = ACTUATOR_INFO[actuatorType];
+  return {
+    description: tx(`actuator.${actuatorType}.desc`, info.description),
+    keyMetrics: Object.fromEntries(
+      Object.entries(info.keyMetrics).map(([k, v]) => [
+        tx(`actuator.${actuatorType}.mk.${slugKey(k)}`, k),
+        tx(`actuator.${actuatorType}.mv.${slugKey(k)}`, String(v)),
+      ]),
+    ),
+  };
+}
 
 const COMPONENT_KEYWORDS: Record<string, string[]> = {
   motors: ['bldc motors', 'motors', 'servo motors'],
@@ -712,16 +767,16 @@ function getCompanyVlaLinks(companyId: string) {
   );
 }
 
-function getVlaRelationshipTypeLabel(type: 'proprietary' | 'partner' | 'open' | 'ecosystem') {
-  if (type === 'proprietary') return 'Proprietary / In-House';
-  if (type === 'partner') return 'Partner Integration';
-  if (type === 'open') return 'Open Model';
-  return 'Ecosystem';
+function getVlaRelationshipTypeLabel(type: 'proprietary' | 'partner' | 'open' | 'ecosystem', tx: TxFn = identTx) {
+  if (type === 'proprietary') return tx('vla.rel.proprietary', 'Proprietary / In-House');
+  if (type === 'partner') return tx('vla.rel.partner', 'Partner Integration');
+  if (type === 'open') return tx('vla.rel.open', 'Open Model');
+  return tx('vla.rel.ecosystem', 'Ecosystem');
 }
 
-function getVlaCompanyRelationshipLabel(type: 'proprietary' | 'partner') {
-  if (type === 'proprietary') return 'Proprietary / In-House';
-  return 'Partner Integration';
+function getVlaCompanyRelationshipLabel(type: 'proprietary' | 'partner', tx: TxFn = identTx) {
+  if (type === 'proprietary') return tx('vla.companyRel.proprietary', 'Proprietary / In-House');
+  return tx('vla.companyRel.partner', 'Partner Integration');
 }
 
 const VIZ_CAPABILITIES = [
@@ -741,10 +796,10 @@ const VIZ_CAPABILITY_MAP: Record<string, Set<string>> = {
   roboto_ai:   new Set(['ROS 2', 'MCAP', 'Web', 'Python', 'Time Series', 'Video', 'Fleet']),
 };
 
-function getRewardModelTypeLabel(type: RewardModelType) {
-  if (type === 'trained') return 'Trained Model';
-  if (type === 'zero-shot') return 'Zero-Shot';
-  return 'Code Generation';
+function getRewardModelTypeLabel(type: RewardModelType, tx: TxFn = identTx) {
+  if (type === 'trained') return tx('reward.type.trained', 'Trained Model');
+  if (type === 'zero-shot') return tx('reward.type.zeroShot', 'Zero-Shot');
+  return tx('reward.type.codeGen', 'Code Generation');
 }
 
 function getRewardModelOverview() {
@@ -757,11 +812,11 @@ function getRewardModelOverview() {
   };
 }
 
-function getWorldModelTypeLabel(type: WorldModelType) {
-  if (type === 'video-generation') return 'Video Generation';
-  if (type === 'latent-dynamics') return 'Latent Dynamics';
-  if (type === 'rl-imagination') return 'RL / Imagination';
-  return 'Foundation Platform';
+function getWorldModelTypeLabel(type: WorldModelType, tx: TxFn = identTx) {
+  if (type === 'video-generation') return tx('wm.type.videoGen', 'Video Generation');
+  if (type === 'latent-dynamics') return tx('wm.type.latent', 'Latent Dynamics');
+  if (type === 'rl-imagination') return tx('wm.type.rl', 'RL / Imagination');
+  return tx('wm.type.foundation', 'Foundation Platform');
 }
 
 function getWorldModelOverview() {
@@ -775,12 +830,12 @@ function getWorldModelOverview() {
   };
 }
 
-function getFaceDisplayTypeLabel(type: FaceDisplayType) {
-  if (type === 'oled-screen') return 'OLED Screen';
-  if (type === 'status-screen') return 'Status Screen';
-  if (type === 'led-indicator') return 'LED Indicator';
-  if (type === 'no-display') return 'No Display';
-  return 'Concealed';
+function getFaceDisplayTypeLabel(type: FaceDisplayType, tx: TxFn = identTx) {
+  if (type === 'oled-screen') return tx('hri.face.oled', 'OLED Screen');
+  if (type === 'status-screen') return tx('hri.face.status', 'Status Screen');
+  if (type === 'led-indicator') return tx('hri.face.led', 'LED Indicator');
+  if (type === 'no-display') return tx('hri.face.none', 'No Display');
+  return tx('hri.face.concealed', 'Concealed');
 }
 
 function getHeadDesignOverview() {
@@ -794,11 +849,11 @@ function getHeadDesignOverview() {
   };
 }
 
-function getVizToolTypeLabel(type: VizToolType) {
-  if (type === 'platform') return 'Platform';
-  if (type === '3d-viewer') return '3D Viewer';
-  if (type === 'time-series') return 'Time Series';
-  return 'Data & Analytics';
+function getVizToolTypeLabel(type: VizToolType, tx: TxFn = identTx) {
+  if (type === 'platform') return tx('viz.type.platform', 'Platform');
+  if (type === '3d-viewer') return tx('viz.type.viewer', '3D Viewer');
+  if (type === 'time-series') return tx('viz.type.timeseries', 'Time Series');
+  return tx('viz.type.analytics', 'Data & Analytics');
 }
 
 function getVizToolOverview() {
@@ -828,11 +883,11 @@ function getSimCapabilities(p: { gpuAccelerated: boolean; openSource: boolean; h
   return s;
 }
 
-function getSimPlatformTypeLabel(type: SimPlatformType) {
-  if (type === 'physics-engine') return 'Physics Engine';
-  if (type === 'rl-framework') return 'RL Framework';
-  if (type === 'environment') return 'Environment';
-  return 'World Model';
+function getSimPlatformTypeLabel(type: SimPlatformType, tx: TxFn = identTx) {
+  if (type === 'physics-engine') return tx('sim.type.physics', 'Physics Engine');
+  if (type === 'rl-framework') return tx('sim.type.rl', 'RL Framework');
+  if (type === 'environment') return tx('sim.type.env', 'Environment');
+  return tx('sim.type.worldModel', 'World Model');
 }
 
 function getSimPlatformOverview() {
@@ -863,12 +918,12 @@ function getSafetyCapabilities(p: OemSafetyProfile): Set<string> {
   return s;
 }
 
-function getComplianceLevelLabel(level: SafetyComplianceLevel) {
+function getComplianceLevelLabel(level: SafetyComplianceLevel, tx: TxFn = identTx) {
   switch (level) {
-    case 'certified': return 'Certified';
-    case 'in-progress': return 'In Progress';
-    case 'claimed': return 'Claimed';
-    case 'not-disclosed': return 'Not Disclosed';
+    case 'certified': return tx('safety.level.certified', 'Certified');
+    case 'in-progress': return tx('safety.level.inProgress', 'In Progress');
+    case 'claimed': return tx('safety.level.claimed', 'Claimed');
+    case 'not-disclosed': return tx('safety.level.notDisclosed', 'Not Disclosed');
   }
 }
 
@@ -1148,15 +1203,11 @@ function useLegacyHashRedirect(navigate: ReturnType<typeof useNavigate>) {
   }, []);
 }
 
-const TYPE_DISPLAY: Record<string, string> = {
-  oem: 'OEM', tier1_supplier: 'Tier 1', component_maker: 'Supplier',
-  raw_material: 'Raw Material', ai_compute: 'Compute',
-};
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { tx } = useLocale();
 
   // Redirect legacy hash URLs to path-based routes
   useLegacyHashRedirect(navigate);
@@ -1244,6 +1295,17 @@ export default function App() {
   const [nlParsing, setNlParsing] = useState(false);
   const summaryCache = useRef<Map<string, string>>(new Map());
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const typeDisplay = useMemo(
+    () => ({
+      oem: tx('entity.oem', 'OEM'),
+      tier1_supplier: tx('entity.tier1_supplier', 'Tier 1'),
+      component_maker: tx('entity.component_maker', 'Supplier'),
+      raw_material: tx('entity.raw_material', 'Raw Material'),
+      ai_compute: tx('entity.ai_compute', 'Compute'),
+    }),
+    [tx],
+  );
 
   const sortedOems = useMemo(
     () => [...oems].sort((a, b) => (likes[b.id] || 0) - (likes[a.id] || 0)),
@@ -1697,6 +1759,22 @@ export default function App() {
           .finally(() => setCompareLoading(false));
       }
 
+      const compareSpecLabel = (en: string) => {
+        const map: Record<string, string> = {
+          BOM: 'compare.spec.bom',
+          Price: 'compare.spec.price',
+          Status: 'compare.spec.status',
+          Shipments: 'compare.spec.shipments',
+          Height: 'compare.spec.height',
+          Mass: 'compare.spec.mass',
+          DOF: 'compare.spec.dof',
+          Speed: 'compare.spec.speed',
+          Runtime: 'compare.spec.runtime',
+        };
+        const k = map[en];
+        return k ? tx(k, en) : en;
+      };
+
       const specRow = (label: string, valA: string | undefined, valB: string | undefined) => {
         if (!valA && !valB) return null;
         return { label, valA: valA || ' - ', valB: valB || ' - ' };
@@ -1717,7 +1795,7 @@ export default function App() {
         <div className="app">
           <header className="header">
             <button className="back-btn" onClick={() => { setCompareIds(null); setCompareAnalysis(null); }}>&larr;</button>
-            <span className="header-title">{compA.name} <span className="compare-vs">vs</span> {compB.name}</span>
+            <span className="header-title">{compA.name} <span className="compare-vs">{tx('compare.vs', 'vs')}</span> {compB.name}</span>
           </header>
           <main className="compare-view">
             <div className="compare-grid">
@@ -1728,7 +1806,7 @@ export default function App() {
                 <div className="compare-card__specs">
                   {specs.map((s) => (
                     <div key={s.label} className="compare-card__spec">
-                      <span className="compare-card__spec-label">{s.label}</span>
+                      <span className="compare-card__spec-label">{compareSpecLabel(s.label)}</span>
                       <span className="compare-card__spec-value">{s.valA}</span>
                     </div>
                   ))}
@@ -1741,7 +1819,7 @@ export default function App() {
                 <div className="compare-card__specs">
                   {specs.map((s) => (
                     <div key={s.label} className="compare-card__spec">
-                      <span className="compare-card__spec-label">{s.label}</span>
+                      <span className="compare-card__spec-label">{compareSpecLabel(s.label)}</span>
                       <span className="compare-card__spec-value">{s.valB}</span>
                     </div>
                   ))}
@@ -1750,25 +1828,31 @@ export default function App() {
             </div>
 
             <div className="compare-section">
-              <div className="compare-section__title">Supply Chain Overlap</div>
+              <div className="compare-section__title">{tx('compare.section.overlap', 'Supply Chain Overlap')}</div>
               <div className="compare-overlap">
                 <div className="compare-overlap__group">
-                  <div className="compare-overlap__label">Shared ({shared.length})</div>
-                  <div className="compare-overlap__list">{shared.join(', ') || 'None'}</div>
+                  <div className="compare-overlap__label">
+                    {tx('compare.shared', 'Shared ({n})').replace('{n}', String(shared.length))}
+                  </div>
+                  <div className="compare-overlap__list">{shared.join(', ') || tx('compare.none', 'None')}</div>
                 </div>
                 <div className="compare-overlap__group">
-                  <div className="compare-overlap__label">{compA.name} only ({exclA.length})</div>
-                  <div className="compare-overlap__list">{exclA.join(', ') || 'None'}</div>
+                  <div className="compare-overlap__label">
+                    {tx('compare.only', '{name} only ({n})').replace('{name}', compA.name).replace('{n}', String(exclA.length))}
+                  </div>
+                  <div className="compare-overlap__list">{exclA.join(', ') || tx('compare.none', 'None')}</div>
                 </div>
                 <div className="compare-overlap__group">
-                  <div className="compare-overlap__label">{compB.name} only ({exclB.length})</div>
-                  <div className="compare-overlap__list">{exclB.join(', ') || 'None'}</div>
+                  <div className="compare-overlap__label">
+                    {tx('compare.only', '{name} only ({n})').replace('{name}', compB.name).replace('{n}', String(exclB.length))}
+                  </div>
+                  <div className="compare-overlap__list">{exclB.join(', ') || tx('compare.none', 'None')}</div>
                 </div>
               </div>
             </div>
 
             <div className="compare-section">
-              <div className="compare-section__title">Geopolitical Exposure</div>
+              <div className="compare-section__title">{tx('compare.section.geo', 'Geopolitical Exposure')}</div>
               <div className="compare-geo">
                 {[{ name: compA.name, geo: geoA }, { name: compB.name, geo: geoB }].map((row) => (
                   <div key={row.name} className="compare-geo__row">
@@ -1778,23 +1862,30 @@ export default function App() {
                       {row.geo.cn > 0 && <div className="compare-geo__seg" style={{ width: `${row.geo.cn}%`, background: '#ef4444' }} />}
                       {row.geo.other > 0 && <div className="compare-geo__seg" style={{ width: `${row.geo.other}%`, background: '#888' }} />}
                     </div>
-                    <span className="compare-geo__stats">US {row.geo.us}% · CN {row.geo.cn}% · Other {row.geo.other}%</span>
+                    <span className="compare-geo__stats">
+                      {tx('compare.geo.stats', 'US {us}% · CN {cn}% · Other {other}%')
+                        .replace('{us}', String(row.geo.us))
+                        .replace('{cn}', String(row.geo.cn))
+                        .replace('{other}', String(row.geo.other))}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="compare-section">
-              <div className="compare-section__title">AI Analysis</div>
+              <div className="compare-section__title">{tx('compare.section.ai', 'AI Analysis')}</div>
               {compareLoading ? (
-                <p className="compare-analysis" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>Generating analysis...</p>
+                <p className="compare-analysis" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>
+                  {tx('compare.analyzing', 'Generating analysis...')}
+                </p>
               ) : compareAnalysis ? (
                 <p className="compare-analysis">{compareAnalysis}</p>
               ) : null}
             </div>
           </main>
           <footer className="footer">
-            <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+            <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
           </footer>
         </div>
       );
@@ -1807,6 +1898,7 @@ export default function App() {
     const supplierRels = relationships.filter((r) => r.to === selectedCompany.id);
     const customerRels = relationships.filter((r) => r.from === selectedCompany.id);
     const isSupplier = selectedCompany.type !== 'oem';
+    const selectedCompanyDesc = tx(`company.${selectedCompany.id}.desc`, selectedCompany.description);
 
     // Supplier-specific computed data
     const supplierAnalysis = isSupplier ? (() => {
@@ -1878,7 +1970,7 @@ export default function App() {
             <input
               className="nl-query-input"
               type="text"
-              placeholder={`Ask about ${selectedCompany.name}...`}
+              placeholder={tx('company.ask.placeholder', 'Ask about {name}...').replace('{name}', selectedCompany.name)}
               value={companyChat}
               disabled={companyChatLoading}
               onChange={(e) => setCompanyChat(e.target.value)}
@@ -1900,7 +1992,7 @@ export default function App() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       query: companyChat.trim(),
-                      company: { name: selectedCompany.name, country: selectedCompany.country, type: selectedCompany.type, description: selectedCompany.description, marketShare: selectedCompany.marketShare, ticker: selectedCompany.ticker, robotSpecs: selectedCompany.robotSpecs },
+                      company: { name: selectedCompany.name, country: selectedCompany.country, type: selectedCompany.type, description: selectedCompanyDesc, marketShare: selectedCompany.marketShare, ticker: selectedCompany.ticker, robotSpecs: selectedCompany.robotSpecs },
                       supplierRels: sRels,
                       customerRels: cRels,
                       allCompanies: companies.map((c) => ({ id: c.id, name: c.name, country: c.country, type: c.type })),
@@ -1913,7 +2005,7 @@ export default function App() {
                 }
               }}
             />
-            {companyChatLoading && <span className="nl-query-status">Thinking...</span>}
+            {companyChatLoading && <span className="nl-query-status">{tx('company.ask.thinking', 'Thinking...')}</span>}
             {companyChatAnswer && <div className="company-ask__answer">{companyChatAnswer}</div>}
           </div>
           <div className="company-top">
@@ -1933,16 +2025,16 @@ export default function App() {
               )}
             </div>
             <div className="company-info">
-              <p className="company-desc">{selectedCompany.description}</p>
+              <p className="company-desc">{selectedCompanyDesc}</p>
               {selectedCompany.marketShare && (
-                <div className="company-share">Market Share: {selectedCompany.marketShare}</div>
+                <div className="company-share">{tx('detail.marketShare', 'Market Share: {pct}').replace('{pct}', selectedCompany.marketShare)}</div>
               )}
             </div>
           </div>
 
           {supplierRels.length > 0 && (
             <div className="company-section">
-              <h3 className="section-title">Suppliers ({supplierRels.length})</h3>
+              <h3 className="section-title">{tx('company.section.suppliers', 'Suppliers ({n})').replace('{n}', String(supplierRels.length))}</h3>
               <div className="rel-list">
                 {supplierRels.map((rel) => {
                   const supplier = companies.find((c) => c.id === rel.from);
@@ -1950,7 +2042,7 @@ export default function App() {
                   return (
                     <button key={rel.id} className="rel-row" onClick={() => handleSelectCompany(rel.from)}>
                       <span className="rel-name">{supplier.name}</span>
-                      <span className="rel-component">{rel.component}</span>
+                      <span className="rel-component">{supplyCompLabel(rel.component, tx)}</span>
                       {rel.bomPercent && <span className="rel-pct">{rel.bomPercent}%</span>}
                     </button>
                   );
@@ -1961,7 +2053,7 @@ export default function App() {
 
           {customerRels.length > 0 && (
             <div className="company-section">
-              <h3 className="section-title">Customers ({customerRels.length})</h3>
+              <h3 className="section-title">{tx('company.section.customers', 'Customers ({n})').replace('{n}', String(customerRels.length))}</h3>
               <div className="rel-list">
                 {customerRels.map((rel) => {
                   const customer = companies.find((c) => c.id === rel.to);
@@ -1969,7 +2061,7 @@ export default function App() {
                   return (
                     <button key={rel.id} className="rel-row" onClick={() => handleSelectCompany(rel.to)}>
                       <span className="rel-name">{customer.name}</span>
-                      <span className="rel-component">{rel.component}</span>
+                      <span className="rel-component">{supplyCompLabel(rel.component, tx)}</span>
                     </button>
                   );
                 })}
@@ -1981,7 +2073,7 @@ export default function App() {
             <>
               {supplierAnalysis.oemCount > 0 && (
                 <div className="company-section">
-                  <h3 className="section-title">Customer Reach</h3>
+                  <h3 className="section-title">{tx('company.section.customerReach', 'Customer Reach')}</h3>
                   <div className="supplier-reach">
                     <div className="supplier-reach__bar">
                       <div className="supplier-reach__track">
@@ -1990,13 +2082,13 @@ export default function App() {
                           style={{ width: `${(supplierAnalysis.oemCount / supplierAnalysis.totalOems) * 100}%` }}
                         />
                       </div>
-                      <span className="supplier-reach__label">{supplierAnalysis.oemCount}/{supplierAnalysis.totalOems} OEMs</span>
+                      <span className="supplier-reach__label">{tx('geo.spof.oemFraction', '{n}/{total} OEMs').replace('{n}', String(supplierAnalysis.oemCount)).replace('{total}', String(supplierAnalysis.totalOems))}</span>
                     </div>
                     <div className="supplier-reach__groups">
                       {(['US', 'CN', 'OTHER'] as const).map((g) => {
                         const group = supplierAnalysis.reachGroups[g];
                         if (group.length === 0) return null;
-                        const label = g === 'US' ? 'US' : g === 'CN' ? 'CN' : 'Other';
+                        const label = g === 'US' ? tx('geo.legend.US', 'US') : g === 'CN' ? tx('geo.legend.CN', 'CN') : tx('geo.legend.Other', 'Other');
                         return (
                           <div key={g} className="supplier-reach__group">
                             <span className="supplier-reach__group-label">{label} ({group.length}):</span>
@@ -2010,28 +2102,31 @@ export default function App() {
               )}
 
               <div className="company-section">
-                <h3 className="section-title">Alternative Suppliers{supplierAnalysis.componentLabel ? ` - ${supplierAnalysis.componentLabel}` : ''}</h3>
+                <h3 className="section-title">
+                  {tx('company.section.alternativeSuppliers', 'Alternative Suppliers')}
+                  {supplierAnalysis.componentLabel ? ` - ${geoCompCategoryLabel(supplierAnalysis.componentLabel, tx)}` : ''}
+                </h3>
                 {supplierAnalysis.alternatives.length > 0 ? (
                   <div className="supplier-alts">
                     {supplierAnalysis.alternatives.map((alt) => (
                       <button key={alt.id} className="supplier-alts__row" onClick={() => handleSelectCompany(alt.id)}>
                         <span className="supplier-alts__name">{alt.name}</span>
                         <span className="supplier-alts__country">{alt.country}</span>
-                        <span className="supplier-alts__component">{alt.component}</span>
-                        <span className="supplier-alts__oems">{alt.oemCount} OEMs</span>
+                        <span className="supplier-alts__component">{supplyCompLabel(alt.component, tx)}</span>
+                        <span className="supplier-alts__oems">{tx('company.alt.oemCount', '{n} OEMs').replace('{n}', String(alt.oemCount))}</span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p className="supplier-alts--none">Sole supplier in dataset - no alternatives tracked</p>
+                  <p className="supplier-alts--none">{tx('company.alt.none', 'Sole supplier in dataset - no alternatives tracked')}</p>
                 )}
               </div>
 
               {(thesisLoading || thesis) && (
                 <div className="company-section">
-                  <h3 className="section-title">Supply Chain Analysis</h3>
+                  <h3 className="section-title">{tx('company.section.supplyAnalysis', 'Supply Chain Analysis')}</h3>
                   {thesisLoading ? (
-                    <p className="scenario-desc" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>Generating analysis...</p>
+                    <p className="scenario-desc" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>{tx('company.generating', 'Generating analysis...')}</p>
                   ) : (
                     <p className="scenario-desc">{thesis}</p>
                   )}
@@ -2043,51 +2138,51 @@ export default function App() {
 
           {specs && (
             <div className="company-section">
-              <h3 className="section-title">Specifications</h3>
+              <h3 className="section-title">{tx('company.section.specs', 'Specifications')}</h3>
               <div className="specs-grid">
-                <Spec label="Status" value={specs.status} />
-                <Spec label="Launch" value={specs.launchDate} />
+                <Spec label={tx('company.spec.status', 'Status')} value={companySpecValue(specs.status, tx)} />
+                <Spec label={tx('company.spec.launch', 'Launch')} value={specs.launchDate} />
                 {specs.shipments2025 && (
-                  <Spec label="2025 Shipments" value={`${specs.shipments2025.toLocaleString()} (${specs.shipmentShare})`} />
+                  <Spec label={tx('company.spec.ship2025', '2025 Shipments')} value={`${specs.shipments2025.toLocaleString()} (${specs.shipmentShare})`} />
                 )}
-                <Spec label="Target" value={specs.targetUse.join(', ')} />
-                <Spec label="Mass" value={specs.mass} />
-                <Spec label="Height" value={specs.height} />
-                <Spec label="Speed" value={specs.speed} />
-                <Spec label="DOF" value={specs.totalDOF} />
-                <Spec label="Runtime" value={specs.operatingTime} />
-                <Spec label="Payload" value={specs.payloadCapacity} />
-                <Spec label="End Effector" value={specs.endEffector} />
-                <Spec label="Locomotion" value={specs.locomotion} />
-                <Spec label="Materials" value={specs.materials} />
-                <Spec label="Motor" value={specs.motor} />
-                <Spec label="Body Actuator" value={specs.actuatorBody} />
-                <Spec label="Hand Actuator" value={specs.actuatorHand} />
-                <Spec label="Transmission" value={specs.transmission} />
-                <Spec label="Ext. Sensors" value={specs.externalSensors} />
-                <Spec label="Int. Sensors" value={specs.internalSensors} />
-                <Spec label="Compute" value={specs.compute} />
-                <Spec label="Battery" value={specs.battery} />
-                <Spec label="Charging" value={specs.charging} />
-                <Spec label="AI Partner" value={specs.aiPartner} />
+                <Spec label={tx('company.spec.target', 'Target')} value={companySpecList(specs.targetUse, tx)} />
+                <Spec label={tx('company.spec.mass', 'Mass')} value={specs.mass} />
+                <Spec label={tx('company.spec.height', 'Height')} value={specs.height} />
+                <Spec label={tx('company.spec.speed', 'Speed')} value={specs.speed} />
+                <Spec label={tx('company.spec.dof', 'DOF')} value={specs.totalDOF} />
+                <Spec label={tx('company.spec.runtime', 'Runtime')} value={specs.operatingTime} />
+                <Spec label={tx('company.spec.payload', 'Payload')} value={specs.payloadCapacity} />
+                <Spec label={tx('company.spec.endEffector', 'End Effector')} value={companySpecValue(specs.endEffector, tx)} />
+                <Spec label={tx('company.spec.locomotion', 'Locomotion')} value={companySpecValue(specs.locomotion, tx)} />
+                <Spec label={tx('company.spec.materials', 'Materials')} value={companySpecValue(specs.materials, tx)} />
+                <Spec label={tx('company.spec.motor', 'Motor')} value={companySpecValue(specs.motor, tx)} />
+                <Spec label={tx('company.spec.actuatorBody', 'Body Actuator')} value={companySpecValue(specs.actuatorBody, tx)} />
+                <Spec label={tx('company.spec.actuatorHand', 'Hand Actuator')} value={companySpecValue(specs.actuatorHand, tx)} />
+                <Spec label={tx('company.spec.transmission', 'Transmission')} value={companySpecValue(specs.transmission, tx)} />
+                <Spec label={tx('company.spec.extSensors', 'Ext. Sensors')} value={companySpecValue(specs.externalSensors, tx)} />
+                <Spec label={tx('company.spec.intSensors', 'Int. Sensors')} value={companySpecValue(specs.internalSensors, tx)} />
+                <Spec label={tx('company.spec.compute', 'Compute')} value={companySpecValue(specs.compute, tx)} />
+                <Spec label={tx('company.spec.battery', 'Battery')} value={companySpecValue(specs.battery, tx)} />
+                <Spec label={tx('company.spec.charging', 'Charging')} value={companySpecValue(specs.charging, tx)} />
+                <Spec label={tx('company.spec.aiPartner', 'AI Partner')} value={companySpecValue(specs.aiPartner, tx)} />
                 <Spec
-                  label="In-House VLA Model"
+                  label={tx('company.spec.inHouseVla', 'In-House VLA Model')}
                   value={linkedCompanyVlaModels
                     .filter(({ link }) => link.relationship === 'proprietary')
                     .map(({ model }) => model.name)
                     .join(', ')}
                 />
-                <Spec label="Software" value={specs.software} />
-                <Spec label="Data Collection" value={specs.dataCollection} />
-                {specs.bom && <Spec label="BOM" value={specs.bom} />}
-                {specs.price && <Spec label="Price" value={specs.price} highlight />}
+                <Spec label={tx('company.spec.software', 'Software')} value={companySpecValue(specs.software, tx)} />
+                <Spec label={tx('company.spec.dataCollection', 'Data Collection')} value={companySpecValue(specs.dataCollection, tx)} />
+                {specs.bom && <Spec label={tx('company.spec.bom', 'BOM')} value={specs.bom} />}
+                {specs.price && <Spec label={tx('company.spec.price', 'Price')} value={specs.price} highlight />}
               </div>
             </div>
           )}
         </main>
 
         <footer className="footer">
-          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
         </footer>
       </div>
     );
@@ -2104,157 +2199,157 @@ export default function App() {
     return (
       <div className="app" style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100vh', height: 'auto', overflow: 'visible' }}>
         <Helmet>
-          <title>Changelog | Humanoid Atlas</title>
-          <meta name="description" content="Changelog for the Humanoid Atlas - major updates, new OEMs, tabs, and data additions." />
+          <title>{tx('changelog.metaTitle', 'Changelog | Humanoid Atlas')}</title>
+          <meta name="description" content={tx('changelog.metaDesc', 'Changelog for the Humanoid Atlas - major updates, new OEMs, tabs, and data additions.')} />
         </Helmet>
         <button className="back-btn" onClick={() => navigate('/')} style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
           <span className="back-arrow">&larr;</span>
         </button>
         <main className="main" style={{ maxWidth: 600, margin: '0 auto', padding: '6rem 2rem 8rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.6rem', color: 'var(--text-primary)' }}>Changelog</h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '3.5rem' }}>View more on the open source Atlas <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>repo</a></p>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.6rem', color: 'var(--text-primary)' }}>{tx('changelog.title', 'Changelog')}</h1>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '3.5rem' }}>{tx('changelog.intro', 'View more on the open source Atlas')} <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>repo</a></p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.8rem' }}>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 22, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Ultra Robotics (Operator 1)</li>
+                <li>{tx('changelog.bullet.1', 'Added Ultra Robotics (Operator 1)')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 8, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added sample explorer for browsing datasets</li>
+                <li>{tx('changelog.bullet.2', 'Added sample explorer for browsing datasets')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>April 7, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Atlas Data Brokerage</li>
+                <li>{tx('changelog.bullet.3', 'Added Atlas Data Brokerage')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 29, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Atlas Arena</li>
+                <li>{tx('changelog.bullet.4', 'Added Atlas Arena')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 25, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Vibe Robotics (Vibe A1)</li>
+                <li>{tx('changelog.bullet.5', 'Added Vibe Robotics (Vibe A1)')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 23, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added LLM summaries of Atlas</li>
+                <li>{tx('changelog.bullet.6', 'Added LLM summaries of Atlas')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 22, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added interactive skeleton with clickable body regions and component sidebar</li>
-                <li>Added CLI documentation tab</li>
-                <li>Mobile UX polish - horizontal scroll on tab nav, filter spacing, focus states</li>
+                <li>{tx('changelog.bullet.7', 'Added interactive skeleton with clickable body regions and component sidebar')}</li>
+                <li>{tx('changelog.bullet.8', 'Added CLI documentation tab')}</li>
+                <li>{tx('changelog.bullet.9', 'Mobile UX polish - horizontal scroll on tab nav, filter spacing, focus states')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 21, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added API documentation tab with 7 sub-tabs</li>
-                <li>Added data package build for API consumption</li>
-                <li>Added Data Sources page</li>
-                <li>Added 8 new OEMs - PAL, Ameca, Reachy 2, Clone, Qinglong, Unitree H2, Mentee Robotics, Booster K1</li>
-                <li>Added 3 new hand suppliers - Shadow Robot, ORCA Dexterity, ROBOTIS</li>
-                <li>Updated Unitree data - IPO filing, 5.5K shipments, financials</li>
+                <li>{tx('changelog.bullet.10', 'Added API documentation tab with 7 sub-tabs')}</li>
+                <li>{tx('changelog.bullet.11', 'Added data package build for API consumption')}</li>
+                <li>{tx('changelog.bullet.12', 'Added Data Sources page')}</li>
+                <li>{tx('changelog.bullet.13', 'Added 8 new OEMs - PAL, Ameca, Reachy 2, Clone, Qinglong, Unitree H2, Mentee Robotics, Booster K1')}</li>
+                <li>{tx('changelog.bullet.14', 'Added 3 new hand suppliers - Shadow Robot, ORCA Dexterity, ROBOTIS')}</li>
+                <li>{tx('changelog.bullet.15', 'Updated Unitree data - IPO filing, 5.5K shipments, financials')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 20, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Safety &amp; Standards tab - 10 standards, 12 OEM safety profiles</li>
-                <li>Added Sim Platforms tab - 13 platforms with capability matrix</li>
-                <li>Added Factories tab</li>
-                <li>Added Industry tab group with Funding tab - 26 companies, 12 investors</li>
-                <li>Added SEO/GEO - path-based routing, meta tags, structured data, sitemap, llms.txt</li>
-                <li>Added World Models tab - 17 models across 4 categories</li>
-                <li>Added HRI tab group with Displays tab - 17 head/face designs</li>
-                <li>Added Viz Tools tab - 10 tools across 4 categories</li>
-                <li>Added Vanar Robots - first Indian OEM</li>
+                <li>{tx('changelog.bullet.16', 'Added Safety & Standards tab - 10 standards, 12 OEM safety profiles')}</li>
+                <li>{tx('changelog.bullet.17', 'Added Sim Platforms tab - 13 platforms with capability matrix')}</li>
+                <li>{tx('changelog.bullet.18', 'Added Factories tab')}</li>
+                <li>{tx('changelog.bullet.19', 'Added Industry tab group with Funding tab - 26 companies, 12 investors')}</li>
+                <li>{tx('changelog.bullet.20', 'Added SEO/GEO - path-based routing, meta tags, structured data, sitemap, llms.txt')}</li>
+                <li>{tx('changelog.bullet.21', 'Added World Models tab - 17 models across 4 categories')}</li>
+                <li>{tx('changelog.bullet.22', 'Added HRI tab group with Displays tab - 17 head/face designs')}</li>
+                <li>{tx('changelog.bullet.23', 'Added Viz Tools tab - 10 tools across 4 categories')}</li>
+                <li>{tx('changelog.bullet.24', 'Added Vanar Robots - first Indian OEM')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 19, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added Robometer scores for all reward models</li>
-                <li>Added Reward Models tab - 10 curated models under Software</li>
-                <li>Added tab grouping - Overview, Hardware, Software</li>
-                <li>Added Fauna Robotics (Sprout) as new OEM</li>
-                <li>Added OEM like/unlike voting with heart button</li>
-                <li>Added Japan and South Korea country filters</li>
+                <li>{tx('changelog.bullet.25', 'Added Robometer scores for all reward models')}</li>
+                <li>{tx('changelog.bullet.26', 'Added Reward Models tab - 10 curated models under Software')}</li>
+                <li>{tx('changelog.bullet.27', 'Added tab grouping - Overview, Hardware, Software')}</li>
+                <li>{tx('changelog.bullet.28', 'Added Fauna Robotics (Sprout) as new OEM')}</li>
+                <li>{tx('changelog.bullet.29', 'Added OEM like/unlike voting with heart button')}</li>
+                <li>{tx('changelog.bullet.30', 'Added Japan and South Korea country filters')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 18, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added 11 new humanoid OEMs</li>
-                <li>Added VLA tab - 20 vision-language-action models with OEM links, search &amp; filters</li>
-                <li>Open-sourced repository - CONTRIBUTING guide, issue/PR templates, CI</li>
-                <li>Optimized images - PNG to WebP conversion</li>
+                <li>{tx('changelog.bullet.31', 'Added 11 new humanoid OEMs')}</li>
+                <li>{tx('changelog.bullet.32', 'Added VLA tab - 20 vision-language-action models with OEM links, search & filters')}</li>
+                <li>{tx('changelog.bullet.33', 'Open-sourced repository - CONTRIBUTING guide, issue/PR templates, CI')}</li>
+                <li>{tx('changelog.bullet.34', 'Optimized images - PNG to WebP conversion')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 17, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Public release</li>
-                <li>Added 15 new humanoid OEMs with enriched specs</li>
-                <li>Fixed open API proxy vulnerability - restricted CORS and sanitized errors</li>
+                <li>{tx('changelog.bullet.35', 'Public release')}</li>
+                <li>{tx('changelog.bullet.36', 'Added 15 new humanoid OEMs with enriched specs')}</li>
+                <li>{tx('changelog.bullet.37', 'Fixed open API proxy vulnerability - restricted CORS and sanitized errors')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 16, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Added competitive comparison view</li>
-                <li>Added AI features via Groq - smart search, scenario analysis, investment thesis, graph query</li>
-                <li>Added Timeline tab with swim-lane OEM launch history</li>
-                <li>Added Network graph tab with column-based supply chain layout</li>
-                <li>Added BOM &amp; Cost Analysis</li>
-                <li>Added Supply Chain Simulator with named scenarios and cascade logic</li>
-                <li>Added Geopolitics - Single Points of Failure analysis</li>
-                <li>Expanded atlas - 3 new OEMs, supplier enrichment, 16 new relationships</li>
+                <li>{tx('changelog.bullet.38', 'Added competitive comparison view')}</li>
+                <li>{tx('changelog.bullet.39', 'Added AI features via Groq - smart search, scenario analysis, investment thesis, graph query')}</li>
+                <li>{tx('changelog.bullet.40', 'Added Timeline tab with swim-lane OEM launch history')}</li>
+                <li>{tx('changelog.bullet.41', 'Added Network graph tab with column-based supply chain layout')}</li>
+                <li>{tx('changelog.bullet.42', 'Added BOM & Cost Analysis')}</li>
+                <li>{tx('changelog.bullet.43', 'Added Supply Chain Simulator with named scenarios and cascade logic')}</li>
+                <li>{tx('changelog.bullet.44', 'Added Geopolitics - Single Points of Failure analysis')}</li>
+                <li>{tx('changelog.bullet.45', 'Expanded atlas - 3 new OEMs, supplier enrichment, 16 new relationships')}</li>
               </ul>
             </div>
 
             <div>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>March 15, 2026</span>
               <ul style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.5rem', paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                <li>Initial build - supply chain explorer for humanoid robotics</li>
-                <li>Tab-based navigation with supply chain data for all components</li>
-                <li>3D PLY models with per-model spin speed and scale normalization</li>
-                <li>Robot image gallery for all 13 humanoids</li>
-                <li>Geopolitics features - country filter, sovereignty scoreboard, cut the wire</li>
-                <li>Mobile responsive design</li>
-                <li>Live page view counter and analytics</li>
+                <li>{tx('changelog.bullet.46', 'Initial build - supply chain explorer for humanoid robotics')}</li>
+                <li>{tx('changelog.bullet.47', 'Tab-based navigation with supply chain data for all components')}</li>
+                <li>{tx('changelog.bullet.48', '3D PLY models with per-model spin speed and scale normalization')}</li>
+                <li>{tx('changelog.bullet.49', 'Robot image gallery for all 13 humanoids')}</li>
+                <li>{tx('changelog.bullet.50', 'Geopolitics features - country filter, sovereignty scoreboard, cut the wire')}</li>
+                <li>{tx('changelog.bullet.51', 'Mobile responsive design')}</li>
+                <li>{tx('changelog.bullet.52', 'Live page view counter and analytics')}</li>
               </ul>
             </div>
 
           </div>
         </main>
         <footer className="footer" style={{ marginTop: 'auto' }}>
-          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
         </footer>
       </div>
     );
@@ -2265,46 +2360,46 @@ export default function App() {
     return (
       <div className="app" style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100vh', height: 'auto', overflow: 'visible' }}>
         <Helmet>
-          <title>Privacy Policy | Humanoid Atlas</title>
-          <meta name="description" content="Privacy policy for Humanoid Atlas (humanoids.fyi)." />
+          <title>{tx('privacy.metaTitle', 'Privacy Policy | Humanoid Atlas')}</title>
+          <meta name="description" content={tx('privacy.metaDesc', 'Privacy policy for Humanoid Atlas (humanoids.fyi).')} />
         </Helmet>
         <button className="back-btn" onClick={() => navigate('/')} style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
           <span className="back-arrow">&larr;</span>
         </button>
         <main className="main" style={{ maxWidth: 600, margin: '0 auto', padding: '6rem 2rem 8rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.6rem', color: 'var(--text-primary)' }}>Privacy Policy</h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '3.5rem' }}>Last updated: April 3, 2026</p>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.6rem', color: 'var(--text-primary)' }}>{tx('privacy.title', 'Privacy Policy')}</h1>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginBottom: '3.5rem' }}>{tx('privacy.updated', 'Last updated: April 3, 2026')}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.2rem', color: 'var(--text-dim)', fontSize: '0.9rem', lineHeight: 1.7 }}>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Overview</h2>
-              <p>Humanoid Atlas (&ldquo;humanoids.fyi&rdquo;) is an open-source information platform for the humanoid robotics industry. We are committed to respecting your privacy and being transparent about what data we collect.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.overview.title', 'Overview')}</h2>
+              <p>{tx('privacy.intro', 'Humanoid Atlas (“humanoids.fyi”) is an open-source information platform for the humanoid robotics industry. We are committed to respecting your privacy and being transparent about what data we collect.')}</p>
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Data We Collect</h2>
-              <p><strong>Analytics:</strong> We use Vercel Analytics to collect anonymous, aggregated usage data such as page views, referrers, and device types. This data cannot identify individual users.</p>
-              <p style={{ marginTop: '0.5rem' }}><strong>Authentication:</strong> If you create an account via Clerk, we store your email address and profile information solely for account functionality. We do not sell or share this information with third parties.</p>
-              <p style={{ marginTop: '0.5rem' }}><strong>Payments:</strong> Payment processing is handled entirely by Stripe. We do not store credit card numbers or financial details on our servers.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.collect.title', 'Data We Collect')}</h2>
+              <p><strong>{tx('privacy.lbl.analytics', 'Analytics:')}</strong> {tx('privacy.collect.analytics', 'We use Vercel Analytics to collect anonymous, aggregated usage data such as page views, referrers, and device types. This data cannot identify individual users.')}</p>
+              <p style={{ marginTop: '0.5rem' }}><strong>{tx('privacy.lbl.auth', 'Authentication:')}</strong> {tx('privacy.collect.auth', 'If you create an account via Clerk, we store your email address and profile information solely for account functionality. We do not sell or share this information with third parties.')}</p>
+              <p style={{ marginTop: '0.5rem' }}><strong>{tx('privacy.lbl.pay', 'Payments:')}</strong> {tx('privacy.collect.pay', 'Payment processing is handled entirely by Stripe. We do not store credit card numbers or financial details on our servers.')}</p>
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Cookies</h2>
-              <p>We use essential cookies for authentication sessions. We do not use advertising or tracking cookies.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.cookies.title', 'Cookies')}</h2>
+              <p>{tx('privacy.cookies.body', 'We use essential cookies for authentication sessions. We do not use advertising or tracking cookies.')}</p>
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Third-Party Services</h2>
-              <p>We use the following third-party services: Vercel (hosting &amp; analytics), Clerk (authentication), Stripe (payments), and Upstash (data storage). Each operates under their own privacy policies.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.third.title', 'Third-Party Services')}</h2>
+              <p>{tx('privacy.third.body', 'We use the following third-party services: Vercel (hosting & analytics), Clerk (authentication), Stripe (payments), and Upstash (data storage). Each operates under their own privacy policies.')}</p>
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Data Marketplace</h2>
-              <p>The Atlas Data Brokerage facilitates transactions between data providers and buyers. Data shared through listings is governed by the terms agreed upon between parties. Humanoid Atlas acts as an intermediary and does not claim ownership of user-submitted data.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.market.title', 'Data Marketplace')}</h2>
+              <p>{tx('privacy.market.body', 'The Atlas Data Brokerage facilitates transactions between data providers and buyers. Data shared through listings is governed by the terms agreed upon between parties. Humanoid Atlas acts as an intermediary and does not claim ownership of user-submitted data.')}</p>
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Contact</h2>
-              <p>For privacy-related questions, reach out to <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)' }}>@JulianSaks</a> or open an issue on our <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)' }}>GitHub repository</a>.</p>
+              <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{tx('privacy.contact.title', 'Contact')}</h2>
+              <p>{tx('privacy.contact.lead', 'For privacy-related questions, reach out to')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)' }}>@JulianSaks</a> {tx('privacy.contact.orIssue', 'or open an issue on our')} <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)' }}>GitHub repository</a>.</p>
             </div>
           </div>
         </main>
         <footer className="footer" style={{ marginTop: 'auto' }}>
-          <span><a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+          <span><a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
         </footer>
       </div>
     );
@@ -2315,42 +2410,46 @@ export default function App() {
     return (
       <div className="app" style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100vh', height: 'auto', overflow: 'visible' }}>
         <Helmet>
-          <title>Data Sources | Humanoid Atlas</title>
-          <meta name="description" content="Data sources powering the Humanoid Atlas - OEM specs, supply chain data, and industry intelligence." />
+          <title>{tx('sources.metaTitle', 'Data Sources | Humanoid Atlas')}</title>
+          <meta name="description" content={tx('sources.metaDesc', 'Data sources powering the Humanoid Atlas - OEM specs, supply chain data, and industry intelligence.')} />
         </Helmet>
         <button className="back-btn" onClick={() => navigate('/')} style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
           <span className="back-arrow">&larr;</span>
         </button>
         <main className="main" style={{ maxWidth: 600, margin: '0 auto', padding: '6rem 2rem 8rem' }}>
-          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3.5rem', color: 'var(--text-primary)' }}>Data Sources</h1>
+          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.3rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '3.5rem', color: 'var(--text-primary)' }}>{tx('sources.title', 'Data Sources')}</h1>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.2rem' }}>
             <div>
               <a href="https://www.humanityslastmachine.com/humanoid-landscape" target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>Humanity&apos;s Last Machine</a>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>A deep dive on humanoid hardware</p>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>{tx('sources.hl.desc', 'A deep dive on humanoid hardware')}</p>
             </div>
             <div>
               <a href="https://www.robostrategy.co/" target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>RoboStrategy</a>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>Fund focused on robotics</p>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>{tx('sources.rs.desc', 'Fund focused on robotics')}</p>
             </div>
             <div>
               <a href="https://www.integrarobot.com" target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>integrarobot.com</a>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>Weekly robotics newsletter</p>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>{tx('sources.ir.desc', 'Weekly robotics newsletter')}</p>
             </div>
             <div>
               <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: 'var(--text-primary)' }}>Community Contributions</a>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>Open-source contributions from the humanoid community</p>
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '0.3rem' }}>{tx('sources.cc.desc', 'Open-source contributions from the humanoid community')}</p>
             </div>
           </div>
         </main>
         <footer className="footer" style={{ marginTop: 'auto' }}>
-          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+          <span><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
         </footer>
       </div>
     );
   }
 
   // ==================== MAIN VIEW (tabs) ====================
-  const tabMeta = TAB_META[activeTab] || TAB_META.skeleton;
+  const tabMetaBase = TAB_META[activeTab] || TAB_META.skeleton;
+  const tabMeta = {
+    title: tx(`meta.${activeTab}.title`, tabMetaBase.title),
+    description: tx(`meta.${activeTab}.description`, tabMetaBase.description),
+  };
 
   return (
     <div className="app">
@@ -2363,8 +2462,12 @@ export default function App() {
         <meta property="og:url" content={`https://www.humanoids.fyi${TAB_TO_PATH[activeTab] || '/'}`} />
       </Helmet>
       <header className="header">
-        <span className="header-title">Humanoid Atlas</span>
-        <span className="header-sub">Built For Humanoid Enthusiasts</span>
+        <div className="header-top-row">
+          <div className="header-brand">
+            <span className="header-title">{tx('site.title', 'Humanoid Atlas')}</span>
+            <span className="header-sub">{tx('site.subtitle', 'Built For Humanoid Enthusiasts')}</span>
+          </div>
+        </div>
         <div className="search-wrapper" ref={searchRef}>
           <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -2372,7 +2475,7 @@ export default function App() {
           <input
             className="search-input"
             type="text"
-            placeholder="Search & ask the atlas..."
+            placeholder={tx('site.search.placeholder', 'Search & ask the atlas...')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -2423,7 +2526,7 @@ export default function App() {
           {searchOpen && searchQuery.trim() && (
             <div className="search-dropdown">
               {smartLoading ? (
-                <div className="search-empty">Searching...</div>
+                <div className="search-empty">{tx('search.searching', 'Searching...')}</div>
               ) : smartAnswer ? (
                 <>
                   <div className="search-answer">{smartAnswer.answer}</div>
@@ -2433,15 +2536,15 @@ export default function App() {
                       <span className="search-result__meta">
                         <span>{c.country}</span>
                         <span>&middot;</span>
-                        <span className="search-result__type">{TYPE_DISPLAY[c.type] || c.type}</span>
+                        <span className="search-result__type">{typeDisplay[c.type as keyof typeof typeDisplay] || c.type}</span>
                       </span>
                     </div>
                   ))}
                 </>
               ) : isCompareQuery ? (
-                <div className="search-empty">Press Enter to compare</div>
+                <div className="search-empty">{tx('search.pressCompare', 'Press Enter to compare')}</div>
               ) : isNlQuery ? (
-                <div className="search-empty">Press Enter to search</div>
+                <div className="search-empty">{tx('search.pressSearch', 'Press Enter to search')}</div>
               ) : searchResults.length > 0 || vlaSearchResults.length > 0 ? (
                 <>
                   {searchResults.map((c) => (
@@ -2450,7 +2553,7 @@ export default function App() {
                       <span className="search-result__meta">
                         <span>{c.country}</span>
                         <span>&middot;</span>
-                        <span className="search-result__type">{TYPE_DISPLAY[c.type] || c.type}</span>
+                        <span className="search-result__type">{typeDisplay[c.type as keyof typeof typeDisplay] || c.type}</span>
                       </span>
                     </div>
                   ))}
@@ -2466,11 +2569,12 @@ export default function App() {
                   ))}
                 </>
               ) : (
-                <div className="search-empty">No results</div>
+                <div className="search-empty">{tx('search.noResults', 'No results')}</div>
               )}
             </div>
           )}
         </div>
+        <LocaleToggle />
       </header>
 
       <div className="filter-bar">
@@ -2485,7 +2589,7 @@ export default function App() {
                   const firstTab = TABS.find((t) => t.group === g.id);
                   if (firstTab) { navigate(TAB_TO_PATH[firstTab.id] || '/'); setChainFocus(null); }
                 }}
-              >{g.label}{g.id === 'shop' && <span className="tab-new-badge">NEW</span>}</button>
+                >{tx(`nav.group.${g.id}`, g.label)}{g.id === 'shop' && <span className="tab-new-badge">{tx('badge.new', 'NEW')}</span>}</button>
             </Fragment>
           ))}
         </div>
@@ -2499,7 +2603,7 @@ export default function App() {
             className={`component-btn ${activeShopSubTab === s.id ? 'component-btn--active' : ''}`}
             onClick={() => { navigate(s.defaultPath); setChainFocus(null); }}
           >
-            {s.label}
+            {tx(`nav.shop.${s.id}`, s.label)}
           </button>
         ))}
       </nav>
@@ -2514,7 +2618,7 @@ export default function App() {
               className={`component-btn ${activeTab === t.id ? 'component-btn--active' : ''}`}
               onClick={() => { navigate(TAB_TO_PATH[t.id] || '/'); setChainFocus(null); }}
             >
-              {t.label}
+              {tx(`nav.tab.${t.id}`, t.label)}
             </button>
           );
         })}
@@ -2531,7 +2635,7 @@ export default function App() {
                 className={`component-btn ${activeTab === t.id ? 'component-btn--active' : ''}`}
                 onClick={() => { navigate(TAB_TO_PATH[t.id] || '/'); setChainFocus(null); }}
               >
-                {t.label}
+                {tx(`nav.tab.${t.id}`, t.label)}
               </button>
             ))}
           </nav>
@@ -2541,7 +2645,7 @@ export default function App() {
         {activeTab === 'skeleton' && (
           <div className={`skeleton-interactive${skeletonRegion && skeletonSidebarOpen && !isMobile ? ' skeleton-interactive--sidebar-open' : ''}`}>
             {!isMobile && !skeletonRegion && (
-              <div className="skeleton-prompt">Click a region of the humanoid to explore more</div>
+              <div className="skeleton-prompt">{tx('skeleton.prompt', 'Click a region of the humanoid to explore more')}</div>
             )}
             <div className="skeleton-center">
               <PLYViewer
@@ -2569,10 +2673,10 @@ export default function App() {
                   <div className="skeleton-sidebar__header">
                     <span className="skeleton-sidebar__region-label">{activeSkeletonRegion.label}</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="back-btn" onClick={() => setSkeletonSidebarOpen(false)} title="Collapse sidebar">
+                      <button className="back-btn" onClick={() => setSkeletonSidebarOpen(false)} title={tx('skeleton.sidebar.collapse', 'Collapse sidebar')}>
                         <span>&rsaquo;</span>
                       </button>
-                      <button className="back-btn" onClick={() => { setSkeletonRegion(null); setSkeletonPill(null); }} title="Close">
+                      <button className="back-btn" onClick={() => { setSkeletonRegion(null); setSkeletonPill(null); }} title={tx('skeleton.sidebar.close', 'Close')}>
                         <span>&times;</span>
                       </button>
                     </div>
@@ -2602,14 +2706,14 @@ export default function App() {
 
                         {skeletonComponent.bottleneck && skeletonComponent.bottleneckReason && (
                           <div className="skeleton-sidebar__bottleneck">
-                            <span className="skeleton-sidebar__section-label">Supply Chain Bottleneck</span>
+                            <span className="skeleton-sidebar__section-label">{tx('skeleton.section.bottleneck', 'Supply Chain Bottleneck')}</span>
                             <p className="skeleton-sidebar__bottleneck-reason">{skeletonComponent.bottleneckReason}</p>
                           </div>
                         )}
 
                         {skeletonComponent.keyMetrics && Object.keys(skeletonComponent.keyMetrics).length > 0 && (
                           <div className="skeleton-sidebar__section">
-                            <span className="skeleton-sidebar__section-label">Key Metrics</span>
+                            <span className="skeleton-sidebar__section-label">{tx('skeleton.section.metrics', 'Key Metrics')}</span>
                             <div className="skeleton-sidebar__metrics">
                               {Object.entries(skeletonComponent.keyMetrics).map(([k, v]) => (
                                 <div key={k} className="skeleton-sidebar__metric-row">
@@ -2623,7 +2727,7 @@ export default function App() {
 
                         {skeletonChain && skeletonChain.suppliers.length > 0 && (
                           <div className="skeleton-sidebar__section">
-                            <span className="skeleton-sidebar__section-label">Suppliers</span>
+                            <span className="skeleton-sidebar__section-label">{tx('skeleton.section.suppliers', 'Suppliers')}</span>
                             <div className="skeleton-sidebar__supplier-list">
                               {skeletonChain.suppliers.map(s => (
                                 <div key={s!.id} className="skeleton-sidebar__supplier-row" onClick={() => { setCompanyId(s!.id); }}>
@@ -2637,15 +2741,15 @@ export default function App() {
 
                         {skeletonChain && (
                           <div className="skeleton-sidebar__section">
-                            <span className="skeleton-sidebar__section-label">Supply Chain</span>
+                            <span className="skeleton-sidebar__section-label">{tx('skeleton.section.chain', 'Supply Chain')}</span>
                             <div className="skeleton-sidebar__chain-summary">
                               {skeletonChain.upstream.length > 0 && (
-                                <span className="skeleton-sidebar__chain-tier">{skeletonChain.upstream.length} Raw Materials</span>
+                                <span className="skeleton-sidebar__chain-tier">{tx('skeleton.chain.rawMaterialsCount', '{count} Raw Materials').replace('{count}', String(skeletonChain.upstream.length))}</span>
                               )}
                               {skeletonChain.upstream.length > 0 && <span className="skeleton-sidebar__chain-arrow">&rarr;</span>}
-                              <span className="skeleton-sidebar__chain-tier">{skeletonChain.suppliers.length} Suppliers</span>
+                              <span className="skeleton-sidebar__chain-tier">{tx('skeleton.chain.suppliersCount', '{count} Suppliers').replace('{count}', String(skeletonChain.suppliers.length))}</span>
                               <span className="skeleton-sidebar__chain-arrow">&rarr;</span>
-                              <span className="skeleton-sidebar__chain-tier">{skeletonChain.oems.length} OEMs</span>
+                              <span className="skeleton-sidebar__chain-tier">{tx('skeleton.chain.oemsCount', '{count} OEMs').replace('{count}', String(skeletonChain.oems.length))}</span>
                             </div>
                           </div>
                         )}
@@ -2655,18 +2759,18 @@ export default function App() {
                             className="skeleton-sidebar__nav-link"
                             onClick={() => navigate(TAB_TO_PATH[skeletonPill!])}
                           >
-                            View full {skeletonComponent.name} tab &rarr;
+                            {tx('skeleton.nav.fullTab', 'View full {name} tab').replace('{name}', skeletonComponent.name)} &rarr;
                           </button>
                         )}
 
                         <div className="skeleton-sidebar__section" style={{ marginTop: '20px' }}>
-                          <span className="skeleton-sidebar__section-label">OEM View</span>
+                          <span className="skeleton-sidebar__section-label">{tx('skeleton.oem.title', 'OEM View')}</span>
                           <select
                             className="skeleton-sidebar__oem-select"
                             value={skeletonOem || ''}
                             onChange={(e) => setSkeletonOem(e.target.value || null)}
                           >
-                            <option value="">Select an OEM...</option>
+                            <option value="">{tx('skeleton.oem.select', 'Select an OEM...')}</option>
                             {oems.map(o => (
                               <option key={o.id} value={o.id}>{o.name}</option>
                             ))}
@@ -2678,7 +2782,7 @@ export default function App() {
                               {(COMPONENT_SPEC_FIELDS[skeletonPill] || []).map(({ field, label }) => {
                                 const val = selectedOemCompany.robotSpecs?.[field];
                                 if (!val || val === 'Not disclosed') return null;
-                                const display = typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val);
+                                const display = typeof val === 'boolean' ? (val ? tx('bool.yes', 'Yes') : tx('bool.no', 'No')) : String(val);
                                 return (
                                   <div key={field} className="skeleton-sidebar__metric-row">
                                     <span className="skeleton-sidebar__metric-label">{label}</span>
@@ -2688,10 +2792,10 @@ export default function App() {
                               })}
                               {skeletonChain && (() => {
                                 const oemRels = skeletonChain.rels.filter(r => r.to === skeletonOem);
-                                if (oemRels.length === 0) return <p className="skeleton-sidebar__no-data">No supply chain data for this OEM</p>;
+                                if (oemRels.length === 0) return <p className="skeleton-sidebar__no-data">{tx('skeleton.oem.noChain', 'No supply chain data for this OEM')}</p>;
                                 return (
                                   <div className="skeleton-sidebar__section" style={{ marginTop: '8px' }}>
-                                    <span className="skeleton-sidebar__section-label">Suppliers Used</span>
+                                    <span className="skeleton-sidebar__section-label">{tx('skeleton.oem.suppliersUsed', 'Suppliers Used')}</span>
                                     <div className="skeleton-sidebar__supplier-list">
                                     {oemRels.map(r => {
                                       const sup = companies.find(c => c.id === r.from);
@@ -2709,7 +2813,7 @@ export default function App() {
                             </div>
                           )}
                           {selectedOemCompany && !selectedOemCompany.robotSpecs && (
-                            <p className="skeleton-sidebar__no-data">No spec data available for {selectedOemCompany.name}</p>
+                            <p className="skeleton-sidebar__no-data">{tx('skeleton.noSpecsForOem', 'No spec data available for {name}').replace('{name}', selectedOemCompany.name)}</p>
                           )}
                         </div>
                       </>
@@ -2722,7 +2826,7 @@ export default function App() {
               <button
                 className="skeleton-sidebar__reopen back-btn"
                 onClick={() => setSkeletonSidebarOpen(true)}
-                title="Open sidebar"
+                title={tx('skeleton.sidebar.open', 'Open sidebar')}
               >
                 <span>&lsaquo;</span>
               </button>
@@ -3115,31 +3219,31 @@ export default function App() {
           return (
             <div className="geo-content">
               <section className="geo-section">
-                <h3 className="section-title">US vs China vs Rest - Scoreboard</h3>
+                <h3 className="section-title">{tx('geo.scoreboard.title', 'US vs China vs Rest - Scoreboard')}</h3>
                 <div className="scoreboard-grid">
                   {scoreboard.map((col) => (
                     <div key={col.group} className={`scoreboard-col scoreboard-col--${col.group.toLowerCase()}`}>
-                      <div className="scoreboard-header">{col.label}</div>
+                      <div className="scoreboard-header">{tx(`geo.scoreboard.region.${col.group}`, col.label)}</div>
                       <div className="scoreboard-stats">
                         <div className="scoreboard-stat">
                           <span className="scoreboard-stat__value">{col.oemCount}</span>
-                          <span className="scoreboard-stat__label">OEMs</span>
+                          <span className="scoreboard-stat__label">{tx('geo.scoreboard.oems', 'OEMs')}</span>
                         </div>
                         <div className="scoreboard-stat">
                           <span className="scoreboard-stat__value">{col.supplierCount}</span>
-                          <span className="scoreboard-stat__label">Suppliers</span>
+                          <span className="scoreboard-stat__label">{tx('geo.scoreboard.suppliers', 'Suppliers')}</span>
                         </div>
                         <div className="scoreboard-stat">
                           <span className="scoreboard-stat__value">{col.totalShipments.toLocaleString()}</span>
-                          <span className="scoreboard-stat__label">2025 Shipments</span>
+                          <span className="scoreboard-stat__label">{tx('geo.scoreboard.shipments2025', '2025 Shipments')}</span>
                         </div>
                         <div className="scoreboard-stat">
                           <span className="scoreboard-stat__value">{col.selfSufficiency}%</span>
-                          <span className="scoreboard-stat__label">Self-Sufficiency</span>
+                          <span className="scoreboard-stat__label">{tx('geo.scoreboard.selfSufficiency', 'Self-Sufficiency')}</span>
                         </div>
                         <div className="scoreboard-stat">
                           <span className="scoreboard-stat__value">{col.bottleneckExposed}/{col.bottleneckTotal}</span>
-                          <span className="scoreboard-stat__label">Bottleneck Exposed</span>
+                          <span className="scoreboard-stat__label">{tx('geo.scoreboard.bottleneckExposed', 'Bottleneck Exposed')}</span>
                         </div>
                       </div>
                     </div>
@@ -3148,12 +3252,12 @@ export default function App() {
               </section>
 
               <section className="geo-section">
-                <h3 className="section-title">Stack Sovereignty - Supplier Origin by Component</h3>
+                <h3 className="section-title">{tx('geo.sovereignty.title', 'Stack Sovereignty - Supplier Origin by Component')}</h3>
                 <div className="sovereignty-stack">
                   {sovereignty.map((row) => (
                     <div key={row.id} className="sovereignty-row">
                       <div className="sovereignty-label">
-                        <span>{row.name}</span>
+                        <span>{tx(`hwcat.${row.id}.name`, row.name)}</span>
                         {row.bottleneck && <span className="sovereignty-bottleneck">!</span>}
                       </div>
                       <div className="sovereignty-bar">
@@ -3178,15 +3282,15 @@ export default function App() {
                   ))}
                 </div>
                 <div className="sovereignty-legend">
-                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--us" /> US</span>
-                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--cn" /> China</span>
-                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--other" /> Other</span>
-                  <span className="sovereignty-legend__item sovereignty-legend__count">Count = total suppliers</span>
+                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--us" /> {tx('geo.legend.US', 'US')}</span>
+                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--cn" /> {tx('geo.legend.China', 'China')}</span>
+                  <span className="sovereignty-legend__item"><span className="sovereignty-dot sovereignty-dot--other" /> {tx('geo.legend.Other', 'Other')}</span>
+                  <span className="sovereignty-legend__item sovereignty-legend__count">{tx('geo.legend.countNote', 'Count = total suppliers')}</span>
                 </div>
               </section>
 
               <section className="geo-section">
-                <h3 className="section-title">Critical Suppliers - Single Points of Failure</h3>
+                <h3 className="section-title">{tx('geo.spof.title', 'Critical Suppliers - Single Points of Failure')}</h3>
                 <div className="spof-list">
                   {spofRows.map((row) => (
                     <div
@@ -3196,12 +3300,12 @@ export default function App() {
                     >
                       <div className="spof-row__header">
                         <span className={`spof-badge spof-badge--${row.level.toLowerCase()}`}>
-                          {row.level}
+                          {tx(`geo.spof.level.${row.level}`, row.level)}
                         </span>
                         <span className="spof-name">{row.name}</span>
                         <span className="spof-country">{row.country}</span>
                         <span className="spof-component">
-                          {row.componentLabel}
+                          {geoCompCategoryLabel(row.componentLabel, tx)}
                           {row.isBottleneck && <span className="sovereignty-bottleneck">!</span>}
                         </span>
                       </div>
@@ -3212,15 +3316,16 @@ export default function App() {
                             style={{ width: `${(row.oemCount / row.totalOems) * 100}%` }}
                           />
                         </div>
-                        <span className="spof-bar__label">{row.oemCount}/{row.totalOems} OEMs</span>
+                        <span className="spof-bar__label">{tx('geo.spof.oemFraction', '{n}/{total} OEMs').replace('{n}', String(row.oemCount)).replace('{total}', String(row.totalOems))}</span>
                       </div>
                       <div className={`spof-alts ${row.alternatives.length === 0 ? 'spof-alts--none' : ''}`}>
-                        Alts: {row.alternatives.length === 0
-                          ? 'None in dataset - sole supplier'
+                        {tx('geo.spof.altsPrefix', 'Alts:')}{' '}
+                        {row.alternatives.length === 0
+                          ? tx('geo.spof.noAlts', 'None in dataset - sole supplier')
                           : row.alternatives.map((a) => `${a.name} (${a.country})`).join(', ')}
                       </div>
                       <div className="spof-oems">
-                        Customers: {row.dependentOems.map((o) => o.name).join(', ')}
+                        {tx('geo.spof.customersPrefix', 'Customers:')} {row.dependentOems.map((o) => o.name).join(', ')}
                       </div>
                     </div>
                   ))}
@@ -3229,7 +3334,7 @@ export default function App() {
               </section>
 
               <section className="geo-section">
-                <h3 className="section-title">OEM Supply Chain Dependency - Supplier Origin per OEM</h3>
+                <h3 className="section-title">{tx('geo.oemNationality.title', 'OEM Supply Chain Dependency - Supplier Origin per OEM')}</h3>
                 <div className="oem-nationality-grid">
                   {oemNationality.map((oem) => (
                     <div key={oem.id} className="oem-nat-card" onClick={() => handleSelectCompany(oem.id)}>
@@ -3249,10 +3354,10 @@ export default function App() {
                         )}
                       </div>
                       <div className="oem-nat-stats">
-                        <span>US {oem.pctUS}%</span>
-                        <span>CN {oem.pctCN}%</span>
-                        <span>Other {oem.pctOther}%</span>
-                        <span className="oem-nat-total">{oem.total} suppliers</span>
+                        <span>{tx('geo.legend.US', 'US')} {oem.pctUS}%</span>
+                        <span>{tx('geo.legend.CN', 'CN')} {oem.pctCN}%</span>
+                        <span>{tx('geo.oemNat.other', 'Other')} {oem.pctOther}%</span>
+                        <span className="oem-nat-total">{tx('geo.oemNat.supplierCount', '{n} suppliers').replace('{n}', String(oem.total))}</span>
                       </div>
                     </div>
                   ))}
@@ -3260,7 +3365,7 @@ export default function App() {
               </section>
 
               <section className="geo-section">
-                <h3 className="section-title">Supply Chain Simulator</h3>
+                <h3 className="section-title">{tx('geo.simulator.title', 'Supply Chain Simulator')}</h3>
 
                 <div className="scenario-presets">
                   {SCENARIOS.map((s) => (
@@ -3285,7 +3390,7 @@ export default function App() {
                         setCutCountries(allCutCountries);
                       }}
                     >
-                      {s.label}
+                      {tx(`geo.scenario.${s.id}.label`, s.label)}
                     </button>
                   ))}
                 </div>
@@ -3294,7 +3399,7 @@ export default function App() {
                   <input
                     className="nl-query-input"
                     type="text"
-                    placeholder="Describe a scenario... e.g. &quot;What if Japan bans reducer exports?&quot;"
+                    placeholder={tx('geo.simulator.placeholder', 'Describe a scenario... e.g. "What if Japan bans reducer exports?"')}
                     value={nlQuery}
                     onChange={(e) => setNlQuery(e.target.value)}
                     disabled={nlParsing}
@@ -3329,21 +3434,21 @@ export default function App() {
                 {(activeScenarios.size > 0 || cutCountries.size > 0 || cutCompanies.size > 0) && (
                   <div className="scenario-descs">
                     {aiLoading ? (
-                      <div className="scenario-desc" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>Generating analysis...</div>
+                      <div className="scenario-desc" style={{ fontStyle: 'italic', color: 'var(--text-dim)' }}>{tx('geo.simulator.generating', 'Generating analysis...')}</div>
                     ) : aiSummary ? (
                       <div className="scenario-desc">{aiSummary}</div>
                     ) : activeScenarios.size > 0 ? (
                       SCENARIOS.filter((s) => activeScenarios.has(s.id)).map((s) => (
-                        <div key={s.id} className="scenario-desc">{s.description}</div>
+                        <div key={s.id} className="scenario-desc">{tx(`geo.scenario.${s.id}.desc`, s.description)}</div>
                       ))
                     ) : null}
                   </div>
                 )}
 
-                <div className="scenario-or">or manually</div>
+                <div className="scenario-or">{tx('geo.simulator.orManual', 'or manually')}</div>
 
                 <div className="cut-controls">
-                  <span className="cut-label">Remove suppliers from:</span>
+                  <span className="cut-label">{tx('geo.simulator.cutLabel', 'Remove suppliers from:')}</span>
                   {(['US', 'CN', 'OTHER'] as const).map((g) => (
                     <button
                       key={g}
@@ -3356,7 +3461,7 @@ export default function App() {
                         setCutCompanies(new Set());
                       }}
                     >
-                      {g === 'US' ? 'US' : g === 'CN' ? 'China' : 'Other'}
+                      {g === 'US' ? tx('geo.legend.US', 'US') : g === 'CN' ? tx('geo.legend.China', 'China') : tx('geo.legend.Other', 'Other')}
                     </button>
                   ))}
                   {(cutCountries.size > 0 || cutCompanies.size > 0) && (
@@ -3364,7 +3469,7 @@ export default function App() {
                       setCutCountries(new Set());
                       setCutCompanies(new Set());
                       setActiveScenarios(new Set());
-                    }}>Reset</button>
+                    }}>{tx('geo.simulator.reset', 'Reset')}</button>
                   )}
                 </div>
 
@@ -3602,120 +3707,149 @@ export default function App() {
                         className={`model-toggle__btn ${actuatorType === 'linear' ? 'model-toggle__btn--active' : ''}`}
                         onClick={() => setActuatorType('linear')}
                       >
-                        Linear
+                        {tx('hw.actuator.linear', 'Linear')}
                       </button>
                       <button
                         className={`model-toggle__btn ${actuatorType === 'rotary' ? 'model-toggle__btn--active' : ''}`}
                         onClick={() => setActuatorType('rotary')}
                       >
-                        Rotary
+                        {tx('hw.actuator.rotary', 'Rotary')}
                       </button>
                     </div>
                   </>
                 ) : activeTab === 'vlas' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedVlaModel ? focusedVlaModel.developer : 'Vision-Language-Action Models'}
+                      {focusedVlaModel ? focusedVlaModel.developer : tx('sw.placeholder.vlaEyebrow', 'Vision-Language-Action Models')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedVlaModel ? focusedVlaModel.name : 'VLA'}
+                      {focusedVlaModel ? focusedVlaModel.name : tx('sw.placeholder.vlaTitle', 'VLA')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedVlaModel
                         ? `${focusedVlaModel.country} · ${focusedVlaModel.release} · ${focusedVlaModel.availability}`
-                        : `${vlaOverview.trackedModels} tracked models · ${vlaOverview.linkedOems} linked humanoid OEMs`}
+                        : tx('sw.placeholder.vlaMetaOverview', '{n} tracked models · {m} linked humanoid OEMs')
+                          .replace('{n}', String(vlaOverview.trackedModels))
+                          .replace('{m}', String(vlaOverview.linkedOems))}
                     </span>
                   </div>
                 ) : activeTab === 'reward_models' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedRewardModel ? focusedRewardModel.developer : 'Robotic Reward Models'}
+                      {focusedRewardModel ? focusedRewardModel.developer : tx('sw.placeholder.rewardEyebrow', 'Robotic Reward Models')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedRewardModel ? focusedRewardModel.name : 'Reward Models'}
+                      {focusedRewardModel ? focusedRewardModel.name : tx('sw.placeholder.rewardTitle', 'Reward Models')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedRewardModel
-                        ? `${focusedRewardModel.country} · ${focusedRewardModel.release} · ${getRewardModelTypeLabel(focusedRewardModel.modelType)}`
-                        : `${rewardOverview.trackedModels} tracked models · ${rewardOverview.trainedModels} trained · ${rewardOverview.zeroShotModels} zero-shot · ${rewardOverview.codeGenModels} code-gen`}
+                        ? `${focusedRewardModel.country} · ${focusedRewardModel.release} · ${getRewardModelTypeLabel(focusedRewardModel.modelType, tx)}`
+                        : tx('sw.placeholder.rewardMetaOverview', '{t} tracked models · {tr} trained · {z} zero-shot · {c} code-gen')
+                          .replace('{t}', String(rewardOverview.trackedModels))
+                          .replace('{tr}', String(rewardOverview.trainedModels))
+                          .replace('{z}', String(rewardOverview.zeroShotModels))
+                          .replace('{c}', String(rewardOverview.codeGenModels))}
                     </span>
                   </div>
                 ) : activeTab === 'world_models' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedWorldModel ? focusedWorldModel.developer : 'Robotic World Models'}
+                      {focusedWorldModel ? focusedWorldModel.developer : tx('sw.placeholder.wmEyebrow', 'Robotic World Models')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedWorldModel ? focusedWorldModel.name : 'World Models'}
+                      {focusedWorldModel ? focusedWorldModel.name : tx('sw.placeholder.wmTitle', 'World Models')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedWorldModel
-                        ? `${focusedWorldModel.country} · ${focusedWorldModel.release} · ${getWorldModelTypeLabel(focusedWorldModel.modelType)}`
-                        : `${worldModelOverview.trackedModels} tracked · ${worldModelOverview.videoGenModels} video gen · ${worldModelOverview.latentDynModels} latent · ${worldModelOverview.rlImaginModels} RL/imagination · ${worldModelOverview.foundationModels} platform`}
+                        ? `${focusedWorldModel.country} · ${focusedWorldModel.release} · ${getWorldModelTypeLabel(focusedWorldModel.modelType, tx)}`
+                        : tx('sw.placeholder.wmMetaOverview', '{t} tracked · {v} video gen · {l} latent · {r} RL/imagination · {p} platform')
+                          .replace('{t}', String(worldModelOverview.trackedModels))
+                          .replace('{v}', String(worldModelOverview.videoGenModels))
+                          .replace('{l}', String(worldModelOverview.latentDynModels))
+                          .replace('{r}', String(worldModelOverview.rlImaginModels))
+                          .replace('{p}', String(worldModelOverview.foundationModels))}
                     </span>
                   </div>
                 ) : activeTab === 'sim_platforms' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedSimPlatform ? focusedSimPlatform.developer : 'Robotics Simulation Platforms'}
+                      {focusedSimPlatform ? focusedSimPlatform.developer : tx('sw.placeholder.simEyebrow', 'Robotics Simulation Platforms')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedSimPlatform ? focusedSimPlatform.name : 'Sim Platforms'}
+                      {focusedSimPlatform ? focusedSimPlatform.name : tx('sw.placeholder.simTitle', 'Sim Platforms')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedSimPlatform
-                        ? `${focusedSimPlatform.country} · ${getSimPlatformTypeLabel(focusedSimPlatform.platformType)} · ${focusedSimPlatform.license}`
-                        : `${simPlatformOverview.trackedPlatforms - simPlatformOverview.worldModels} tracked · ${simPlatformOverview.physicsEngines} physics engines · ${simPlatformOverview.rlFrameworks} RL frameworks · ${simPlatformOverview.environments} environments`}
+                        ? `${focusedSimPlatform.country} · ${getSimPlatformTypeLabel(focusedSimPlatform.platformType, tx)} · ${focusedSimPlatform.license}`
+                        : tx('sw.placeholder.simMetaOverview', '{t} tracked · {ph} physics engines · {rl} RL frameworks · {e} environments')
+                          .replace('{t}', String(simPlatformOverview.trackedPlatforms - simPlatformOverview.worldModels))
+                          .replace('{ph}', String(simPlatformOverview.physicsEngines))
+                          .replace('{rl}', String(simPlatformOverview.rlFrameworks))
+                          .replace('{e}', String(simPlatformOverview.environments))}
                     </span>
                   </div>
                 ) : activeTab === 'viz_tools' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedVizTool ? focusedVizTool.developer : 'Robotics Visualization Tools'}
+                      {focusedVizTool ? focusedVizTool.developer : tx('sw.placeholder.vizEyebrow', 'Robotics Visualization Tools')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedVizTool ? focusedVizTool.name : 'Viz Tools'}
+                      {focusedVizTool ? focusedVizTool.name : tx('sw.placeholder.vizTitle', 'Viz Tools')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedVizTool
-                        ? `${focusedVizTool.country} · ${focusedVizTool.release} · ${getVizToolTypeLabel(focusedVizTool.toolType)}`
-                        : `${vizToolOverview.trackedTools} tracked · ${vizToolOverview.platformTools} platforms · ${vizToolOverview.viewerTools} 3D viewers · ${vizToolOverview.timeSeriesTools} time series · ${vizToolOverview.analyticsTools} analytics`}
+                        ? `${focusedVizTool.country} · ${focusedVizTool.release} · ${getVizToolTypeLabel(focusedVizTool.toolType, tx)}`
+                        : tx('sw.placeholder.vizMetaOverview', '{t} tracked · {p} platforms · {v} 3D viewers · {ts} time series · {a} analytics')
+                          .replace('{t}', String(vizToolOverview.trackedTools))
+                          .replace('{p}', String(vizToolOverview.platformTools))
+                          .replace('{v}', String(vizToolOverview.viewerTools))
+                          .replace('{ts}', String(vizToolOverview.timeSeriesTools))
+                          .replace('{a}', String(vizToolOverview.analyticsTools))}
                     </span>
                   </div>
                 ) : activeTab === 'safety_standards' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedSafetyProfile ? focusedSafetyProfile.name : focusedSafetyStandard ? focusedSafetyStandard.issuingBody : 'Humanoid Robot Safety'}
+                      {focusedSafetyProfile ? focusedSafetyProfile.name : focusedSafetyStandard ? focusedSafetyStandard.issuingBody : tx('sw.placeholder.safetyEyebrow', 'Humanoid Robot Safety')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedSafetyProfile ? getComplianceLevelLabel(focusedSafetyProfile.complianceLevel) : focusedSafetyStandard ? focusedSafetyStandard.name : 'Safety & Standards'}
+                      {focusedSafetyProfile ? getComplianceLevelLabel(focusedSafetyProfile.complianceLevel, tx) : focusedSafetyStandard ? focusedSafetyStandard.name : tx('sw.placeholder.safetyTitle', 'Safety & Standards')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedSafetyProfile
                         ? `${focusedSafetyProfile.country} · ${focusedSafetyProfile.complianceSummary}`
                         : focusedSafetyStandard
                           ? `${focusedSafetyStandard.region} · ${focusedSafetyStandard.statusLabel}`
-                          : `${safetyOverviewData.trackedStandards} standards · ${safetyOverviewData.trackedOems} OEM profiles · ${safetyOverviewData.certifiedOems} certified`}
+                          : tx('sw.placeholder.safetyMetaOverview', '{s} standards · {o} OEM profiles · {c} certified')
+                            .replace('{s}', String(safetyOverviewData.trackedStandards))
+                            .replace('{o}', String(safetyOverviewData.trackedOems))
+                            .replace('{c}', String(safetyOverviewData.certifiedOems))}
                     </span>
                   </div>
                 ) : activeTab === 'displays' ? (
                   <div className="vla-placeholder">
                     <span className="vla-placeholder__eyebrow">
-                      {focusedHeadDesign ? focusedHeadDesign.developer : 'Humanoid Head & Display Designs'}
+                      {focusedHeadDesign ? focusedHeadDesign.developer : tx('hri.placeholder.eyebrow', 'Humanoid Head & Display Designs')}
                     </span>
                     <span className="vla-placeholder__title">
-                      {focusedHeadDesign ? focusedHeadDesign.name : 'Displays'}
+                      {focusedHeadDesign ? focusedHeadDesign.name : tx('hri.placeholder.title', 'Displays')}
                     </span>
                     <span className="vla-placeholder__meta">
                       {focusedHeadDesign
-                        ? `${focusedHeadDesign.country} · ${getFaceDisplayTypeLabel(focusedHeadDesign.faceType)} · ${focusedHeadDesign.headCameras} head cams`
-                        : `${headDesignOverview.trackedDesigns} tracked · ${headDesignOverview.oledScreens} OLED · ${headDesignOverview.statusScreens} status screen · ${headDesignOverview.ledIndicators} LED · ${headDesignOverview.noDisplay} none · ${headDesignOverview.concealed} concealed`}
+                        ? `${focusedHeadDesign.country} · ${getFaceDisplayTypeLabel(focusedHeadDesign.faceType, tx)} · ${tx('hri.placeholder.headCams', '{n} head cams').replace('{n}', focusedHeadDesign.headCameras)}`
+                        : tx('hri.placeholder.metaOverview', '{t} tracked · {o} OLED · {s} status screen · {l} LED · {n} none · {c} concealed')
+                          .replace('{t}', String(headDesignOverview.trackedDesigns))
+                          .replace('{o}', String(headDesignOverview.oledScreens))
+                          .replace('{s}', String(headDesignOverview.statusScreens))
+                          .replace('{l}', String(headDesignOverview.ledIndicators))
+                          .replace('{n}', String(headDesignOverview.noDisplay))
+                          .replace('{c}', String(headDesignOverview.concealed))}
                     </span>
                   </div>
                 ) : selectedComponent.plyModel ? (
                   <PLYViewer modelUrl={selectedComponent.plyModel} color="#1a1a1a" initialRotation={MODEL_ROTATIONS[selectedComponent.plyModel]} spinSpeed={MODEL_SPIN[selectedComponent.plyModel]} scale={MODEL_SCALE[selectedComponent.plyModel]} />
                 ) : (
-                  <div className="model-placeholder">No 3D model</div>
+                  <div className="model-placeholder">{tx('component.noModel3d', 'No 3D model')}</div>
                 )}
               </div>
 
@@ -3723,7 +3857,7 @@ export default function App() {
                 {(() => {
                   const isActuator = activeTab === 'actuators_rotary';
                   const desc = isActuator
-                    ? ACTUATOR_INFO[actuatorType].description
+                    ? localizeActuatorInfo(tx, actuatorType).description
                     : activeTab === 'vlas' && focusedVlaModel
                       ? focusedVlaModel.description
                       : activeTab === 'reward_models' && focusedRewardModel
@@ -3740,14 +3874,14 @@ export default function App() {
                                   ? focusedSafetyStandard.description
                                   : activeTab === 'displays' && focusedHeadDesign
                                     ? focusedHeadDesign.description
-                                    : selectedComponent.description;
+                                    : tx(`hwcat.${selectedComponent.id}.desc`, selectedComponent.description);
                   const metrics = isActuator
-                    ? ACTUATOR_INFO[actuatorType].keyMetrics
+                    ? localizeActuatorInfo(tx, actuatorType).keyMetrics
                     : activeTab === 'reward_models'
                       ? focusedRewardModel
-                        ? {
+                        ? tmRecord(tx, {
                             Developer: focusedRewardModel.developer,
-                            Type: getRewardModelTypeLabel(focusedRewardModel.modelType),
+                            Type: getRewardModelTypeLabel(focusedRewardModel.modelType, tx),
                             Backbone: focusedRewardModel.backbone,
                             Parameters: focusedRewardModel.params,
                             Release: focusedRewardModel.release,
@@ -3755,19 +3889,19 @@ export default function App() {
                             Availability: focusedRewardModel.availability,
                             Focus: focusedRewardModel.focus,
                             Sources: focusedRewardModel.sources.map((s) => s.label).join(' · '),
-                          }
-                        : {
+                          })
+                        : tmRecord(tx, {
                             'Tracked Models': `${rewardOverview.trackedModels} reward models`,
                             'Trained Models': `${rewardOverview.trainedModels} with open weights`,
                             'Zero-Shot Methods': `${rewardOverview.zeroShotModels} prompting-based approaches`,
                             'Code Generation': `${rewardOverview.codeGenModels} LLM reward code generators`,
                             Developers: `${rewardOverview.developerCount} organizations`,
-                          }
+                          })
                       : activeTab === 'world_models'
                         ? focusedWorldModel
-                          ? {
+                          ? tmRecord(tx, {
                               Developer: focusedWorldModel.developer,
-                              Type: getWorldModelTypeLabel(focusedWorldModel.modelType),
+                              Type: getWorldModelTypeLabel(focusedWorldModel.modelType, tx),
                               ...(focusedWorldModel.backbone ? { Backbone: focusedWorldModel.backbone } : {}),
                               ...(focusedWorldModel.params ? { Parameters: focusedWorldModel.params } : {}),
                               ...(focusedWorldModel.trainingData ? { 'Training Data': focusedWorldModel.trainingData } : {}),
@@ -3776,20 +3910,20 @@ export default function App() {
                               Availability: focusedWorldModel.availability,
                               Focus: focusedWorldModel.focus,
                               Sources: focusedWorldModel.sources.map((s) => s.label).join(' · '),
-                            }
-                          : {
+                            })
+                          : tmRecord(tx, {
                               'Tracked Models': `${worldModelOverview.trackedModels} world models`,
                               'Video Generation': `${worldModelOverview.videoGenModels} video prediction models`,
                               'Latent Dynamics': `${worldModelOverview.latentDynModels} latent-space models`,
                               'RL / Imagination': `${worldModelOverview.rlImaginModels} imagination-based RL agents`,
                               'Foundation Platforms': `${worldModelOverview.foundationModels} full platforms`,
                               Developers: `${worldModelOverview.developerCount} organizations`,
-                            }
+                            })
                         : activeTab === 'viz_tools'
                           ? focusedVizTool
-                            ? {
+                            ? tmRecord(tx, {
                                 Developer: focusedVizTool.developer,
-                                Type: getVizToolTypeLabel(focusedVizTool.toolType),
+                                Type: getVizToolTypeLabel(focusedVizTool.toolType, tx),
                                 Language: focusedVizTool.language,
                                 Frameworks: focusedVizTool.frameworks,
                                 Deployment: focusedVizTool.deployment,
@@ -3797,64 +3931,66 @@ export default function App() {
                                 Release: focusedVizTool.release,
                                 Focus: focusedVizTool.focus,
                                 Sources: focusedVizTool.sources.map((s) => s.label).join(' · '),
-                              }
-                            : {
+                              })
+                            : tmRecord(tx, {
                                 'Tracked Tools': `${vizToolOverview.trackedTools} visualization tools`,
                                 Platforms: `${vizToolOverview.platformTools} full observability platforms`,
                                 '3D Viewers': `${vizToolOverview.viewerTools} lightweight 3D viewers`,
                                 'Time Series': `${vizToolOverview.timeSeriesTools} time series / logging tools`,
                                 'Data & Analytics': `${vizToolOverview.analyticsTools} AI-powered analytics`,
                                 Developers: `${vizToolOverview.developerCount} organizations`,
-                              }
+                              })
                           : activeTab === 'sim_platforms'
                             ? focusedSimPlatform
-                              ? {
+                              ? tmRecord(tx, {
                                   Developer: focusedSimPlatform.developer,
-                                  Type: getSimPlatformTypeLabel(focusedSimPlatform.platformType),
+                                  Type: getSimPlatformTypeLabel(focusedSimPlatform.platformType, tx),
                                   'Physics Engine': focusedSimPlatform.physicsEngine,
                                   License: focusedSimPlatform.license,
                                   Language: focusedSimPlatform.language,
                                   ...(focusedSimPlatform.latestVersion ? { Version: focusedSimPlatform.latestVersion } : {}),
-                                  'OEM Links': focusedSimPlatform.companyLinks.length > 0 ? `${focusedSimPlatform.companyLinks.length} companies` : 'None',
+                                  'OEM Links': focusedSimPlatform.companyLinks.length > 0
+                                    ? tx('sim.detail.oemLinksCount', '{n} companies').replace('{n}', String(focusedSimPlatform.companyLinks.length))
+                                    : tx('common.none', 'None'),
                                   Sources: focusedSimPlatform.sources.map((s) => s.label).join(' · '),
-                                }
-                              : {
+                                })
+                              : tmRecord(tx, {
                                   'Tracked Platforms': `${simPlatformOverview.trackedPlatforms - simPlatformOverview.worldModels} simulation platforms`,
                                   'Physics Engines': `${simPlatformOverview.physicsEngines} physics engines`,
                                   'RL Frameworks': `${simPlatformOverview.rlFrameworks} RL training frameworks`,
                                   Environments: `${simPlatformOverview.environments} task environments`,
                                   'With OEM Links': `${simPlatformOverview.withOemLinks} platforms adopted by OEMs`,
                                   Developers: `${simPlatformOverview.developerCount} organizations`,
-                                }
+                                })
                           : activeTab === 'safety_standards'
                             ? focusedSafetyProfile
-                              ? {
+                              ? tmRecord(tx, {
                                   Company: focusedSafetyProfile.name,
-                                  Compliance: getComplianceLevelLabel(focusedSafetyProfile.complianceLevel),
+                                  Compliance: getComplianceLevelLabel(focusedSafetyProfile.complianceLevel, tx),
                                   Summary: focusedSafetyProfile.complianceSummary,
                                   Sources: focusedSafetyProfile.sources.map((s) => s.label).join(' · '),
-                                }
+                                })
                               : focusedSafetyStandard
-                                ? {
+                                ? tmRecord(tx, {
                                     'Issuing Body': focusedSafetyStandard.issuingBody,
                                     Region: focusedSafetyStandard.region,
                                     Status: focusedSafetyStandard.statusLabel,
                                     ...(focusedSafetyStandard.expectedDate ? { Expected: focusedSafetyStandard.expectedDate } : {}),
                                     Sources: focusedSafetyStandard.sources.map((s) => s.label).join(' · '),
-                                  }
-                                : {
+                                  })
+                                : tmRecord(tx, {
                                     'Tracked Standards': `${safetyOverviewData.trackedStandards} safety standards`,
                                     Published: `${safetyOverviewData.publishedStandards} published/in-force`,
                                     'In Development': `${safetyOverviewData.inProgressStandards} working draft/FDIS/framework`,
                                     'OEM Profiles': `${safetyOverviewData.trackedOems} companies tracked`,
                                     Certified: `${safetyOverviewData.certifiedOems} with NRTL/formal certification`,
                                     'In Progress': `${safetyOverviewData.inProgressOems} pursuing certification`,
-                                  }
+                                  })
                           : activeTab === 'displays'
                             ? focusedHeadDesign
-                              ? {
+                              ? tmRecord(tx, {
                                   Developer: focusedHeadDesign.developer,
-                                  'Face Type': getFaceDisplayTypeLabel(focusedHeadDesign.faceType),
+                                  'Face Type': getFaceDisplayTypeLabel(focusedHeadDesign.faceType, tx),
                                   'Display Tech': focusedHeadDesign.displayTech,
                                   'Head Cameras': focusedHeadDesign.headCameras,
                                   'Total Cameras': focusedHeadDesign.totalCameras,
@@ -3863,52 +3999,52 @@ export default function App() {
                                   Audio: focusedHeadDesign.audioSystem,
                                   'Interactive Features': focusedHeadDesign.interactiveFeatures,
                                   Sources: focusedHeadDesign.sources.map((s) => s.label).join(' · '),
-                                }
-                              : {
+                                })
+                              : tmRecord(tx, {
                                   'Tracked Designs': `${headDesignOverview.trackedDesigns} head/face designs`,
                                   'OLED Screen': `${headDesignOverview.oledScreens} full expression displays`,
                                   'Status Screen': `${headDesignOverview.statusScreens} icon/emotion screens`,
                                   'LED Indicator': `${headDesignOverview.ledIndicators} LED-based signaling`,
                                   'No Display': `${headDesignOverview.noDisplay} pure sensor pods`,
                                   Concealed: `${headDesignOverview.concealed} hidden/decorative`,
-                                }
+                                })
                             : activeTab === 'vlas'
                             ? focusedVlaModel
-                              ? {
+                              ? tmRecord(tx, {
                                   Developer: focusedVlaModel.developer,
-                                  'Relationship Type': getVlaRelationshipTypeLabel(focusedVlaModel.relationshipType),
-                                Release: focusedVlaModel.release,
-                                Availability: focusedVlaModel.availability,
-                                Focus: focusedVlaModel.focus,
-                                'Linked OEMs': focusedVlaModel.companyLinks.length
-                                  ? focusedVlaModel.companyLinks
-                                      .map((link) => {
-                                        const company = companies.find((candidate) => candidate.id === link.companyId);
-                                        return company ? `${company.name} (${getVlaCompanyRelationshipLabel(link.relationship)})` : null;
-                                      })
-                                      .filter(Boolean)
-                                      .join(', ')
-                                  : 'None tracked in current dataset',
-                                Sources: focusedVlaModel.sources.map((source) => source.label).join(' · '),
-                              }
-                            : {
-                                'Tracked Models': `${vlaOverview.trackedModels} models (open + proprietary)`,
-                                'Linked OEMs': `${vlaOverview.linkedOems} humanoid OEMs with VLA integrations`,
-                                'Model Developers': `${vlaOverview.creatorCount} organizations building VLAs`,
-                                'Standalone Models': `${vlaOverview.standaloneModels} models without direct OEM ties`,
-                              }
-                          : selectedComponent.keyMetrics;
+                                  'Relationship Type': getVlaRelationshipTypeLabel(focusedVlaModel.relationshipType, tx),
+                                  Release: focusedVlaModel.release,
+                                  Availability: focusedVlaModel.availability,
+                                  Focus: focusedVlaModel.focus,
+                                  'Linked OEMs': focusedVlaModel.companyLinks.length
+                                    ? focusedVlaModel.companyLinks
+                                        .map((link) => {
+                                          const company = companies.find((candidate) => candidate.id === link.companyId);
+                                          return company ? `${company.name} (${getVlaCompanyRelationshipLabel(link.relationship, tx)})` : null;
+                                        })
+                                        .filter(Boolean)
+                                        .join(', ')
+                                    : tx('vla.detail.linkedNone', 'None tracked in current dataset'),
+                                  Sources: focusedVlaModel.sources.map((source) => source.label).join(' · '),
+                                })
+                              : tmRecord(tx, {
+                                  'Tracked Models': `${vlaOverview.trackedModels} models (open + proprietary)`,
+                                  'Linked OEMs': `${vlaOverview.linkedOems} humanoid OEMs with VLA integrations`,
+                                  'Model Developers': `${vlaOverview.creatorCount} organizations building VLAs`,
+                                  'Standalone Models': `${vlaOverview.standaloneModels} models without direct OEM ties`,
+                                })
+                          : translateKeyedMetrics(tx, selectedComponent.id, selectedComponent.keyMetrics);
 
                   return (
                     <>
                       <p className="component-desc">{desc}</p>
 
-                      {selectedComponent.bottleneck && (
+                      {selectedComponent.bottleneck && selectedComponent.bottleneckReason && (
                         <div className="bottleneck-alert">
                           <span className="bottleneck-icon">!</span>
                           <div>
-                            <div className="bottleneck-title">Supply Chain Bottleneck</div>
-                            <p className="bottleneck-reason">{selectedComponent.bottleneckReason}</p>
+                            <div className="bottleneck-title">{tx('component.bottleneck.title', 'Supply Chain Bottleneck')}</div>
+                            <p className="bottleneck-reason">{tx(`hwcat.${selectedComponent.id}.bottleneck`, selectedComponent.bottleneckReason)}</p>
                           </div>
                         </div>
                       )}
@@ -3932,21 +4068,21 @@ export default function App() {
             {activeTab === 'vlas' && (
               <div className="supply-chain">
                 <div className="supply-chain__header">
-                  <h3 className="section-title">Model Ecosystem</h3>
+                  <h3 className="section-title">{tx('sw.vla.ecosystemTitle', 'Model Ecosystem')}</h3>
                   <div className="vla-filters">
-                    <button className={`country-pill ${vlaFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter('all')}>All</button>
-                    <button className={`country-pill ${vlaFilter === 'open' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'open' ? 'all' : 'open')}>Open Source</button>
-                    <button className={`country-pill ${vlaFilter === 'closed' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'closed' ? 'all' : 'closed')}>Proprietary</button>
+                    <button className={`country-pill ${vlaFilter === 'all' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter('all')}>{tx('sw.filter.all', 'All')}</button>
+                    <button className={`country-pill ${vlaFilter === 'open' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'open' ? 'all' : 'open')}>{tx('sw.filter.openSource', 'Open Source')}</button>
+                    <button className={`country-pill ${vlaFilter === 'closed' ? 'country-pill--active' : ''}`} onClick={() => setVlaFilter(vlaFilter === 'closed' ? 'all' : 'closed')}>{tx('sw.filter.proprietary', 'Proprietary')}</button>
                     {focusedVlaModel && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="chain-flow">
                   <div className="chain-tier">
-                    <div className="chain-tier-label">Models</div>
+                    <div className="chain-tier-label">{tx('sw.chain.models', 'Models')}</div>
                     {filteredVlaModels.map((model) => (
                       <button
                         key={model.id}
@@ -3956,14 +4092,14 @@ export default function App() {
                         <span className="chain-name">{model.name}</span>
                         <span className="chain-country">{model.country}</span>
                         <span className="chain-share">
-                          {model.developer} · {getVlaRelationshipTypeLabel(model.relationshipType)}
+                          {model.developer} · {getVlaRelationshipTypeLabel(model.relationshipType, tx)}
                         </span>
                       </button>
                     ))}
                   </div>
                   <div className="chain-arrow">&rarr;</div>
                   <div className="chain-tier">
-                    <div className="chain-tier-label">Linked OEMs</div>
+                    <div className="chain-tier-label">{tx('sw.chain.linkedOems', 'Linked OEMs')}</div>
                     {linkedVlaOems.length > 0 ? linkedVlaOems.map((company) => (
                       <button
                         key={company.id}
@@ -3976,17 +4112,17 @@ export default function App() {
                           {(focusedVlaModel
                             ? getCompanyVlaLinks(company.id)
                                 .filter(({ model }) => model.id === focusedVlaModel.id)
-                                .map(({ link }) => getVlaCompanyRelationshipLabel(link.relationship))
+                                .map(({ link }) => getVlaCompanyRelationshipLabel(link.relationship, tx))
                             : getCompanyVlaLinks(company.id)
-                                .map(({ model, link }) => `${model.name} (${getVlaCompanyRelationshipLabel(link.relationship)})`)
+                                .map(({ model, link }) => `${model.name} (${getVlaCompanyRelationshipLabel(link.relationship, tx)})`)
                           ).join(', ')}
                         </span>
                       </button>
                     )) : (
-                      <div className="chain-empty">No linked humanoid OEMs tracked yet.</div>
+                      <div className="chain-empty">{tx('sw.vla.emptyNoLinks', 'No linked humanoid OEMs tracked yet.')}</div>
                     )}
                     {focusedVlaModel && focusedVlaModel.companyLinks.length === 0 && (
-                      <div className="chain-empty">No humanoid OEM relationship tracked for {focusedVlaModel.name} in the current dataset.</div>
+                      <div className="chain-empty">{tx('sw.vla.emptyModelNoLinks', 'No humanoid OEM relationship tracked for {name} in the current dataset.').replace('{name}', focusedVlaModel.name)}</div>
                     )}
                   </div>
                 </div>
@@ -4013,14 +4149,14 @@ export default function App() {
                     <button className={`country-pill ${rewardFilter === 'code-gen' ? 'country-pill--active' : ''}`} onClick={() => setRewardFilter(rewardFilter === 'code-gen' ? 'all' : 'code-gen')}>Code Gen</button>
                     {focusedRewardModel && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="chain-flow">
                   <div className="chain-tier">
-                    <div className="chain-tier-label">Models</div>
+                    <div className="chain-tier-label">{tx('sw.chain.models', 'Models')}</div>
                     {filteredRewardModels.map((model) => (
                       <button
                         key={model.id}
@@ -4030,7 +4166,7 @@ export default function App() {
                         <span className="chain-name">{model.name}</span>
                         <span className="chain-country">{model.country}</span>
                         <span className="chain-share">
-                          {model.developer} · {getRewardModelTypeLabel(model.modelType)}
+                          {model.developer} · {getRewardModelTypeLabel(model.modelType, tx)}
                         </span>
                       </button>
                     ))}
@@ -4051,14 +4187,14 @@ export default function App() {
                     <button className={`country-pill ${worldModelFilter === 'foundation-platform' ? 'country-pill--active' : ''}`} onClick={() => setWorldModelFilter(worldModelFilter === 'foundation-platform' ? 'all' : 'foundation-platform')}>Platform</button>
                     {focusedWorldModel && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
                 </div>
                 <div className="chain-flow">
                   <div className="chain-tier">
-                    <div className="chain-tier-label">Models</div>
+                    <div className="chain-tier-label">{tx('sw.chain.models', 'Models')}</div>
                     {filteredWorldModels.map((model) => (
                       <button
                         key={model.id}
@@ -4068,7 +4204,7 @@ export default function App() {
                         <span className="chain-name">{model.name}</span>
                         <span className="chain-country">{model.country}</span>
                         <span className="chain-share">
-                          {model.developer} · {getWorldModelTypeLabel(model.modelType)}
+                          {model.developer} · {getWorldModelTypeLabel(model.modelType, tx)}
                         </span>
                       </button>
                     ))}
@@ -4129,7 +4265,7 @@ export default function App() {
                     <button className={`country-pill ${simPlatformFilter === 'environment' ? 'country-pill--active' : ''}`} onClick={() => setSimPlatformFilter(simPlatformFilter === 'environment' ? 'all' : 'environment')}>Environment</button>
                     {focusedSimPlatform && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
@@ -4146,14 +4282,14 @@ export default function App() {
                         <span className="chain-name">{platform.name}</span>
                         <span className="chain-country">{platform.country}</span>
                         <span className="chain-share">
-                          {platform.developer} · {getSimPlatformTypeLabel(platform.platformType)}
+                          {platform.developer} · {getSimPlatformTypeLabel(platform.platformType, tx)}
                         </span>
                       </button>
                     ))}
                   </div>
                   {focusedSimPlatform && focusedSimPlatform.companyLinks.length > 0 && (
                     <div className="chain-tier">
-                      <div className="chain-tier-label">Linked OEMs</div>
+                      <div className="chain-tier-label">{tx('sw.chain.linkedOems', 'Linked OEMs')}</div>
                       {focusedSimPlatform.companyLinks.map((link) => {
                         const comp = companies.find((c) => c.id === link.companyId);
                         return (
@@ -4227,7 +4363,7 @@ export default function App() {
                     <button className={`country-pill ${vizToolFilter === 'data-analytics' ? 'country-pill--active' : ''}`} onClick={() => setVizToolFilter(vizToolFilter === 'data-analytics' ? 'all' : 'data-analytics')}>Analytics</button>
                     {focusedVizTool && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
@@ -4244,7 +4380,7 @@ export default function App() {
                         <span className="chain-name">{tool.name}</span>
                         <span className="chain-country">{tool.country}</span>
                         <span className="chain-share">
-                          {tool.developer} · {getVizToolTypeLabel(tool.toolType)}
+                          {tool.developer} · {getVizToolTypeLabel(tool.toolType, tx)}
                         </span>
                       </button>
                     ))}
@@ -4353,7 +4489,7 @@ export default function App() {
                     <button className={`country-pill ${safetyComplianceFilter === 'not-disclosed' ? 'country-pill--active' : ''}`} onClick={() => setSafetyComplianceFilter(safetyComplianceFilter === 'not-disclosed' ? 'all' : 'not-disclosed')}>Not Disclosed</button>
                     {focusedSafetyProfile && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
@@ -4370,7 +4506,7 @@ export default function App() {
                         <span className="chain-name">{profile.name}</span>
                         <span className="chain-country">{profile.country}</span>
                         <span className="chain-share">
-                          {getComplianceLevelLabel(profile.complianceLevel)} · {profile.complianceSummary}
+                          {getComplianceLevelLabel(profile.complianceLevel, tx)} · {profile.complianceSummary}
                         </span>
                       </button>
                     ))}
@@ -4392,7 +4528,7 @@ export default function App() {
                     <button className={`country-pill ${headDesignFilter === 'concealed' ? 'country-pill--active' : ''}`} onClick={() => setHeadDesignFilter(headDesignFilter === 'concealed' ? 'all' : 'concealed')}>Concealed</button>
                     {focusedHeadDesign && (
                       <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                        CLEAR FILTER
+                        {tx('ui.clearFilter', 'CLEAR FILTER')}
                       </button>
                     )}
                   </div>
@@ -4409,7 +4545,7 @@ export default function App() {
                         <span className="chain-name">{design.name}</span>
                         <span className="chain-country">{design.country}</span>
                         <span className="chain-share">
-                          {design.developer} · {getFaceDisplayTypeLabel(design.faceType)}
+                          {design.developer} · {getFaceDisplayTypeLabel(design.faceType, tx)}
                         </span>
                       </button>
                     ))}
@@ -4424,7 +4560,7 @@ export default function App() {
                   <h3 className="section-title">Supply Chain</h3>
                   {chainFocus && (
                     <button className="chain-clear" onClick={() => setChainFocus(null)}>
-                      CLEAR FILTER
+                      {tx('ui.clearFilter', 'CLEAR FILTER')}
                     </button>
                   )}
                 </div>
@@ -4527,14 +4663,17 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        <span>{oems.length} OEMs</span>
+        <span>{tx('footer.oemsCount', '{count} OEMs').replace('{count}', String(oems.length))}</span>
         <span className="footer-sep" />
-        <span>{companies.filter((c) => c.type !== 'oem').length} Suppliers</span>
+        <span>{tx('footer.suppliersCount', '{count} Suppliers').replace('{count}', String(companies.filter((c) => c.type !== 'oem').length))}</span>
         <span className="footer-sep" />
         <span>
-          {oems.reduce((s, c) => s + (c.robotSpecs?.shipments2025 || 0), 0).toLocaleString()} units shipped (2025)
+          {tx('footer.unitsShipped', '{count} units shipped (2025)').replace(
+            '{count}',
+            oems.reduce((s, c) => s + (c.robotSpecs?.shipments2025 || 0), 0).toLocaleString(),
+          )}
         </span>
-        <span className="footer-right"><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">Contribute</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Changelog</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Data Sources</a> · Created by <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} visits</span>}</span>
+        <span className="footer-right"><a href="https://chatgpt.com/share/69c10e41-8034-8004-b523-5ff13a85368a" target="_blank" rel="noopener noreferrer"><img src="/chatgpt_logo.png" alt="ChatGPT" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://claude.ai/share/e01bd8a4-6cdc-4b27-9beb-a3b81de95867" target="_blank" rel="noopener noreferrer"><img src="/claude_logo.webp" alt="Claude" style={{ width: 17, height: 17, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://gemini.google.com/share/29b23abfdc21" target="_blank" rel="noopener noreferrer"><img src="https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png" alt="Gemini" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a>&nbsp;<a href="https://grok.com/share/c2hhcmQtMg_a9f8f529-4067-4ceb-bc5b-2ecc352ef404" target="_blank" rel="noopener noreferrer"><img src="/grok_logo.webp" alt="Grok" style={{ width: 14, height: 14, verticalAlign: 'middle' }} /></a> · <a href="https://github.com/kingjulio8238/humanoid-atlas" target="_blank" rel="noopener noreferrer">{tx('footer.contribute', 'Contribute')}</a> · <a href="/changelog" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/changelog'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.changelog', 'Changelog')}</a> · <a href="/sources" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/sources'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{tx('footer.sources', 'Data Sources')}</a> · {tx('footer.createdBy', 'Created by')} <a href="https://x.com/JulianSaks" target="_blank" rel="noopener noreferrer">Julian Saks</a>{viewCount !== null && <span className="view-count"> · {viewCount.toLocaleString()} {tx('footer.visits', 'visits')}</span>}</span>
       </footer>
     </div>
   );
