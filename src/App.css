@@ -6858,3 +6858,79 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
   .se-expanded__info { max-height: none; }
   .se-loading { grid-template-columns: repeat(2, 1fr); padding: 1rem; }
 }
+
+/* -------- Locale toggle & Japanese typography -------- */
+.header-top-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.locale-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border, #e0ddd8);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #fff;
+}
+
+.locale-toggle__btn {
+  font-family: var(--font-mono, 'Share Tech Mono', monospace);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim, #8a8580);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.locale-toggle__btn:hover {
+  color: var(--text-primary, #1a1a1a);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.locale-toggle__btn--active {
+  background: var(--text-primary, #1a1a1a);
+  color: #f5f2ed;
+}
+
+.locale-toggle__btn--active:hover {
+  color: #f5f2ed;
+}
+
+html[data-locale='ja'] body,
+html[data-locale='ja'] .app {
+  font-family:
+    Inter,
+    'Noto Sans JP',
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+html[data-locale='ja'] .header-sub {
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+html[data-locale='ja'] .tab-group-pill,
+html[data-locale='ja'] .component-btn:not(.locale-toggle__btn) {
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+html[data-locale='ja'] .search-input::placeholder {
+  letter-spacing: 0.04em;
+}
