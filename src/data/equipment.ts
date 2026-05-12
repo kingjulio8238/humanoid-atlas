@@ -2,7 +2,7 @@
 // defense buyers. Adding a new provider is a single entry append.
 //
 // At launch we list one SKU: Xsens Link (next-generation humanoid motion
-// capture suit, launched Nov 12 2025 by Movella/Xsens, NL).
+// capture suit, launched Nov 12 2025 by Xsens, NL).
 
 export interface EquipmentSpec {
   label: string;
@@ -44,7 +44,7 @@ export const equipment: EquipmentProduct[] = [
   {
     id: 'xsens-link',
     name: 'Xsens Link',
-    vendor: 'Xsens (Movella)',
+    vendor: 'Xsens',
     vendorOrigin: 'NL',
     vendorOriginLabel: 'Netherlands',
     category: 'Motion Capture',
@@ -107,8 +107,6 @@ export const equipment: EquipmentProduct[] = [
       'Kepler Robotics',
       'DEEP Robotics',
       'Mentee Robotics',
-      'Neura Robotics',
-      'Meta',
     ],
     ndaaStatus: 'NATO-ally sourced (Netherlands). No NDAA covered-foreign-entity flags.',
     pricingNote: 'Pricing provided after Atlas brokers an introduction with Xsens.',
