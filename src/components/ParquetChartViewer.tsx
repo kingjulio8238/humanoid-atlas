@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CHART_COLORS = [
-  '#1a1a1a', '#6b6560', '#3d7a5f', '#8b5e3c', '#4a6785',
-  '#7a4a6b', '#555555', '#2d6b4f', '#8a6530', '#3a5a7a',
+  '#0f0f0f', '#4a4540', '#166534', '#7c4a1c', '#334e6f',
+  '#6b3d5a', '#404040', '#14532d', '#6b4a1a', '#2d4a66',
 ];
 
 const MAX_ROWS = 1000;
@@ -112,14 +112,14 @@ export default function ParquetChartViewer({ url, filename }: { url: string; fil
       <div className="db-chart-body">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data.rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-            <XAxis dataKey="_idx" tick={{ fontSize: 9, fontFamily: 'Share Tech Mono' }} stroke="#a0a0a0" />
-            <YAxis tick={{ fontSize: 9, fontFamily: 'Share Tech Mono' }} stroke="#a0a0a0" width={60} />
+            <XAxis dataKey="_idx" tick={{ fontSize: 13, fontFamily: 'Share Tech Mono' }} stroke="#5a5a5a" />
+            <YAxis tick={{ fontSize: 13, fontFamily: 'Share Tech Mono' }} stroke="#5a5a5a" width={60} />
             <Tooltip
-              contentStyle={{ fontFamily: 'Share Tech Mono', fontSize: 10, background: '#1a1a1a', border: '1px solid #333', borderRadius: 3 }}
-              labelStyle={{ color: '#a0a0a0' }}
-              itemStyle={{ color: '#f5f2ed' }}
+              contentStyle={{ fontFamily: 'Share Tech Mono', fontSize: 14, background: '#0f0f0f', border: '1px solid #333', borderRadius: 3 }}
+              labelStyle={{ color: '#c4bfb6' }}
+              itemStyle={{ color: '#faf8f4' }}
             />
-            <Legend wrapperStyle={{ fontFamily: 'Share Tech Mono', fontSize: 9 }} />
+            <Legend wrapperStyle={{ fontFamily: 'Share Tech Mono', fontSize: 13 }} />
             {data.columns.map((col, i) => (
               <Line
                 key={col}

@@ -8,49 +8,6 @@ import * as THREE from 'three';
  * Loads WebXR hand GLB, colors vertices by pressure values mapped from taxel columns.
  */
 
-// Maps common taxel column name patterns to bone names
-// Returns a map of column_name → bone_name for all matched columns
-export function autoMapTaxels(columns: string[]): Record<string, string> {
-  const mapping: Record<string, string> = {};
-
-  const patterns: [RegExp, string][] = [
-    // Thumb
-    [/thumb.*(tip|distal)/i, 'thumb-tip'],
-    [/thumb.*(pad|prox)/i, 'thumb-phalanx-proximal'],
-    [/thumb(?!.*(tip|pad|prox|distal|meta))/i, 'thumb-phalanx-distal'],
-    // Index
-    [/index.*(tip|distal)/i, 'index-finger-tip'],
-    [/index.*(mid|inter)/i, 'index-finger-phalanx-intermediate'],
-    [/index.*(base|prox)/i, 'index-finger-phalanx-proximal'],
-    // Middle
-    [/middle.*(tip|distal)/i, 'middle-finger-tip'],
-    [/middle.*(mid|inter)/i, 'middle-finger-phalanx-intermediate'],
-    [/middle.*(base|prox)/i, 'middle-finger-phalanx-proximal'],
-    // Ring
-    [/ring.*(tip|distal)/i, 'ring-finger-tip'],
-    [/ring.*(mid|inter)/i, 'ring-finger-phalanx-intermediate'],
-    [/ring.*(base|prox)/i, 'ring-finger-phalanx-proximal'],
-    // Pinky
-    [/pinky.*(tip|distal)/i, 'pinky-finger-tip'],
-    [/pinky.*(mid|inter)/i, 'pinky-finger-phalanx-intermediate'],
-    [/pinky.*(base|prox)/i, 'pinky-finger-phalanx-proximal'],
-    // Palm
-    [/palm.*(center|mid)/i, 'wrist'],
-    [/palm.*(edge|side)/i, 'pinky-finger-metacarpal'],
-  ];
-
-  for (const col of columns) {
-    for (const [pattern, bone] of patterns) {
-      if (pattern.test(col)) {
-        mapping[col] = bone;
-        break;
-      }
-    }
-  }
-
-  return mapping;
-}
-
 // Pressure → color using a warm heatmap (dark → blue → cyan → yellow → red)
 function pressureToColor(value: number, color: THREE.Color): THREE.Color {
   const v = Math.max(0, Math.min(1, value));
@@ -186,7 +143,7 @@ export function TactileHand3DScene({ pressures, taxelToBone, hasLeft, hasRight }
   return (
     <div className="db-tactile-3d-canvas">
       <Canvas camera={{ position: [0, 0, 3], fov: 45 }} gl={{ alpha: true }}>
-        <color attach="background" args={['#f5f2ed']} />
+        <color attach="background" args={['#faf8f4']} />
         <ambientLight intensity={0.6} />
         <directionalLight position={[2, 3, 4]} intensity={0.8} />
         <directionalLight position={[-2, -1, 2]} intensity={0.3} />

@@ -199,7 +199,7 @@ export default function SupplyChainGraph({ onNodeSelect, countryFilter, highligh
   // Clear internal focus when external highlights change
   useEffect(() => {
     if (highlightedIds && highlightedIds.size > 0) {
-      setFocusedId(null);
+      queueMicrotask(() => setFocusedId(null));
     }
   }, [highlightedIds]);
 
@@ -274,17 +274,17 @@ export default function SupplyChainGraph({ onNodeSelect, countryFilter, highligh
         animated: isFocusHighlighted,
         label: isHighlighted ? r.component : undefined,
         style: {
-          stroke: isHighlighted ? '#1a1a1a' : '#d5d0c8',
+          stroke: isHighlighted ? '#0f0f0f' : '#a8a29e',
           strokeWidth: isHighlighted ? 2 : (r.bomPercent ? Math.max(1, r.bomPercent / 20) : 0.8),
           opacity: isDimmed ? 0.15 : 1,
         },
         labelStyle: {
-          fill: '#6b6b6b',
-          fontSize: 9,
+          fill: '#3a3a3a',
+          fontSize: 13,
           fontFamily: 'Share Tech Mono, monospace',
         },
         labelBgStyle: {
-          fill: 'rgba(245,242,237,0.9)',
+          fill: 'rgba(250,248,244,0.94)',
         },
         labelBgPadding: [4, 2] as [number, number],
       };
@@ -333,7 +333,7 @@ export default function SupplyChainGraph({ onNodeSelect, countryFilter, highligh
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1}
-          color="#d5d0c8"
+          color="#b8b3ab"
         />
       </ReactFlow>
       <div className="graph-legend">

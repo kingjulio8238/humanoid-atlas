@@ -7,7 +7,8 @@
     "build": "tsc -b && vite build",
     "build:data": "tsup src/data/index.ts --format esm,cjs --dts --out-dir dist/data --clean --tsconfig tsconfig.data.json",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.3",

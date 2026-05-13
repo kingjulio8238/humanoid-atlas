@@ -1,35 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
-
-// Global geometry cache - parsed geometries persist across mounts/tab switches
-const geometryCache = new Map<string, THREE.BufferGeometry>();
-const loadingPromises = new Map<string, Promise<THREE.BufferGeometry>>();
-
-function loadPLY(url: string): Promise<THREE.BufferGeometry> {
-  if (geometryCache.has(url)) {
-    return Promise.resolve(geometryCache.get(url)!);
-  }
-  if (loadingPromises.has(url)) {
-    return loadingPromises.get(url)!;
-  }
-  const promise = new Promise<THREE.BufferGeometry>((resolve) => {
-    const loader = new PLYLoader();
-    loader.load(url, (geo) => {
-      geometryCache.set(url, geo);
-      loadingPromises.delete(url);
-      resolve(geo);
-    });
-  });
-  loadingPromises.set(url, promise);
-  return promise;
-}
-
-// Preload a model without rendering - call early to start fetching
-export function preloadPLY(url: string) {
-  loadPLY(url);
-}
+import { loadPLY } from './plyCache';
 
 interface RegionBounds {
   min: [number, number, number];
@@ -61,7 +33,9 @@ function PointCloud({ url, color = '#1a1a1a', initialRotation, spinSpeed = 1, sc
 
   useEffect(() => {
     let disposed = false;
-    setGeometry(null);
+    queueMicrotask(() => {
+      if (!disposed) setGeometry(null);
+    });
     loadPLY(url).then((geo) => {
       if (disposed) return;
       const clone = geo.clone();
@@ -78,7 +52,7 @@ function PointCloud({ url, color = '#1a1a1a', initialRotation, spinSpeed = 1, sc
       onGeometryReady?.(clone);
     });
     return () => { disposed = true; };
-  }, [url, initialRotation, scale]);
+  }, [url, initialRotation, scale, onGeometryReady]);
 
   useEffect(() => {
     return () => { geometry?.dispose(); };

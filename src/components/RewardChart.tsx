@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import type { RewardComparison } from '../data/types';
 
 interface RewardChartProps {
@@ -247,24 +247,24 @@ export default function RewardChart({ comparisons }: RewardChartProps) {
   // Reset enabled models when switching demos
   const allModelIds = useMemo(() => new Set(data?.models.map((m) => m.id) || []), [data]);
   useEffect(() => {
-    setEnabledModels(allModelIds);
-    setVideoProgress(0);
+    queueMicrotask(() => {
+      setEnabledModels(allModelIds);
+      setVideoProgress(0);
+    });
   }, [allModelIds]);
 
-  // RAF loop: sync chart with video playback
-  const tick = useCallback(() => {
-    const video = videoRef.current;
-    if (video && video.duration > 0) {
-      const t = video.currentTime / video.duration;
-      setVideoProgress(t);
-    }
-    rafRef.current = requestAnimationFrame(tick);
-  }, []);
-
   useEffect(() => {
+    const tick = () => {
+      const video = videoRef.current;
+      if (video && video.duration > 0) {
+        const t = video.currentTime / video.duration;
+        setVideoProgress(t);
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [tick]);
+  }, []);
 
   // Draw chart on every state change
   useEffect(() => {

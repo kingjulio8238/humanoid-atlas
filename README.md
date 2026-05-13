@@ -1,5 +1,7 @@
 # Humanoid Atlas
 
+简体中文说明：[README.zh-CN.md](./README.zh-CN.md)
+
 Interactive supply chain intelligence platform for the humanoid robotics industry. Explore OEM ecosystems, component suppliers, geopolitical dependencies, and AI-powered strategic analysis — all in the browser.
 
 **Live at [humanoids.fyi](https://www.humanoids.fyi)**

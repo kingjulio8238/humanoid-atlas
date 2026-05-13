@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://brokerage.humanoids.fyi/v1';
 
+function deferStateUpdate(update: () => void) {
+  queueMicrotask(update);
+}
+
 interface ManifestEpisode {
   id: string;
   video: string;
@@ -56,8 +60,8 @@ function EpisodeCard({ episode, baseUrl, onClick, isSelected }: {
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const resolveUrl = (path: string) =>
-    path.startsWith('http://') || path.startsWith('https://') ? path : `${baseUrl}${path}`;
+  const resolveUrl = useCallback((path: string) =>
+    path.startsWith('http://') || path.startsWith('https://') ? path : `${baseUrl}${path}`, [baseUrl]);
 
   const thumbnailUrl = episode.thumbnail ? resolveUrl(episode.thumbnail) : null;
   const videoUrl = resolveUrl(episode.video);
@@ -126,23 +130,25 @@ function EpisodeExpanded({ episode, baseUrl, onClose, onPrev, onNext, hasPrev, h
   const [annLoading, setAnnLoading] = useState(false);
   const [annError, setAnnError] = useState('');
 
-  const resolveUrl = (path: string) =>
-    path.startsWith('http://') || path.startsWith('https://') ? path : `${baseUrl}${path}`;
+  const resolveUrl = useCallback((path: string) =>
+    path.startsWith('http://') || path.startsWith('https://') ? path : `${baseUrl}${path}`, [baseUrl]);
 
   const videoUrl = resolveUrl(episode.video);
 
   // Fetch annotations lazily
   useEffect(() => {
     if (!episode.annotations) return;
-    setAnnLoading(true);
-    setAnnError('');
-    setAnnotations(null);
+    deferStateUpdate(() => {
+      setAnnLoading(true);
+      setAnnError('');
+      setAnnotations(null);
+    });
     const url = resolveUrl(episode.annotations);
     fetch(url)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => { setAnnotations(data); setAnnLoading(false); })
       .catch(err => { setAnnError(err.message); setAnnLoading(false); });
-  }, [episode.id, episode.annotations, baseUrl]);
+  }, [episode.id, episode.annotations, resolveUrl]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -197,8 +203,8 @@ function EpisodeExpanded({ episode, baseUrl, onClose, onPrev, onNext, hasPrev, h
           {episode.annotations && (
             <div className="se-expanded__annotations">
               <span className="se-expanded__label">Annotations</span>
-              {annLoading && <p style={{ fontSize: 10, color: 'var(--text-dim)' }}>Loading...</p>}
-              {annError && <p style={{ fontSize: 10, color: 'var(--red)' }}>Failed to load: {annError}</p>}
+              {annLoading && <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>Loading...</p>}
+              {annError && <p style={{ fontSize: 14, color: 'var(--red)' }}>Failed to load: {annError}</p>}
               {annotations && (
                 <pre className="se-expanded__json">{JSON.stringify(annotations, null, 2)}</pre>
               )}
@@ -322,8 +328,10 @@ export default function SampleExplorer({ slug }: { slug: string }) {
 
   // Fetch manifest
   useEffect(() => {
-    setLoading(true);
-    setError('');
+    deferStateUpdate(() => {
+      setLoading(true);
+      setError('');
+    });
     fetch(`${API_BASE}/catalog/${slug}/manifest`)
       .then(r => { if (!r.ok) throw new Error(r.status === 404 ? 'Listing not found' : `HTTP ${r.status}`); return r.json(); })
       .then(json => { setData(json.data); setLoading(false); })
@@ -362,7 +370,7 @@ export default function SampleExplorer({ slug }: { slug: string }) {
   const pageEpisodes = filteredEpisodes.slice((currentPage - 1) * EPISODES_PER_PAGE, currentPage * EPISODES_PER_PAGE);
 
   // Reset page on filter change
-  useEffect(() => { setCurrentPage(1); }, [selectedTags, durationFilter, debouncedSearch]);
+  useEffect(() => { deferStateUpdate(() => setCurrentPage(1)); }, [selectedTags, durationFilter, debouncedSearch]);
 
   // Selected episode
   const selectedEpisode = useMemo(() => {

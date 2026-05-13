@@ -209,12 +209,12 @@ export function extractEpisodeId(filename: string, modality: string | null): str
     const keywords = MODALITY_KEYWORDS[modality] ?? [];
     for (const kw of keywords) {
       // Remove keyword with surrounding separators (_, -)
-      base = base.replace(new RegExp(`[_\\-]?${kw}[_\\-]?`, 'g'), '_');
+      base = base.replace(new RegExp(`[_-]?${kw}[_-]?`, 'g'), '_');
     }
   }
 
   // Clean up: collapse multiple underscores/dashes, trim separators
-  base = base.replace(/[_\-]{2,}/g, '_').replace(/^[_\-]+|[_\-]+$/g, '');
+  base = base.replace(/[_-]{2,}/g, '_').replace(/^[_-]+|[_-]+$/g, '');
 
   return base || filename.replace(/\.[^.]+$/, '').toLowerCase();
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { companies, relationships, vlaModels, companyFunding, componentCategories, scenarios } from '../data';
 import type { Company, VLAModel, CompanyFunding, ComponentCategory, Scenario } from '../data';
+import { useI18n } from '../i18n';
 
 // ==================== GENERIC ARENA ENTITY ====================
 
@@ -791,6 +792,7 @@ interface ArenaProps {
 }
 
 export default function Arena({ activeSubTab }: ArenaProps) {
+  const { tx } = useI18n();
   const config = useMemo(() => buildConfig(activeSubTab), [activeSubTab]);
 
   // ---- State ----
@@ -974,10 +976,6 @@ export default function Arena({ activeSubTab }: ArenaProps) {
     return Math.min(...chartData.map((r) => r.elo)) - 50;
   }, [chartData]);
 
-  // ==================== RENDER ====================
-
-  if (!config) return null;
-
   // In blind mode, only show specs both entities share for fair comparison
   const sharedLabels = useMemo(() => {
     if (!matchup || !isBlindMode) return null;
@@ -995,6 +993,10 @@ export default function Arena({ activeSubTab }: ArenaProps) {
       skipCountRef.current = 0;
     }
   }, [sharedLabels, isBlindMode, voteResult, fetchMatchup]);
+
+  // ==================== RENDER ====================
+
+  if (!config) return null;
 
   function renderCard(entity: ArenaEntity, side: 'A' | 'B') {
     const result = voteResult?.[side === 'A' ? 'entityA' : 'entityB'];
@@ -1025,7 +1027,7 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               <div className="arena-card__specs">
                 {visibleRows.map((r) => (
                   <div key={r.label} className="arena-spec">
-                    <span className="arena-spec__label">{r.label}</span>
+                    <span className="arena-spec__label">{tx(r.label)}</span>
                     <span className="arena-spec__value">{r.value}</span>
                   </div>
                 ))}
@@ -1037,9 +1039,9 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               className="arena-vote-btn"
               onClick={() => handleVote(side)}
               disabled={voting}
-              aria-label={`Vote for Robot ${side}`}
+              aria-label={tx('Vote for Robot {side}', { side })}
             >
-              {voting ? '...' : isBlindMode ? `Vote ${config!.entityLabel} ${side}` : `Vote ${side}`}
+              {voting ? '...' : isBlindMode ? tx(`Vote ${config!.entityLabel} {side}`, { side }) : tx('Vote {side}', { side })}
             </button>
           )}
           {result && (
@@ -1056,8 +1058,8 @@ export default function Arena({ activeSubTab }: ArenaProps) {
     <div className="arena-view">
       {/* Header */}
       <div className="arena-header">
-        <h2 className="arena-title">{config.title}</h2>
-        <p className="arena-subtitle">{config.subtitle}</p>
+        <h2 className="arena-title">{tx(config.title)}</h2>
+        <p className="arena-subtitle">{tx(config.subtitle)}</p>
       </div>
 
       {/* Category selector (suppliers only) */}
@@ -1069,7 +1071,7 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               className={`arena-cat-btn ${category === cat.id ? 'active' : ''}`}
               onClick={() => setCategory(cat.id)}
             >
-              {cat.label}
+              {tx(cat.label)}
             </button>
           ))}
         </div>
@@ -1083,9 +1085,9 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               key={d.id}
               className={`arena-dim-btn ${dimension === d.id ? 'active' : ''}`}
               onClick={() => setDimension(d.id)}
-              title={d.description}
+              title={tx(d.description)}
             >
-              {d.label}
+              {tx(d.label)}
             </button>
           ))}
         </div>
@@ -1102,7 +1104,7 @@ export default function Arena({ activeSubTab }: ArenaProps) {
             {renderCard(matchup.entityA, 'A')}
 
             <div className="arena-vs">
-              <span className="arena-vs__text">VS</span>
+              <span className="arena-vs__text">{tx('VS')}</span>
               {!voteResult && !matchup.alreadyVoted && (
                 <button
                   className="arena-tie-btn"
@@ -1110,19 +1112,19 @@ export default function Arena({ activeSubTab }: ArenaProps) {
                   disabled={voting}
                   aria-label="Vote tie"
                 >
-                  Tie
+                  {tx('Tie')}
                 </button>
               )}
               {voteResult && (
                 <button className="arena-next-btn" onClick={fetchMatchup}>
-                  Next Matchup
+                  {tx('Next Matchup')}
                 </button>
               )}
               {matchup.alreadyVoted && !voteResult && (
                 <div className="arena-already-voted">
-                  <span>Already voted</span>
+                  <span>{tx('Already voted')}</span>
                   <button className="arena-next-btn" onClick={fetchMatchup}>
-                    Next Matchup
+                    {tx('Next Matchup')}
                   </button>
                 </div>
               )}
@@ -1137,10 +1139,10 @@ export default function Arena({ activeSubTab }: ArenaProps) {
       <div className="arena-leaderboard">
         <div className="arena-leaderboard__header">
           <h3 className="arena-leaderboard__title">
-            Leaderboard
+            {tx('Leaderboard')}
             {leaderboard && leaderboard.rankings.length > 0 && (
               <span className="arena-leaderboard__vote-count">
-                {leaderboard.rankings.reduce((sum, r) => sum + r.votes, 0)} votes
+                {tx('{count} votes', { count: leaderboard.rankings.reduce((sum, r) => sum + r.votes, 0) })}
               </span>
             )}
           </h3>
@@ -1149,13 +1151,13 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               className={`arena-toggle-btn ${leaderboardView === 'table' ? 'active' : ''}`}
               onClick={() => setLeaderboardView('table')}
             >
-              Table
+              {tx('Table')}
             </button>
             <button
               className={`arena-toggle-btn ${leaderboardView === 'chart' ? 'active' : ''}`}
               onClick={() => setLeaderboardView('chart')}
             >
-              Chart
+              {tx('Chart')}
             </button>
           </div>
         </div>
@@ -1170,9 +1172,9 @@ export default function Arena({ activeSubTab }: ArenaProps) {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>{config.entityLabel}</th>
-                  <th>Elo</th>
-                  <th>Votes</th>
+                  <th>{tx(config.entityLabel)}</th>
+                  <th>{tx('Elo')}</th>
+                  <th>{tx('Votes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1215,7 +1217,7 @@ export default function Arena({ activeSubTab }: ArenaProps) {
 
         {leaderboard && (
           <div className="arena-leaderboard__footer">
-            Last updated: {new Date(leaderboard.lastUpdated).toLocaleString()}
+            {tx('Last updated: {date}', { date: new Date(leaderboard.lastUpdated).toLocaleString() })}
           </div>
         )}
       </div>

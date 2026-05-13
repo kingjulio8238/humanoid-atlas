@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } from 'react';
 import { useAuth, useClerk, SignInButton, SignUpButton } from '@clerk/clerk-react';
 import { loadStripe, type Stripe, type StripeElements } from '@stripe/stripe-js';
 import { api, setTokenGetter } from '../lib/brokerage-api';
@@ -35,6 +35,12 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   : null;
 
 const CLERK_AVAILABLE = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+function deferStateUpdate(update: () => void) {
+  queueMicrotask(update);
+}
+
+type ClerkResource = ReturnType<typeof useClerk>;
 
 // Safe Clerk hook — returns defaults if ClerkProvider is not mounted
 function useClerkAuth(): { isSignedIn: boolean; getToken: () => Promise<string | null> } {
@@ -516,7 +522,7 @@ function PurchaseSection({ listing, cart, onCartOpen }: { listing: Listing; cart
         <div className="db-advanced-purchase">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <label className="db-meta-label" style={{ margin: 0 }}>Select modalities</label>
-            <label style={{ fontSize: 9, fontFamily: "'Share Tech Mono', monospace", color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+            <label style={{ fontSize: 11, fontFamily: "'Share Tech Mono', monospace", color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
               <input type="checkbox" checked={applyAll} onChange={e => {
                 setApplyAll(e.target.checked);
                 if (e.target.checked) setModHours(Object.fromEntries(allModalities.map(m => [m, hoursStr])));
@@ -529,14 +535,14 @@ function PurchaseSection({ listing, cart, onCartOpen }: { listing: Listing; cart
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, cursor: 'pointer' }}>
                 <input type="checkbox" checked={selectedMods[m] ?? false}
                   onChange={e => setSelectedMods(p => ({ ...p, [m]: e.target.checked }))} />
-                <span className="db-badge" style={{ margin: 0, fontSize: 8 }}>{m.replace(/_/g, ' ')}</span>
-                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: 'var(--text-dim)', letterSpacing: '0.5px' }}>
+                <span className="db-badge" style={{ margin: 0, fontSize: 10 }}>{m.replace(/_/g, ' ')}</span>
+                <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.5px' }}>
                   ${listing.modality_prices![m]}/hr
                 </span>
               </label>
               {selectedMods[m] && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <input type="text" inputMode="numeric" className="db-purchase-hours" style={{ width: 50, fontSize: 12, padding: '5px 8px' }}
+                  <input type="text" inputMode="numeric" className="db-purchase-hours" style={{ width: 50, fontSize: 14, padding: '5px 8px' }}
                     value={modHours[m] ?? ''}
                     onChange={e => {
                       const v = e.target.value.replace(/[^0-9]/g, '');
@@ -547,8 +553,8 @@ function PurchaseSection({ listing, cart, onCartOpen }: { listing: Listing; cart
                         setModHours(p => ({ ...p, [m]: v }));
                       }
                     }} />
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: 'var(--text-dim)', letterSpacing: '0.5px' }}>hrs</span>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, minWidth: 50, textAlign: 'right', letterSpacing: '0.5px' }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', letterSpacing: '0.5px' }}>hrs</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, minWidth: 50, textAlign: 'right', letterSpacing: '0.5px' }}>
                     ${((parseInt(modHours[m]) || 0) * (listing.modality_prices![m] ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -617,8 +623,10 @@ function BuyData() {
   useEffect(() => {
     if (isSignedIn && localStorage.getItem('db_pending_checkout') && cart.totalItems > 0) {
       localStorage.removeItem('db_pending_checkout');
-      setShowCart(true);
-      setPendingCheckout(true);
+      deferStateUpdate(() => {
+        setShowCart(true);
+        setPendingCheckout(true);
+      });
     }
   }, [isSignedIn, cart.totalItems]);
 
@@ -643,29 +651,29 @@ function BuyData() {
     if (filters.max_price) params.set('max_price', filters.max_price);
     if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
     api.get<{ data: Listing[] }>(`/catalog?${params}`).then(r => setListings(r.data)).catch(console.error).finally(() => setLoading(false));
-  }, [filters.modality, filters.environment, filters.collection_method, filters.embodiment_type, filters.task_type, filters.min_price, filters.max_price, filters.sort, debouncedQ]);
+  }, [filters.modality, filters.environment, filters.collection_method, filters.embodiment_type, filters.task_type, filters.min_price, filters.max_price, filters.sort, debouncedQ, listings.length]);
 
-  useEffect(() => { fetchListings(); }, [fetchListings]);
+  useEffect(() => { deferStateUpdate(fetchListings); }, [fetchListings]);
   useEffect(() => { api.get<{ data: typeof facets }>('/catalog/facets').then(r => setFacets(r.data)).catch(console.error); }, []);
+
+  const selectListing = useCallback(async (slug: string, referrer?: { providerSlug: string; providerName: string }) => {
+    try {
+      setListingReferrer(referrer ?? null);
+      const r = await api.get<{ data: Listing }>(`/catalog/${slug}`);
+      setSelectedListing(r.data);
+    } catch (err) { console.error(err); }
+  }, []);
 
   // Auto-open listing from ?listing= query param (e.g., returning from Sample Explorer)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const listingSlug = params.get('listing');
     if (listingSlug) {
-      selectListing(listingSlug);
+      deferStateUpdate(() => selectListing(listingSlug));
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
-
-  const selectListing = async (slug: string, referrer?: { providerSlug: string; providerName: string }) => {
-    try {
-      setListingReferrer(referrer ?? null);
-      const r = await api.get<{ data: Listing }>(`/catalog/${slug}`);
-      setSelectedListing(r.data);
-    } catch (err) { console.error(err); }
-  };
+  }, [selectListing]);
 
   const formatUsd = (cents: number) => `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
@@ -682,8 +690,8 @@ function BuyData() {
           <h2 className="api-docs-title" style={{ margin: 0 }}>{l.title}</h2>
           {l.sample_manifest_url && <a href={`/data/explore/${l.slug}`} className="db-explore-cta__btn" style={{ flexShrink: 0 }}>Explore All Samples &rarr;</a>}
         </div>
-        {l.description && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{l.description}</p>}
-        {prov && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginTop: 4, marginBottom: 12 }}>By <span className="db-provider-link" onClick={() => { setSelectedListing(null); setShowProviders(true); setSelectedProvider(prov.slug); }}>{prov.name}</span></p>}
+        {l.description && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.5 }}>{l.description}</p>}
+        {prov && <p style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: 'var(--text-dim)', marginTop: 4, marginBottom: 12 }}>By <span className="db-provider-link" onClick={() => { setSelectedListing(null); setShowProviders(true); setSelectedProvider(prov.slug); }}>{prov.name}</span></p>}
         {(() => {
           const tags = Array.isArray(l.tags) ? l.tags as string[] : [];
           const collectionTags = tags.filter(t => t.startsWith('collection:')).map(t => t.split(':')[1]);
@@ -823,7 +831,7 @@ function BuyData() {
             <input className="db-search" placeholder="Search datasets..." value={filters.q}
               onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} style={{ maxWidth: 280 }} />
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.modality}
+              <select className="db-form-select" style={{ width: 140, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.modality}
                 onChange={e => setFilters(f => ({ ...f, modality: e.target.value }))}>
                 <option value="">Modality</option>
                 {facets.modalities.map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
@@ -831,7 +839,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.environment}
+              <select className="db-form-select" style={{ width: 140, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.environment}
                 onChange={e => setFilters(f => ({ ...f, environment: e.target.value }))}>
                 <option value="">Environment</option>
                 {facets.environments.map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}
@@ -839,7 +847,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.collection_method}
+              <select className="db-form-select" style={{ width: 140, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.collection_method}
                 onChange={e => setFilters(f => ({ ...f, collection_method: e.target.value }))}>
                 <option value="">Collection</option>
                 {(facets.collection_methods ?? []).map(m => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
@@ -847,7 +855,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.embodiment_type}
+              <select className="db-form-select" style={{ width: 140, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.embodiment_type}
                 onChange={e => setFilters(f => ({ ...f, embodiment_type: e.target.value }))}>
                 <option value="">Embodiment</option>
                 {(facets.embodiment_types ?? []).map(e => <option key={e} value={e}>{e.replace(/_/g, ' ')}</option>)}
@@ -855,7 +863,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 140, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.task_type}
+              <select className="db-form-select" style={{ width: 140, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.task_type}
                 onChange={e => setFilters(f => ({ ...f, task_type: e.target.value }))}>
                 <option value="">Task Type</option>
                 {(facets.task_types ?? []).map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
@@ -863,7 +871,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 120, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={`${filters.min_price}-${filters.max_price}`}
+              <select className="db-form-select" style={{ width: 120, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={`${filters.min_price}-${filters.max_price}`}
                 onChange={e => {
                   const [min, max] = e.target.value.split('-');
                   setFilters(f => ({ ...f, min_price: min, max_price: max }));
@@ -877,7 +885,7 @@ function BuyData() {
               <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#8a8580" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ position: 'relative', flex: '0 0 auto' }}>
-              <select className="db-form-select" style={{ width: 130, fontSize: 10, paddingRight: 28, appearance: 'none' }} value={filters.sort}
+              <select className="db-form-select" style={{ width: 130, fontSize: 12, paddingRight: 28, appearance: 'none' }} value={filters.sort}
                 onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))}>
                 <option value="newest">Newest</option>
                 <option value="price_asc">Price: Low→High</option>
@@ -1055,7 +1063,7 @@ function InlineCart({ cart, formatUsd, autoCheckout, onAutoCheckoutDone, onPurch
   useEffect(() => {
     if (autoCheckout && isSignedIn) {
       onAutoCheckoutDone?.();
-      handleCheckout();
+      deferStateUpdate(handleCheckout);
     }
   }, [autoCheckout, isSignedIn, handleCheckout, onAutoCheckoutDone]);
 
@@ -1092,7 +1100,7 @@ function InlineCart({ cart, formatUsd, autoCheckout, onAutoCheckoutDone, onPurch
                 {item.modality_items ? (
                   <div className="db-inline-cart__item-modalities">
                     {item.modality_items.map(m => (
-                      <div key={m.modality} style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: "'Share Tech Mono', monospace" }}>
+                      <div key={m.modality} style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'Share Tech Mono', monospace" }}>
                         {m.modality.replace(/_/g, ' ')}: {m.hours} hrs x ${m.price_per_hour}/hr
                       </div>
                     ))}
@@ -1151,12 +1159,13 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose, onPurcha
   const elementsRef = useRef<StripeElements | null>(null);
 
   const current = paymentIntents[currentIdx];
+  const currentClientSecret = current?.client_secret;
   const totalAmount = paymentIntents.reduce((s, pi) => s + pi.amount_cents, 0);
   const allDone = completed.length === paymentIntents.length;
 
   // Mount Stripe Payment Element for current PaymentIntent
   useEffect(() => {
-    if (!current || !stripePromise || allDone) return;
+    if (!currentClientSecret || !stripePromise || allDone) return;
     let mounted = true;
 
     async function init() {
@@ -1165,22 +1174,22 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose, onPurcha
       stripeRef.current = stripe;
 
       const elements = stripe.elements({
-        clientSecret: current.client_secret,
+        clientSecret: currentClientSecret,
         appearance: {
           theme: 'flat',
           variables: {
-            colorPrimary: '#1a1a1a',
-            colorBackground: '#f5f2ed',
-            colorText: '#1a1a1a',
-            colorTextSecondary: '#8a8580',
+            colorPrimary: '#0f0f0f',
+            colorBackground: '#faf8f4',
+            colorText: '#0f0f0f',
+            colorTextSecondary: '#5a5a5a',
             borderRadius: '4px',
             fontFamily: 'Inter, sans-serif',
-            fontSizeBase: '12px',
+            fontSizeBase: '16px',
           },
           rules: {
-            '.Input': { border: '1px solid #e0ddd8', padding: '8px 10px' },
-            '.Input:focus': { borderColor: '#1a1a1a', boxShadow: 'none' },
-            '.Label': { fontFamily: "'Share Tech Mono', monospace", fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px', color: '#a0a0a0' },
+            '.Input': { border: '1px solid #c4bfb6', padding: '8px 10px' },
+            '.Input:focus': { borderColor: '#0f0f0f', boxShadow: 'none' },
+            '.Label': { fontFamily: "'Share Tech Mono', monospace", fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#5a5a5a' },
           },
         },
       });
@@ -1193,7 +1202,9 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose, onPurcha
       }
     }
 
-    setStripeReady(false);
+    deferStateUpdate(() => {
+      if (mounted) setStripeReady(false);
+    });
     init();
 
     return () => {
@@ -1203,7 +1214,7 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose, onPurcha
       }
       elementsRef.current = null;
     };
-  }, [current?.client_secret, allDone]);
+  }, [currentClientSecret, allDone]);
 
   const handlePay = async () => {
     const stripe = stripeRef.current;
@@ -1288,7 +1299,7 @@ function CheckoutModal({ paymentIntents, formatUsd, onSuccess, onClose, onPurcha
 
             {error && <div className="db-form-error" style={{ marginBottom: 12 }}>{error}</div>}
 
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
               <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
               <span>I agree to the <a href="/data/buyer-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Data Buyer Conditions</a></span>
             </label>
@@ -1525,7 +1536,7 @@ function SellData({ viewCount }: { viewCount: number | null }) {
         </div>
         <div className="api-preamble" style={{ marginTop: 16 }}>
           <div className="db-meta-label" style={{ marginBottom: 16 }}>Stripe onboarding</div>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
             Complete your Stripe Express setup to receive payments from data buyers. This takes about 2 minutes.
           </p>
           <button className="db-add-cart-btn" style={{ maxWidth: 280 }} onClick={handleConnect}>
@@ -1668,9 +1679,9 @@ function extractEpisodeId(filename: string, modality: string | null): string {
   let base = filename.replace(/\.[^.]+$/, '').toLowerCase();
   if (modality) {
     const keywords = MODALITY_KEYWORDS[modality] ?? [];
-    for (const kw of keywords) base = base.replace(new RegExp(`[_\\-]?${kw}[_\\-]?`, 'g'), '_');
+    for (const kw of keywords) base = base.replace(new RegExp(`[_-]?${kw}[_-]?`, 'g'), '_');
   }
-  base = base.replace(/[_\-]{2,}/g, '_').replace(/^[_\-]+|[_\-]+$/g, '');
+  base = base.replace(/[_-]{2,}/g, '_').replace(/^[_-]+|[_-]+$/g, '');
   return base || filename.replace(/\.[^.]+$/, '').toLowerCase();
 }
 
@@ -1917,12 +1928,12 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); }} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <input className="db-form-input" style={{ flex: 1, fontSize: 11, padding: '8px 12px', fontFamily: "'Share Tech Mono', monospace" }}
+        <input className="db-form-input" style={{ flex: 1, fontSize: 13, padding: '8px 12px', fontFamily: "'Share Tech Mono', monospace" }}
           placeholder="Import sample from URL (S3, R2, GCS presigned link)"
           value={importUrl} onChange={e => setImportUrl(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleImportUrl(); }}
           disabled={importing || uploading} />
-        <button className="db-add-cart-btn" style={{ padding: '8px 20px', fontSize: 10, width: 'auto', marginTop: 0 }}
+        <button className="db-add-cart-btn" style={{ padding: '8px 20px', fontSize: 12, width: 'auto', marginTop: 0 }}
           onClick={handleImportUrl} disabled={importing || uploading || !importUrl.trim()}>
           {importing ? 'Importing...' : 'Import'}
         </button>
@@ -1934,8 +1945,8 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
         </button>
       </div>
 
-      {error && <p style={{ fontSize: 10, color: 'var(--red)', marginTop: 6 }}>{error}</p>}
-      {uploadHint && <p style={{ fontSize: 9, color: 'var(--text-dim)', fontStyle: 'italic', marginTop: 4 }}>{uploadHint}</p>}
+      {error && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{error}</p>}
+      {uploadHint && <p style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic', marginTop: 4 }}>{uploadHint}</p>}
 
       {ps.suggestions.length > 0 && (
         <div className="db-preview-score__tips" style={{ marginTop: 8 }}>
@@ -1949,35 +1960,35 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
     {manifestLoaded && (
       <div className="api-preamble" style={{ marginTop: 12 }}>
         <div className="db-meta-label" style={{ marginBottom: 10 }}>Sample Repository (Required)</div>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 10 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 10 }}>
           Host a manifest.json in your storage that indexes your sample episodes. See the <strong>Docs</strong> tab for format details and a generator script.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input className="db-form-input" style={{ flex: 1, fontSize: 11, padding: '8px 12px', fontFamily: "'Share Tech Mono', monospace" }}
+          <input className="db-form-input" style={{ flex: 1, fontSize: 13, padding: '8px 12px', fontFamily: "'Share Tech Mono', monospace" }}
             placeholder="https://storage.example.com/dataset/manifest.json"
             value={manifestUrl} onChange={e => { setManifestUrl(e.target.value); if (manifestStatus !== 'idle') setManifestStatus('idle'); }}
             disabled={manifestStatus === 'validating'} />
           {manifestStatus === 'valid' ? (
-            <button className="db-regen-btn" style={{ margin: 0, padding: '8px 16px', fontSize: 10 }}
+            <button className="db-regen-btn" style={{ margin: 0, padding: '8px 16px', fontSize: 12 }}
               onClick={handleRefreshManifest}>
               Refresh
             </button>
           ) : (
-            <button className="db-add-cart-btn" style={{ padding: '8px 20px', fontSize: 10, width: 'auto', marginTop: 0 }}
+            <button className="db-add-cart-btn" style={{ padding: '8px 20px', fontSize: 12, width: 'auto', marginTop: 0 }}
               onClick={handleValidateManifest} disabled={manifestStatus === 'validating' || !manifestUrl.trim()}>
               {manifestStatus === 'validating' ? 'Validating...' : 'Validate'}
             </button>
           )}
         </div>
         {manifestStatus === 'valid' && manifestInfo && (
-          <p style={{ fontSize: 10, color: 'var(--green, #276749)', marginTop: 6 }}>
+          <p style={{ fontSize: 12, color: 'var(--green, #276749)', marginTop: 6 }}>
             Manifest valid — {manifestInfo.episode_count} episodes, {manifestInfo.total_duration_hours} hours
           </p>
         )}
         {manifestStatus === 'invalid' && manifestErrors.length > 0 && (
           <div style={{ marginTop: 6 }}>
             {manifestErrors.map((e, i) => (
-              <p key={i} style={{ fontSize: 10, color: 'var(--red, #c53030)', marginTop: 2 }}>{e.message}</p>
+              <p key={i} style={{ fontSize: 12, color: 'var(--red, #c53030)', marginTop: 2 }}>{e.message}</p>
             ))}
           </div>
         )}
@@ -2022,7 +2033,7 @@ function SampleUploader({ listingId, modalities = [], reviewStatus }: { listingI
               style={{ cursor: canSubmitForReview ? 'pointer' : 'not-allowed' }}>
               {submittingForReview ? 'Verifying...' : 'Submit for Review'}
             </button>
-            <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 8 }}>
               {canSubmitForReview ? 'Verifies your provisioning API before submitting' : samples.length < minSamples ? `Upload ${minSamples - samples.length} more sample${minSamples - samples.length !== 1 ? 's' : ''} to submit` : !manifestValid ? 'Validate your sample manifest to submit' : 'Complete all requirements to submit'}
             </p>
           </>
@@ -2181,13 +2192,13 @@ function TagSection({ label, required, selected, options, onToggle, defaultOpen,
         <div className="db-tag-section__pills">
           {options.map(v => (
             <button key={v} type="button" className={`db-filter-pill${selected.includes(v) ? ' db-filter-pill--active' : ''}`}
-              style={{ fontSize: 9 }} onClick={() => onToggle(v)}>
+              style={{ fontSize: 11 }} onClick={() => onToggle(v)}>
               {v.replace(/_/g, ' ')}
             </button>
           ))}
           {customTags.map(v => (
             <button key={v} type="button" className="db-filter-pill db-filter-pill--active db-filter-pill--custom"
-              style={{ fontSize: 9 }} onClick={() => onToggle(v)}>
+              style={{ fontSize: 11 }} onClick={() => onToggle(v)}>
               {v.replace(/_/g, ' ')} ×
             </button>
           ))}
@@ -2395,16 +2406,16 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {isEditing ? (
-              <input className="db-form-input" style={{ fontSize: 15, fontWeight: 500, fontFamily: "'Share Tech Mono', monospace" }}
+              <input className="db-form-input" style={{ fontSize: 19, fontWeight: 500, fontFamily: "'Share Tech Mono', monospace" }}
                 value={editForm.title} onChange={e => updateField('title', e.target.value)} />
             ) : (
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 15, fontWeight: 500, color: 'var(--text)', letterSpacing: '0.5px' }}>{String(listing.title)}</div>
+              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 19, fontWeight: 500, color: 'var(--text)', letterSpacing: '0.5px' }}>{String(listing.title)}</div>
             )}
             {isEditing ? (
-              <textarea className="db-form-textarea" rows={3} style={{ marginTop: 6, fontSize: 11 }}
+              <textarea className="db-form-textarea" rows={3} style={{ marginTop: 6, fontSize: 13 }}
                 value={editForm.description} onChange={e => updateField('description', e.target.value)} />
             ) : (
-              listing.description ? <div style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.5, marginTop: 4 }}>{String(listing.description).slice(0, 120)}{String(listing.description).length > 120 ? '...' : ''}</div> : null
+              listing.description ? <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5, marginTop: 4 }}>{String(listing.description).slice(0, 120)}{String(listing.description).length > 120 ? '...' : ''}</div> : null
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 16 }}>
@@ -2413,7 +2424,7 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
               <button className="db-status-badge" style={{ cursor: 'pointer', border: '1px solid var(--border)' }} onClick={enterEditMode}>Edit</button>
             )}
             {!isEditing && (reviewStatus === 'pending_review' || reviewStatus === 'pending') && (
-              <button className="db-regen-btn" style={{ margin: 0, fontSize: 8 }} onClick={handleWithdraw} disabled={withdrawing}>
+              <button className="db-regen-btn" style={{ margin: 0, fontSize: 10 }} onClick={handleWithdraw} disabled={withdrawing}>
                 {withdrawing ? '...' : 'Withdraw'}
               </button>
             )}
@@ -2462,8 +2473,8 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
                   </div>
                 ))}
                 <div className="db-modality-price-row" style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', minWidth: 80, textAlign: 'center' }}>Bundle</span>
-                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 500 }}>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', minWidth: 80, textAlign: 'center' }}>Bundle</span>
+                  <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, fontWeight: 500 }}>
                     ${Object.values(editForm.modality_prices).reduce((s, v) => s + (parseFloat(v) || 0), 0).toFixed(2)}/hr
                   </span>
                 </div>
@@ -2510,7 +2521,7 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
             {isLicenseTypeLocked ? (
               <div className="db-form-field" style={{ marginTop: 12 }}>
                 <label className="db-meta-label">License (locked — active purchases)</label>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{String(listing.license_type)}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>{String(listing.license_type)}</div>
               </div>
             ) : (
               <div className="db-form-field" style={{ marginTop: 12 }}>
@@ -2534,7 +2545,7 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
                 {saving ? 'Saving...' : 'Save'}
               </button>
               <button className="db-add-cart-btn" style={{ maxWidth: 120, background: 'transparent', color: 'var(--text)', border: '1px solid var(--border)' }} onClick={() => setIsEditing(false)} disabled={saving}>Cancel</button>
-              {saveMsg && <span style={{ fontSize: 10, fontFamily: "'Share Tech Mono', monospace", color: 'var(--green)' }}>{saveMsg}</span>}
+              {saveMsg && <span style={{ fontSize: 12, fontFamily: "'Share Tech Mono', monospace", color: 'var(--green)' }}>{saveMsg}</span>}
             </div>
           </div>
         ) : (
@@ -2566,7 +2577,7 @@ function ListingDetail({ listing, onBack, onListingUpdated }: {
         <div className="api-preamble" style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px' }}>
           <div>
             <div className="db-meta-label">{isActive ? 'Listing is live' : 'Listing is deactivated'}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
               {isActive ? 'Visible to buyers in the catalog' : 'Hidden from catalog. Reactivate to make visible again.'}
             </div>
           </div>
@@ -2679,8 +2690,8 @@ function CreateListingForm() {
   if (result) {
     return (
       <div className="api-preamble" style={{ marginTop: 16, textAlign: 'center', padding: 32 }}>
-        <div className="db-sell-headline" style={{ fontSize: 14, marginBottom: 8 }}>{result}</div>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>Upload at least 5 samples from My Listings, then submit for review.</p>
+        <div className="db-sell-headline" style={{ fontSize: 18, marginBottom: 8 }}>{result}</div>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>Upload at least 5 samples from My Listings, then submit for review.</p>
         <button className="db-add-cart-btn" style={{ maxWidth: 200, margin: '0 auto' }} onClick={() => setResult(null)}>Create Another</button>
       </div>
     );
@@ -2721,8 +2732,8 @@ function CreateListingForm() {
             </div>
           ))}
           <div className="db-modality-price-row" style={{ borderTop: '1px solid var(--border)', paddingTop: 8, marginTop: 4 }}>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', minWidth: 80, textAlign: 'center' }}>Bundle</span>
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, fontWeight: 500 }}>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', minWidth: 80, textAlign: 'center' }}>Bundle</span>
+            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 14, fontWeight: 500 }}>
               ${Object.values(form.modality_prices).reduce((s, v) => s + (parseFloat(v) || 0), 0).toFixed(2)}/hr
             </span>
           </div>
@@ -2771,11 +2782,11 @@ function CreateListingForm() {
       <TagSection label="Formats" required selected={form.formats} options={formats}
         onToggle={v => setForm(f => ({ ...f, formats: f.formats.includes(v) ? f.formats.filter(x => x !== v) : [...f.formats, v] }))} />
 
-      <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 12, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 12, lineHeight: 1.5 }}>
         After saving, you'll be taken to upload sample files. At least 5 samples are required before submitting for review.
       </p>
 
-      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
         <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
         <span>I agree to the <a href="/data/seller-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Data Provider Conditions</a></span>
       </label>
@@ -2803,7 +2814,7 @@ function CopyableCode({ label, code }: { label: string; code: string }) {
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div className="db-meta-label">{label}</div>
-        <button className="db-regen-btn" style={{ margin: 0, padding: '3px 10px', fontSize: '8px' }} onClick={handleCopy}>
+        <button className="db-regen-btn" style={{ margin: 0, padding: '3px 10px', fontSize: '9px' }} onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
@@ -2850,7 +2861,7 @@ function generateDatasetCard(listing: Record<string, unknown>, providerName: str
   // Build details table rows, skipping empty values
   const rows: string[] = [];
   rows.push(`| **Provider** | ${providerName} |`);
-  if (allMods.length > 0) rows.push(`| **Modalities** | ${allMods.map(m => '\`' + m.replace(/_/g, ' ') + '\`').join(', ')} |`);
+  if (allMods.length > 0) rows.push(`| **Modalities** | ${allMods.map(m => '`' + m.replace(/_/g, ' ') + '`').join(', ')} |`);
   if (allEnvs.length > 0) rows.push(`| **Environment** | ${allEnvs.map(e => e.replace(/_/g, ' ')).join(', ')} |`);
   if (collections.length > 0) rows.push(`| **Collection Method** | ${collections.join(', ')} |`);
   if (embodiments.length > 0) rows.push(`| **Embodiment** | ${embodiments.join(', ')} |`);
@@ -3186,8 +3197,8 @@ function MyPurchases() {
 
         {/* Dataset name */}
         <div style={{ marginTop: 12, marginBottom: 4 }}>
-          <div style={{ fontSize: 16, fontWeight: 500 }}>{datasetName}</div>
-          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 10, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', marginTop: 4 }}>{providerName}</div>
+          <div style={{ fontSize: 20, fontWeight: 500 }}>{datasetName}</div>
+          <div style={{ fontFamily: 'Share Tech Mono, monospace', fontSize: 12, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)', marginTop: 4 }}>{providerName}</div>
         </div>
 
         <div className="api-preamble" style={{ marginTop: 12 }}>
@@ -3214,7 +3225,7 @@ function MyPurchases() {
             {purchaseTab === 'access' && (
               <div className="api-preamble">
                 {access?.access_instructions ? (
-                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{String(access.access_instructions)}</p>
+                  <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{String(access.access_instructions)}</p>
                 ) : null}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                   <a href={accessUrl} target="_blank" rel="noopener noreferrer" className="db-regen-btn"
@@ -3223,7 +3234,7 @@ function MyPurchases() {
                     {urlCopied ? 'Copied' : 'Copy URL'}
                   </button>
                 </div>
-                <div className="db-code-block" style={{ fontSize: 9, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                <div className="db-code-block" style={{ fontSize: 11, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
                   {accessUrl}
                 </div>
 
@@ -3233,8 +3244,8 @@ function MyPurchases() {
                 }) && (
                   <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span className="db-badge db-badge--lerobot" style={{ fontSize: 8 }}>LeRobot</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>This dataset is LeRobot compatible</span>
+                      <span className="db-badge db-badge--lerobot" style={{ fontSize: 10 }}>LeRobot</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>This dataset is LeRobot compatible</span>
                     </div>
                     <pre className="db-code-block">{`from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
@@ -3263,7 +3274,7 @@ sample = dataset[0]`}</pre>
             {purchaseTab === 'card' && (
               <div className="api-preamble" style={{ padding: '20px 24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
                     Generate a Hugging Face-compatible dataset card, or publish directly to your Hugging Face account.
                   </p>
                   <button className="api-md-btn" style={{ flexShrink: 0, marginLeft: 16 }} onClick={() => {
@@ -3297,12 +3308,12 @@ sample = dataset[0]`}</pre>
                   </button>
                 </div>
                 {hfPublishing && hfProgress && (
-                  <div style={{ marginTop: 8, fontSize: 10, fontFamily: "'Share Tech Mono', monospace", color: 'var(--text-dim)' }}>
+                  <div style={{ marginTop: 8, fontSize: 12, fontFamily: "'Share Tech Mono', monospace", color: 'var(--text-dim)' }}>
                     {hfProgress}
                   </div>
                 )}
                 {hfResult && (
-                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 4, fontSize: 10, fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.5, background: 'url' in hfResult ? 'rgba(0,128,0,0.05)' : 'rgba(200,0,0,0.05)' }}>
+                  <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 4, fontSize: 12, fontFamily: "'Share Tech Mono', monospace", lineHeight: 1.5, background: 'url' in hfResult ? 'rgba(0,128,0,0.05)' : 'rgba(200,0,0,0.05)' }}>
                     {'url' in hfResult ? (
                       <span style={{ color: '#2a7a2a' }}>Published: <a href={hfResult.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2a7a2a', textDecoration: 'underline' }}>{hfResult.url}</a></span>
                     ) : (
@@ -3310,7 +3321,7 @@ sample = dataset[0]`}</pre>
                     )}
                   </div>
                 )}
-                <p style={{ fontSize: 9, color: 'var(--text-dim)', marginTop: 10, lineHeight: 1.4 }}>
+                <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 10, lineHeight: 1.4 }}>
                   Token stored locally, never sent to Atlas.
                   Get one at <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', textDecoration: 'underline' }}>huggingface.co/settings/tokens</a> (write access required).
                 </p>
@@ -3320,28 +3331,28 @@ sample = dataset[0]`}</pre>
         ) : status === 'ready' && !accessUrl ? (
           <div className="api-preamble" style={{ marginTop: 12 }}>
             <div className="db-meta-label" style={{ marginBottom: 8 }}>Access</div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               Your data is ready. {providerName} will send access details to the email address on your account.
             </p>
           </div>
         ) : status === 'processing' ? (
           <div className="api-preamble" style={{ marginTop: 12 }}>
             <div className="db-meta-label" style={{ marginBottom: 8 }}>Preparing your data</div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               {providerName} is preparing your dataset. This page will update automatically when your data is ready to access.
             </p>
           </div>
         ) : status === 'requested' ? (
           <div className="api-preamble" style={{ marginTop: 12 }}>
             <div className="db-meta-label" style={{ marginBottom: 8 }}>Request sent</div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               Access has been requested from {providerName}. You will be notified once your data is ready.
             </p>
           </div>
         ) : (
           <div className="api-preamble" style={{ marginTop: 12 }}>
             <div className="db-meta-label" style={{ marginBottom: 8 }}>Purchase confirmed</div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               Your payment has been received. {providerName} has been notified and will set up data access for you shortly.
             </p>
           </div>
@@ -3418,7 +3429,7 @@ function AreaChart({ data, label }: { data: { label: string; value: number }[]; 
         ))}
         {data.map((d, i) => (
           <text key={`l${i}`} x={getX(i)} y={h - 8} textAnchor="middle" fill="var(--text-dim)"
-            style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', letterSpacing: '1px' }}>{d.label}</text>
+            style={{ fontSize: 12, fontFamily: 'Share Tech Mono, monospace', letterSpacing: '1px' }}>{d.label}</text>
         ))}
       </svg>
     </div>
@@ -3433,7 +3444,7 @@ function VerticalBarChart({ data, label }: { data: { label: string; value: numbe
     <div className="db-chart-wrap">
       <div className="db-meta-label" style={{ marginBottom: 16 }}>{label}</div>
       {total === 0 ? (
-        <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontSize: 10, fontFamily: 'Share Tech Mono, monospace' }}>No data for this period</div>
+        <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-dim)', fontSize: 12, fontFamily: 'Share Tech Mono, monospace' }}>No data for this period</div>
       ) : (
         <div className="db-vbar-chart">
           {data.map((d, i) => (
@@ -3501,9 +3512,9 @@ function DonutChart({ segments, label }: { segments: { name: string; value: numb
             return el;
           })}
           <text x={cx} y={cy - 2} textAnchor="middle" fill="var(--text)"
-            style={{ fontSize: 22, fontFamily: 'Share Tech Mono, monospace' }}>{total}</text>
+            style={{ fontSize: 28, fontFamily: 'Share Tech Mono, monospace' }}>{total}</text>
           <text x={cx} y={cy + 14} textAnchor="middle" fill="var(--text-dim)"
-            style={{ fontSize: 9, fontFamily: 'Share Tech Mono, monospace', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Total</text>
+            style={{ fontSize: 11, fontFamily: 'Share Tech Mono, monospace', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Total</text>
         </svg>
         <div className="db-donut-legend">
           {segments.map((seg, i) => (
@@ -3525,15 +3536,15 @@ function CollectionProgramsManager() {
   const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const fetchPrograms = () => {
+  const fetchPrograms = useCallback(() => {
     setLoading(true);
     api.get<{ data: Record<string, unknown>[] }>('/provider/collection-programs')
       .then(r => setPrograms(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { fetchPrograms(); }, []);
+  useEffect(() => { deferStateUpdate(fetchPrograms); }, [fetchPrograms]);
 
   if (loading) return <div className="db-loading">Loading programs...</div>;
 
@@ -3544,8 +3555,8 @@ function CollectionProgramsManager() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div className="db-meta-label" style={{ fontSize: 11 }}>{programs.length} program{programs.length !== 1 ? 's' : ''}</div>
-        <button className="db-filter-pill" style={{ fontSize: 9, padding: '5px 16px', cursor: 'pointer' }} onClick={() => setShowCreate(!showCreate)}>
+        <div className="db-meta-label" style={{ fontSize: 13 }}>{programs.length} program{programs.length !== 1 ? 's' : ''}</div>
+        <button className="db-filter-pill" style={{ fontSize: 13, padding: '5px 16px', cursor: 'pointer' }} onClick={() => setShowCreate(!showCreate)}>
           {showCreate ? 'Cancel' : '+ New program'}
         </button>
       </div>
@@ -3586,15 +3597,15 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
-  const fetchSignups = () => {
+  const fetchSignups = useCallback(() => {
     setLoading(true);
     api.get<{ data: Record<string, unknown>[] }>(`/provider/collection-programs/${programId}/signups`)
       .then(r => setSignups(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, [programId]);
 
-  useEffect(() => { fetchSignups(); }, [programId]);
+  useEffect(() => { deferStateUpdate(fetchSignups); }, [fetchSignups]);
 
   const handleStatusChange = async (signupId: string, status: string) => {
     setActionLoading(signupId);
@@ -3627,7 +3638,7 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
       {program && (
         <div className="api-preamble" style={{ marginTop: 12, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div className="db-catalog-row__title" style={{ fontSize: 16 }}>{String(program.title)}</div>
+            <div className="db-catalog-row__title" style={{ fontSize: 20 }}>{String(program.title)}</div>
             <span className={`db-status-badge db-status-badge--${program.is_active ? 'approved' : 'rejected'}`}>
               {program.is_active ? 'active' : 'inactive'}
             </span>
@@ -3637,12 +3648,12 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
             <div><div className="db-meta-label">Referral fee (on acceptance)</div><div className="db-meta-value">{formatUsd((program.referral_fee_cents as number) ?? 0)}</div></div>
             <div><div className="db-meta-label">Signup type</div><div className="db-meta-value">{String(program.signup_type ?? 'atlas_form')}</div></div>
           </div>
-          {program.requirements ? <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 12 }}><strong>Requirements:</strong> {String(program.requirements)}</div> : null}
+          {program.requirements ? <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 12 }}><strong>Requirements:</strong> {String(program.requirements)}</div> : null}
         </div>
       )}
 
       {actionMsg && (
-        <div style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', padding: '8px 12px', marginBottom: 12, borderRadius: 4, background: actionMsg.includes('synced') ? 'rgba(39,103,73,0.08)' : 'rgba(214,158,46,0.08)', color: actionMsg.includes('synced') ? '#276749' : '#8a6d00' }}>
+        <div style={{ fontSize: 12, fontFamily: 'Share Tech Mono, monospace', padding: '8px 12px', marginBottom: 12, borderRadius: 4, background: actionMsg.includes('synced') ? 'rgba(39,103,73,0.08)' : 'rgba(214,158,46,0.08)', color: actionMsg.includes('synced') ? '#276749' : '#8a6d00' }}>
           {actionMsg}
         </div>
       )}
@@ -3655,13 +3666,13 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
           <div key={String(s.id)} className="api-preamble" style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div>
-                <span style={{ fontWeight: 500, fontSize: 13 }}>{String(s.name)}</span>
-                <span style={{ color: 'var(--text-secondary)', fontSize: 11, marginLeft: 8 }}>{String(s.email)}</span>
+                <span style={{ fontWeight: 500, fontSize: 17 }}>{String(s.name)}</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13, marginLeft: 8 }}>{String(s.email)}</span>
                 {!!(s.form_data as Record<string, unknown>)?.linkedin && (
-                  <a href={String((s.form_data as Record<string, unknown>).linkedin)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 8, textDecoration: 'none' }}>LinkedIn</a>
+                  <a href={String((s.form_data as Record<string, unknown>).linkedin)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 12, marginLeft: 8, textDecoration: 'none' }}>LinkedIn</a>
                 )}
                 {!!(s.form_data as Record<string, unknown>)?.x_handle && (
-                  <a href={`https://x.com/${String((s.form_data as Record<string, unknown>).x_handle).replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 10, marginLeft: 8, textDecoration: 'none' }}>X</a>
+                  <a href={`https://x.com/${String((s.form_data as Record<string, unknown>).x_handle).replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-dim)', fontSize: 12, marginLeft: 8, textDecoration: 'none' }}>X</a>
                 )}
               </div>
               <span className={`db-status-badge db-status-badge--${String(s.status) === 'active' || String(s.status) === 'accepted' ? 'approved' : String(s.status) === 'rejected' ? 'rejected' : String(s.status) === 'completed' ? 'approved' : 'pending'}`}>
@@ -3676,12 +3687,12 @@ function ProgramSignups({ programId, program, onBack }: { programId: string; pro
             </div>
             {String(s.status) === 'submitted' && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button className="db-filter-pill" style={{ fontSize: 9, padding: '5px 16px', cursor: 'pointer', background: '#1a1a1a', color: '#f5f2ed', border: '1px solid #1a1a1a' }}
+                <button className="db-filter-pill" style={{ fontSize: 13, padding: '5px 16px', cursor: 'pointer', background: '#0f0f0f', color: '#faf8f4', border: '1px solid #0f0f0f' }}
                   disabled={actionLoading === String(s.id)}
                   onClick={() => handleStatusChange(String(s.id), 'accepted')}>
                   {actionLoading === String(s.id) ? '...' : 'Accept'}
                 </button>
-                <button className="db-filter-pill" style={{ fontSize: 9, padding: '5px 16px', cursor: 'pointer', color: '#c53030', borderColor: '#c53030' }}
+                <button className="db-filter-pill" style={{ fontSize: 13, padding: '5px 16px', cursor: 'pointer', color: '#c53030', borderColor: '#c53030' }}
                   disabled={actionLoading === String(s.id)}
                   onClick={() => handleStatusChange(String(s.id), 'rejected')}>
                   Reject
@@ -3757,7 +3768,7 @@ function ProviderAnalytics() {
   const [period, setPeriod] = useState('all');
 
   useEffect(() => {
-    setLoading(true);
+    deferStateUpdate(() => setLoading(true));
     api.get<{ data: Record<string, unknown> }>(`/provider/analytics?period=${period}`)
       .then(r => setData(r.data))
       .catch(console.error)
@@ -3813,7 +3824,7 @@ function ProviderAnalytics() {
   }));
 
   // Donut: breakdown by modality from backend-aggregated modality_hours
-  const donutColors = ['#1a1a1a', '#8a8580', '#c5c0b8', '#e0ddd8', '#a0a0a0', '#6b6560', '#3a3a3a'];
+  const donutColors = ['#0f0f0f', '#6b6560', '#9e988f', '#c4bfb6', '#5a5a5a', '#4a4540', '#3a3a3a'];
   const donutSegments = Object.entries(modalityHoursData)
     .sort((a, b) => b[1] - a[1])
     .map(([name, value], i) => ({
@@ -3822,7 +3833,7 @@ function ProviderAnalytics() {
       color: donutColors[i % donutColors.length],
     }));
   const finalDonut = donutSegments.length > 0 ? donutSegments : [
-    { name: 'No data', value: 0, color: '#e0ddd8' },
+    { name: 'No data', value: 0, color: '#c4bfb6' },
   ];
 
   return (
@@ -3969,7 +3980,7 @@ function StripeStatus() {
       {/* Profile */}
       <div className="api-preamble" style={{ marginTop: 16 }}>
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Profile</div>
-        <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 16 }}>
           This information is visible to buyers on your public provider profile.
         </p>
         <div className="db-form-row">
@@ -4001,7 +4012,7 @@ function StripeStatus() {
           <button className="db-add-cart-btn" style={{ maxWidth: 160 }} onClick={saveProfile} disabled={savingProfile}>
             {savingProfile ? 'Saving...' : 'Save Profile'}
           </button>
-          {profileMsg && <span style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', color: profileMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{profileMsg}</span>}
+          {profileMsg && <span style={{ fontSize: 12, fontFamily: 'Share Tech Mono, monospace', color: profileMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{profileMsg}</span>}
         </div>
       </div>
 
@@ -4012,15 +4023,15 @@ function StripeStatus() {
           <div>
             <div className="db-stripe-status">
               <span className={`db-status-badge db-status-badge--approved`}>Connected</span>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>Payouts enabled</span>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)', marginLeft: 8 }}>Payouts enabled</span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 12 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-dim)', marginTop: 12 }}>
               Payments from OEM buyers are deposited directly to your connected Stripe account
             </p>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
               Connect your Stripe account to receive payments from data buyers
             </p>
             <button className="db-add-cart-btn" style={{ maxWidth: 280 }} onClick={handleConnect}>
@@ -4033,7 +4044,7 @@ function StripeStatus() {
       {/* Provisioning API */}
       <div className="api-preamble" style={{ marginTop: 16 }}>
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Provisioning API</div>
-        <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 16 }}>
           Configure your API endpoint to automatically deliver data access to buyers after purchase. Build an HTTP POST endpoint on your infrastructure that handles purchase and collector webhook events, then enter its URL and a secret API key below. See the <strong>Docs</strong> tab for payload specs and testing.
         </p>
 
@@ -4048,7 +4059,7 @@ function StripeStatus() {
             </button>
           </div>
           {testResult && (
-            <div style={{ fontSize: 10, marginTop: 6, fontFamily: 'Share Tech Mono, monospace',
+            <div style={{ fontSize: 12, marginTop: 6, fontFamily: 'Share Tech Mono, monospace',
               color: testResult.success ? 'var(--green)' : 'var(--red)' }}>
               {testResult.message}
             </div>
@@ -4064,7 +4075,7 @@ function StripeStatus() {
         <div className="db-form-field">
           <label className="db-meta-label">Callback URL (read-only)</label>
           <input className="db-form-input" type="text" readOnly value={provSettings?.callback_url ?? ''} style={{ cursor: 'default' }} />
-          <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4, fontFamily: 'Share Tech Mono, monospace' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4, fontFamily: 'Share Tech Mono, monospace' }}>
             Your API can POST to this URL for async provisioning callbacks
           </div>
         </div>
@@ -4073,7 +4084,7 @@ function StripeStatus() {
           <button className="db-add-cart-btn" style={{ maxWidth: 160 }} onClick={saveProvSettings} disabled={saving}>
             {saving ? 'Saving...' : 'Save'}
           </button>
-          {saveMsg && <span style={{ fontSize: 10, fontFamily: 'Share Tech Mono, monospace', color: saveMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{saveMsg}</span>}
+          {saveMsg && <span style={{ fontSize: 12, fontFamily: 'Share Tech Mono, monospace', color: saveMsg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{saveMsg}</span>}
         </div>
 
       </div>
@@ -4101,7 +4112,7 @@ function CopyableCodeBlock({ code, label }: { code: string; label: string }) {
           color: copied ? '#fff' : 'var(--text-secondary)',
           border: '1px solid var(--border)',
           borderRadius: 3, padding: '3px 8px',
-          fontSize: 9, fontFamily: 'Share Tech Mono, monospace',
+          fontSize: 11, fontFamily: 'Share Tech Mono, monospace',
           textTransform: 'uppercase', letterSpacing: '0.5px',
           cursor: 'pointer',
         }}
@@ -4917,7 +4928,7 @@ function ProviderDocs() {
         </button>
       </div>
       <div className="api-preamble" style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
           Atlas sends webhook events to your API endpoint when key actions occur. Configure your endpoint URL and API key in the <strong>Settings</strong> tab, then implement the handlers below.
         </p>
       </div>
@@ -4929,7 +4940,7 @@ function ProviderDocs() {
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>1. Test your integration</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           Send a test webhook to verify your endpoint handles each event type correctly. Configure your API URL and key in <strong>Settings</strong> first.
         </p>
         <TestWebhookPanel />
@@ -4937,7 +4948,7 @@ function ProviderDocs() {
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>2. Data purchase events</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           When a buyer completes a purchase, Atlas sends a POST request to your API endpoint.
           You can respond synchronously with access details, or asynchronously via the callback URL.
         </p>
@@ -4946,7 +4957,7 @@ function ProviderDocs() {
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>3. Collector signup events</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           When you accept a collector from the Programs tab, Atlas sends a notification to the same endpoint so you can sync them to your own database.
         </p>
         <CopyableCodeBlock label="Event: collector_accepted" code={`POST your-api-endpoint
@@ -4975,7 +4986,7 @@ Content-Type: application/json
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>4. Collector activity postback</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           Report collector hours and earnings back to Atlas. Call this endpoint from your system when a collector completes work.
         </p>
         <CopyableCodeBlock label="POST to Atlas (your system calls this)" code={`POST ${callbackUrl.replace('/provisioning', '/collector-activity')}
@@ -4997,7 +5008,7 @@ Content-Type: application/json
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>5. CORS configuration</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
           If your data is stored in a cloud bucket (R2, S3, GCS), configure CORS to allow Atlas to access your data for buyer previews and Hugging Face integration.
         </p>
         <CopyableCodeBlock label="Cloudflare R2 - CORS settings" code={`Allowed Origins:
@@ -5017,7 +5028,7 @@ Allowed Headers: Content-Type, Authorization`} />
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>6. Sample repository</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 12 }}>
           Every listing requires a <strong>sample manifest</strong> — a JSON file hosted in your storage that indexes your sample episodes.
           This powers the Sample Explorer page where buyers can browse your full sample dataset. Inline preview samples (uploaded above) are the storefront — the manifest is the full catalog.
         </p>
@@ -5037,14 +5048,14 @@ Allowed Headers: Content-Type, Authorization`} />
     }
   ]
 }`}</pre>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6, lineHeight: 1.5 }}>
           Required per episode: <code>id</code>, <code>video</code>. Optional: <code>title</code>, <code>duration_seconds</code>, <code>thumbnail</code>, <code>annotations</code>, <code>instruction</code>, <code>tags</code>, <code>files</code>.
           All paths are relative to the manifest's parent directory.
         </p>
 
         <div style={{ marginTop: 16 }} />
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Generate your manifest</div>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
           Save the manifest generator script from the .md file above as <code>manifest-generator.py</code>, then run:
         </p>
         <pre className="db-code-block">{`python manifest-generator.py ./samples/ -o manifest.json
@@ -5053,21 +5064,21 @@ python manifest-generator.py ./samples/ -o manifest.json --thumbnails`}</pre>
 
         <div style={{ marginTop: 16 }} />
         <div className="db-meta-label" style={{ marginBottom: 8 }}>CORS for Sample Explorer</div>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
           The Sample Explorer loads videos directly from your storage. Your bucket must allow requests from <code>humanoids.fyi</code>.
           Add this origin to your CORS policy (see CORS section above for full configs).
         </p>
 
         <div style={{ marginTop: 16 }} />
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Validation</div>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
           When you submit your listing, Atlas validates: manifest URL is accessible, JSON schema is correct, and 5 random video URLs resolve.
           Fix any errors and re-validate before submitting.
         </p>
 
         <div style={{ marginTop: 16 }} />
         <div className="db-meta-label" style={{ marginBottom: 8 }}>Large datasets (50–500+ hours)</div>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: 8 }}>
           For large sample sets, organize videos + annotations in your bucket, generate thumbnails with <code>--thumbnails</code> flag, and upload the manifest alongside your data.
           Pick 5–10 diverse inline preview clips for the catalog storefront. Use consistent <code>tags</code> keys across episodes (e.g. <code>environment</code>, <code>task</code>) so buyers can filter in the explorer.
           See the .md file above for a full step-by-step walkthrough with folder structure examples.
@@ -5076,7 +5087,7 @@ python manifest-generator.py ./samples/ -o manifest.json --thumbnails`}</pre>
 
       <div className="api-preamble" style={{ marginBottom: 20 }}>
         <div className="db-meta-label" style={{ marginBottom: 16 }}>7. LeRobot format compatibility</div>
-        <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
           <a href="https://github.com/huggingface/lerobot" target="_blank" rel="noopener" style={{ color: 'var(--text)', textDecoration: 'underline' }}>LeRobot</a> is the emerging standard for robot learning datasets. Listings marked as LeRobot compatible get a distinctive badge and buyers can load data directly with <code>LeRobotDataset()</code>. Select <strong>lerobot</strong> in the Formats field when creating a listing.
         </p>
 
@@ -5154,7 +5165,7 @@ single_arm             → koch, so100
     "task_index": { "dtype": "int64", "shape": [1], "names": null }
   }
 }`}</pre>
-        <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}>
           Buyers can load your data with: <code>LeRobotDataset("path/to/downloaded/data")</code>
         </p>
       </div>
@@ -5178,11 +5189,11 @@ function TestWebhookPanel() {
     }
   };
 
-  const events = [
+  const events = useMemo(() => [
     { id: 'ping' as const, label: 'Ping', desc: 'Basic connectivity check' },
     { id: 'purchase' as const, label: 'Purchase', desc: 'Simulates a data purchase event' },
     { id: 'collector_accepted' as const, label: 'Collector Accepted', desc: 'Simulates a collector signup event' },
-  ];
+  ], []);
 
   // Check if all 3 passed
   const allPassed = events.every(ev => {
@@ -5209,7 +5220,7 @@ function TestWebhookPanel() {
       }
     }
     return () => timers.forEach(clearTimeout);
-  }, [results]);
+  }, [events, hidden, results]);
 
   return (
     <div>
@@ -5223,13 +5234,13 @@ function TestWebhookPanel() {
         return (
           <div key={ev.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)', paddingBottom: isLast ? 0 : 12, marginBottom: isLast ? 0 : 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{ev.label}</strong> - {ev.desc}
               </span>
               <button
                 className="db-add-cart-btn"
                 style={{
-                  padding: '4px 14px', fontSize: 10, width: 'auto', marginTop: 0, marginLeft: 16, flexShrink: 0,
+                  padding: '4px 14px', fontSize: 12, width: 'auto', marginTop: 0, marginLeft: 16, flexShrink: 0,
                   ...(passed ? { background: '#4a9e4a', borderColor: '#4a9e4a', color: '#000' } : {}),
                 }}
                 onClick={() => sendTest(ev.id)}
@@ -5243,7 +5254,7 @@ function TestWebhookPanel() {
                 marginTop: 8,
                 padding: '6px 10px',
                 borderRadius: 3,
-                fontSize: 10,
+                fontSize: 12,
                 lineHeight: 1.5,
                 backgroundColor: passed ? 'rgba(0,128,0,0.05)' : state?.result?.success ? 'rgba(200,150,0,0.05)' : 'rgba(200,0,0,0.05)',
                 color: passed ? '#2a7a2a' : state?.result?.success ? '#8a6d00' : '#a00',
@@ -5256,7 +5267,7 @@ function TestWebhookPanel() {
         );
       })}
       {allPassed && (
-        <div style={{ marginTop: 12, fontSize: 11, color: '#2a7a2a', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ marginTop: 12, fontSize: 13, color: '#2a7a2a', fontFamily: 'var(--font-mono)' }}>
           All tests passed. Redirecting to Create Listing...
         </div>
       )}
@@ -5289,7 +5300,7 @@ Content-Type: application/json
   ],
   "callback_url": "${callbackUrl}"
 }`} />
-      <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5, fontFamily: "'Share Tech Mono', monospace" }}>
+      <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5, fontFamily: "'Share Tech Mono', monospace" }}>
         <strong>modality_items</strong> is included when the buyer uses per-modality purchasing. If absent, the buyer purchased the full bundle.
       </p>
 
@@ -5326,7 +5337,7 @@ Content-Type: application/json
 // COLLECT DATA
 // ═══════════════════════════════════════════════════════════
 
-function CollectData({ viewCount: _viewCount }: { viewCount: number | null }) {
+function CollectData() {
   const [programs, setPrograms] = useState<CollectionProgram[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => { api.post('/page-views', { page: 'collect_data' }).catch(() => {}); }, []);
@@ -5464,7 +5475,7 @@ function LocationAutocomplete({ value, onChange }: { value: string; onChange: (v
           maxHeight: 160, overflowY: 'auto', marginTop: 2,
         }}>
           {matches.map(m => (
-            <div key={m} style={{ padding: '6px 12px', fontSize: 11, cursor: 'pointer', color: 'var(--text-secondary)' }}
+            <div key={m} style={{ padding: '6px 12px', fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}
               onMouseDown={() => { onChange(m); setOpen(false); }}>
               {m}
             </div>
@@ -5562,10 +5573,10 @@ function CollectorModal({ program, onClose }: { program: CollectionProgram; onCl
             {program.compensation_description && (
               <div className="db-modal-compensation">
                 <div className="db-meta-label">Compensation</div>
-                <div style={{ fontSize: 13, fontWeight: 500, marginTop: 4 }}>{program.compensation_description}</div>
+                <div style={{ fontSize: 17, fontWeight: 500, marginTop: 4 }}>{program.compensation_description}</div>
               </div>
             )}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8, marginBottom: 12, fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 8, marginBottom: 12, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.4 }}>
               <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} style={{ marginTop: 2 }} />
               <span>I agree to the <a href="/data/collector-terms" target="_blank" rel="noopener" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }} onClick={e => e.stopPropagation()}>Data Collector Conditions</a></span>
             </label>
@@ -5630,7 +5641,7 @@ function ProviderProfile({ slug, onBack, onSelectListing }: { slug: string; onBa
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    deferStateUpdate(() => setLoading(true));
     api.get<{ data: CatalogProvider }>(`/catalog/providers/${slug}`)
       .then(r => setProvider(r.data))
       .catch(console.error)
@@ -5653,7 +5664,7 @@ function ProviderProfile({ slug, onBack, onSelectListing }: { slug: string; onBa
         <div className="db-provider-header__info">
           <h2 className="api-docs-title" style={{ marginBottom: 2 }}>{provider.name}</h2>
           {provider.company_name && provider.company_name !== provider.name && (
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{provider.company_name}</div>
+            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: 'var(--text-dim)', marginBottom: 4 }}>{provider.company_name}</div>
           )}
           {provider.website_url && (
             <a href={provider.website_url} target="_blank" rel="noopener noreferrer" className="db-provider-header__link">
@@ -5873,7 +5884,16 @@ function CustomRequestModal({ onClose, sourceListing }: { onClose: () => void; s
 // ═══════════════════════════════════════════════════════════
 
 function AccountPage() {
-  const clerk = CLERK_AVAILABLE ? useClerk() : null;
+  if (!CLERK_AVAILABLE) return <AccountPageContent clerk={null} />;
+  return <AccountPageWithClerk />;
+}
+
+function AccountPageWithClerk() {
+  const clerk = useClerk();
+  return <AccountPageContent clerk={clerk} />;
+}
+
+function AccountPageContent({ clerk }: { clerk: ClerkResource | null }) {
   const user = clerk?.user;
   const [stats, setStats] = useState<{ purchases: number; listings: number; isProvider: boolean } | null>(null);
   const { isSignedIn } = useClerkAuth();
@@ -5909,17 +5929,17 @@ function AccountPage() {
               {user.imageUrl ? (
                 <img src={user.imageUrl} alt="" style={{ width: 56, height: 56, borderRadius: '50%', border: '1px solid var(--border)' }} />
               ) : (
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 600, color: 'var(--bg)' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 600, color: 'var(--bg)' }}>
                   {(user.firstName ?? 'U').charAt(0)}
                 </div>
               )}
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 500 }}>{user.fullName || user.firstName || 'User'}</div>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 2 }}>
+                <div style={{ fontSize: 20, fontWeight: 500 }}>{user.fullName || user.firstName || 'User'}</div>
+                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 2 }}>
                   {user.primaryEmailAddress?.emailAddress ?? ''}
                 </div>
                 {memberSince && (
-                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 4 }}>
+                  <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: 4 }}>
                     Member since {memberSince}
                   </div>
                 )}
@@ -5949,7 +5969,7 @@ function AccountPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               <div className="db-catalog-row db-listing-row--provider" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/data/buy#purchases'}>
                 <div style={{ flex: 1 }}>
-                  <div className="db-catalog-row__title" style={{ fontSize: 13 }}>My Purchases</div>
+                  <div className="db-catalog-row__title" style={{ fontSize: 17 }}>My Purchases</div>
                   <div className="db-catalog-row__details" style={{ marginTop: 2 }}>View your purchased datasets</div>
                 </div>
                 <span className="db-catalog-row__view">View →</span>
@@ -5958,14 +5978,14 @@ function AccountPage() {
                 <>
                   <div className="db-catalog-row db-listing-row--provider" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/data/sell#listings'}>
                     <div style={{ flex: 1 }}>
-                      <div className="db-catalog-row__title" style={{ fontSize: 13 }}>My Listings</div>
+                      <div className="db-catalog-row__title" style={{ fontSize: 17 }}>My Listings</div>
                       <div className="db-catalog-row__details" style={{ marginTop: 2 }}>Manage your dataset listings</div>
                     </div>
                     <span className="db-catalog-row__view">View →</span>
                   </div>
                   <div className="db-catalog-row db-listing-row--provider" style={{ cursor: 'pointer' }} onClick={() => window.location.href = '/data/sell#settings'}>
                     <div style={{ flex: 1 }}>
-                      <div className="db-catalog-row__title" style={{ fontSize: 13 }}>Provider Settings</div>
+                      <div className="db-catalog-row__title" style={{ fontSize: 17 }}>Provider Settings</div>
                       <div className="db-catalog-row__details" style={{ marginTop: 2 }}>Stripe, webhook, and profile settings</div>
                     </div>
                     <span className="db-catalog-row__view">View →</span>
@@ -5982,7 +6002,7 @@ function AccountPage() {
         </>
       ) : (
         <div className="api-preamble" style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Not signed in</p>
+          <p style={{ fontSize: 14, color: 'var(--text-dim)' }}>Not signed in</p>
         </div>
       )}
     </div>
@@ -5996,8 +6016,8 @@ function AccountPage() {
 function TermsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 28 }}>
-      <div className="db-meta-label" style={{ marginBottom: 10, fontSize: 12 }}>{title}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.9 }}>{children}</div>
+      <div className="db-meta-label" style={{ marginBottom: 10, fontSize: 14 }}>{title}</div>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.9 }}>{children}</div>
     </div>
   );
 }
@@ -6011,7 +6031,7 @@ function TermsPage({ title, subtitle, children }: { title: string; subtitle: str
       </div>
       <div style={{ maxWidth: 680 }}>
         {children}
-        <div style={{ marginTop: 40, padding: '16px 0', borderTop: '1px solid var(--border)', fontSize: 10, color: 'var(--text-dim)', fontFamily: 'Share Tech Mono, monospace' }}>
+        <div style={{ marginTop: 40, padding: '16px 0', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-dim)', fontFamily: 'Share Tech Mono, monospace' }}>
           Atlas Data Brokerage · Humanoid Atlas · Last updated April 2026
         </div>
       </div>
@@ -6127,7 +6147,7 @@ export default function DataBrokerage({ activeSubTab, viewCount }: { activeSubTa
     <>
       {activeSubTab === 'buy_data' && <BuyData />}
       {activeSubTab === 'sell_data' && <SellData viewCount={viewCount} />}
-      {activeSubTab === 'collect_data' && <CollectData viewCount={viewCount} />}
+      {activeSubTab === 'collect_data' && <CollectData />}
       {activeSubTab === 'seller_terms' && <SellerTerms />}
       {activeSubTab === 'buyer_terms' && <BuyerTerms />}
       {activeSubTab === 'collector_terms' && <CollectorTerms />}
