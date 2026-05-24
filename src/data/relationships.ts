@@ -150,10 +150,10 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r154', from: '1x', to: '1x', component: 'Battery Cells (in-house)', componentCategoryId: 'batteries', description: '1X manufactures their own batteries' },
 
   // === ADDITIONAL SCREW RELATIONSHIPS (from audit) ===
-  { id: 'r155', from: 'nanjing_kgm', to: 'unitree', component: 'Planetary Roller Screws', componentCategoryId: 'screws', description: 'Chinese domestic screw supplier' },
-  { id: 'r156', from: 'nanjing_kgm', to: 'agibot', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
-  { id: 'r157', from: 'nanjing_kgm', to: 'xpeng', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
-  { id: 'r158', from: 'nanjing_kgm', to: 'engineai', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
+  { id: 'r155', from: 'kgg', to: 'unitree', component: 'Planetary Roller Screws', componentCategoryId: 'screws', description: 'Chinese domestic screw supplier' },
+  { id: 'r156', from: 'kgg', to: 'agibot', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
+  { id: 'r157', from: 'kgg', to: 'xpeng', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
+  { id: 'r158', from: 'kgg', to: 'engineai', component: 'Planetary Roller Screws', componentCategoryId: 'screws' },
 
   // === ADDITIONAL COMPUTE/PCB RELATIONSHIPS (from audit) ===
   { id: 'r159', from: 'stmicro', to: 'tesla', component: 'Motor Drivers / MEMS', componentCategoryId: 'pcbs', description: 'Gate drivers and STM32 MCUs for actuator control' },

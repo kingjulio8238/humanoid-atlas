@@ -65,7 +65,7 @@ const SUPPLIER_COMPONENT_COL: Record<string, number> = {
   maxon: 1, kollmorgen: 1, cubemars: 1, nidec: 1, estun: 1, moons: 1,
   harmonic_drive: 1, nabtesco: 1, leaderdrive: 1,
   // Bearings & screws
-  thk: 1.5, skf: 1.5, nsk: 1.5, rollvis: 1.5, ewellix: 1.5, nanjing_kgm: 1.5,
+  thk: 1.5, skf: 1.5, nsk: 1.5, rollvis: 1.5, ewellix: 1.5, kgg: 1.5,
   // Sensors
   sony_sensors: 2, hesai: 2, ouster: 2, orbbec: 2, bosch_sensortec: 2,
   // Compute & AI

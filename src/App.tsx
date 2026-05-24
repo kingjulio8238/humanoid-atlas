@@ -924,7 +924,7 @@ const SUPPLIER_COMPONENT_LABEL: Record<string, string> = {
   maxon: 'Motors', kollmorgen: 'Motors', cubemars: 'Motors', nidec: 'Motors', estun: 'Motors', moons: 'Motors',
   sony_sensors: 'Sensors', hesai: 'Sensors', ouster: 'Sensors', orbbec: 'Sensors', bosch_sensortec: 'IMU',
   thk: 'Bearings', skf: 'Bearings', nsk: 'Bearings',
-  rollvis: 'Screws', ewellix: 'Screws', nanjing_kgm: 'Screws',
+  rollvis: 'Screws', ewellix: 'Screws', kgg: 'Screws',
   catl: 'Batteries', panasonic_energy: 'Batteries', byd_battery: 'Batteries', lg_energy: 'Batteries', samsung_sdi: 'Batteries',
   tsmc: 'Chip Fab', texas_instruments: 'PCBs', infineon: 'PCBs', samsung_electro: 'PCBs', stmicro: 'PCBs',
   psyonic: 'Hands', sharpa: 'Hands',

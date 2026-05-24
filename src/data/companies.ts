@@ -1871,11 +1871,11 @@ export const companies: Company[] = [
     plyModel: '/models/battery.ply',
   },
   {
-    id: 'nanjing_kgm',
-    name: 'Nanjing KGM',
+    id: 'kgg',
+    name: 'KGG',
     type: 'component_maker',
     country: 'CN',
-    description: 'One of China\'s largest planetary roller screw manufacturers, actively supplying Chinese humanoid OEMs. As the domestic alternative to Swiss-based Rollvis, Nanjing KGM enables Chinese humanoid companies to source this critical precision component without crossing tariff boundaries or depending on European supply chains.',
+    description: 'Shanghai KGG Robots Co., Ltd. (est. 2008) is a leading Chinese domestic planetary roller screw manufacturer with a dedicated humanoid-robot focus. As the domestic alternative to Swiss-based Rollvis, KGG enables Chinese humanoid companies to source this critical precision component without crossing tariff boundaries or depending on European supply chains.',
     plyModel: '/models/planetary-screw.ply',
   },
   {
