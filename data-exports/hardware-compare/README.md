@@ -51,4 +51,4 @@ Sheet tab on import).
 6. Keep exactly one row per supplier — do not add or remove rows.
 
 ## Status
-Research complete — **30 Validated · 12 Partial · 3 Unverified** across 45 parts. See the **Summary** tab in `hardware-compare.xlsx` for the scorecard + "needs attention" list. Remaining Unverified (intentionally kept, no public datasheet): CATL battery cell, Estun motors, Moons' motors. Images are a later phase.
+Research complete (two passes: initial research + gap-closing) — **33 Validated · 12 Partial · 0 Unverified** across 45 parts. See the **Summary** tab in `hardware-compare.xlsx` for the scorecard. Every row has a real, sourced flagship part. The 12 Partial rows are part-validated; their remaining blank cells are specs the manufacturer does not publish (e.g. NPU TOPS/W, cell-level Wh/kg, per-model frameless-motor mass, dexterous-hand payload) — left blank per the strict no-guess rule, never estimated. Images are a later phase.
