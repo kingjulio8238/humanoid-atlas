@@ -25,3 +25,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Local-only handoff/export artifacts (not for the public repo)
+data-exports/
