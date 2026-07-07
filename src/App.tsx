@@ -8,8 +8,9 @@ import type { RobotSpecs, RewardModelType, WorldModelType, VizToolType, FaceDisp
 import RewardChart from './components/RewardChart';
 import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
-import DataBrokerage from './components/DataBrokerage';
-import EquipmentPage from './components/EquipmentPage';
+// DataBrokerage kept dormant (Data tab removed from Shop) — no longer rendered.
+import ShopCategoryView from './components/ShopCategoryView';
+import { liveCategories, categoryBySlug } from './data/shopCatalog';
 import SampleExplorer from './components/SampleExplorer';
 import Arena from './components/Arena';
 import './App.css';
@@ -18,8 +19,6 @@ import './App.css';
 preloadPLY('/models/skeleton.ply');
 
 type TabGroup = 'overview' | 'industry' | 'shop' | 'arena' | 'hardware' | 'software' | 'hri' | 'cli' | 'api';
-
-type ShopSubTab = 'data' | 'equipment' | 'components';
 
 const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -33,15 +32,10 @@ const TAB_GROUPS: { id: TabGroup; label: string }[] = [
   { id: 'api', label: 'API' },
 ];
 
-// Sub-tabs rendered under the Shop parent. Data redirects to /data/buy on
-// click; Equipment and Components are placeholders.
-const SHOP_SUB_TABS: { id: ShopSubTab; label: string; defaultPath: string }[] = [
-  { id: 'equipment', label: 'Equipment', defaultPath: '/shop/equipment' },
-  { id: 'data', label: 'Data', defaultPath: '/data/buy' },
-  { id: 'components', label: 'Components', defaultPath: '/shop/components' },
-];
-
-const TABS: { id: string; label: string; group: TabGroup; subTab?: ShopSubTab; hidden?: boolean }[] = [
+// Shop tabs are derived dynamically from the component catalog (one tab per
+// component category that has >=1 live product) — see liveCategories(). The
+// static TABS table below covers every other tab group.
+const TABS: { id: string; label: string; group: TabGroup; hidden?: boolean }[] = [
   // Overview
   { id: 'skeleton', label: 'Skeleton', group: 'overview' },
   { id: 'all_oems', label: 'All OEMs', group: 'overview' },
@@ -51,18 +45,7 @@ const TABS: { id: string; label: string; group: TabGroup; subTab?: ShopSubTab; h
   { id: 'funding', label: 'Funding', group: 'industry' },
   { id: 'timeline', label: 'Buildout', group: 'industry' },
   { id: 'factories', label: 'Factories', group: 'industry' },
-  // Shop > Equipment (default)
-  { id: 'equipment', label: 'Equipment', group: 'shop', subTab: 'equipment' },
-  // Shop > Data
-  { id: 'buy_data', label: 'Buy', group: 'shop', subTab: 'data' },
-  { id: 'sell_data', label: 'Sell', group: 'shop', subTab: 'data' },
-  { id: 'collect_data', label: 'Collect', group: 'shop', subTab: 'data' },
-  { id: 'seller_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
-  { id: 'buyer_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
-  { id: 'collector_terms', label: '', group: 'shop', subTab: 'data', hidden: true },
-  { id: 'account', label: 'Account', group: 'shop', subTab: 'data' },
-  // Shop > Components (placeholder)
-  { id: 'components', label: 'Components', group: 'shop', subTab: 'components' },
+  // Shop tabs are generated from the component catalog (see liveCategories()).
   // Arena
   { id: 'arena_oems', label: 'Atlas Arena', group: 'arena' },
   { id: 'arena_suppliers', label: 'Supplier Arena', group: 'arena', hidden: true },
@@ -113,15 +96,6 @@ const TAB_TO_PATH: Record<string, string> = {
   factories: '/industry/factories',
   geopolitics: '/industry/geopolitics',
   timeline: '/industry/buildout',
-  buy_data: '/data/buy',
-  sell_data: '/data/sell',
-  collect_data: '/data/collect',
-  seller_terms: '/data/seller-terms',
-  buyer_terms: '/data/buyer-terms',
-  collector_terms: '/data/collector-terms',
-  account: '/data/account',
-  equipment: '/shop/equipment',
-  components: '/shop/components',
   arena_oems: '/arena/humanoids',
   arena_suppliers: '/arena/suppliers',
   arena_vla: '/arena/vla',
@@ -164,9 +138,6 @@ const PATH_TO_TAB: Record<string, string> = {
   // Legacy redirects (moved from overview to industry)
   '/geopolitics': 'geopolitics',
   '/buildout': 'timeline',
-  // Shop parent → default to Equipment; Data sub-tab → Buy Data
-  '/shop': 'equipment',
-  '/shop/data': 'buy_data',
 };
 
 // Per-tab SEO meta content
@@ -178,12 +149,7 @@ const TAB_META: Record<string, { title: string; description: string }> = {
   geopolitics: { title: 'Humanoid Robot Geopolitics - US vs China Supply Chain | Humanoid Atlas', description: 'Geopolitical analysis of the humanoid robot supply chain. Compare US, China, and global supplier dependencies, self-sufficiency scores, and bottleneck exposure.' },
   network: { title: 'Humanoid Robot Supply Chain Network Graph | Humanoid Atlas', description: 'Interactive network visualization of all humanoid robot OEM-supplier relationships. Explore the full supply chain graph.' },
   timeline: { title: 'Humanoid Robot Industry Buildout Timeline | Humanoid Atlas', description: 'Timeline of humanoid robot development milestones, production ramp-ups, and industry buildout.' },
-  buy_data: { title: 'Buy Training Data | Atlas Data Brokerage', description: 'Browse and purchase humanoid robot training datasets. Egocentric video, teleoperation, tactile, motion capture data from verified providers.' },
-  sell_data: { title: 'Sell Training Data | Atlas Data Brokerage', description: 'List your training datasets on Atlas Data Brokerage. Reach OEM buyers, set your own prices, get paid via Stripe.' },
-  collect_data: { title: 'Collect Training Data | Atlas Data Brokerage', description: 'Join data collection programs and earn by gathering training data for humanoid robots.' },
-  account: { title: 'Account | Atlas Data Brokerage', description: 'Manage your Atlas Data Brokerage account.' },
-  equipment: { title: 'Equipment | Atlas Shop', description: 'NDAA-compliant Japanese-sourced equipment for US humanoid robotics defense buyers. Coming soon.' },
-  components: { title: 'Components | Atlas Shop', description: 'NDAA-compliant Japanese-sourced components for US humanoid robotics defense buyers. Coming soon.' },
+  // Shop meta is generated dynamically per component category (see tabMeta below).
   arena_oems: { title: 'Atlas Arena - Vote on the Best Humanoid | Atlas Arena', description: 'Head-to-head humanoid matchups. Vote on best specs, best value, most production-ready, and best design. Community-driven Elo rankings across 38 OEMs.' },
   arena_suppliers: { title: 'Supplier Arena - Vote on the Best Robotics Supplier | Atlas Arena', description: 'Head-to-head supplier matchups by component category. Compare motors, reducers, batteries, compute and more. Community-driven Elo rankings.' },
   arena_vla: { title: 'VLA Arena - Vote on the Best Vision-Language-Action Model | Atlas Arena', description: 'Head-to-head VLA model matchups. Compare Helix, pi0, GR00T, OpenVLA, Gemini Robotics and more. Community-driven Elo rankings across 19 models.' },
@@ -1162,13 +1128,21 @@ export default function App() {
   // Redirect legacy hash URLs to path-based routes
   useLegacyHashRedirect(navigate);
 
+  // Shop uses dynamic paths (/shop/:category/:productSlug), not the static
+  // PATH_TO_TAB table. Parse them here so activeTab resolves to 'shop'.
+  const shopMatch = location.pathname.match(/^\/shop(?:\/([^/]+))?(?:\/([^/]+))?\/?$/);
+  const shopCategories = liveCategories();
+  const shopCategorySlug = shopMatch ? (shopMatch[1] || shopCategories[0]?.slug || '') : '';
+  const shopProductSlug = shopMatch ? (shopMatch[2] || null) : null;
+
   // Derive activeTab from URL path
   const activeTab = useMemo(() => {
+    if (/^\/shop(\/|$)/.test(location.pathname)) return 'shop';
     return PATH_TO_TAB[location.pathname] || 'skeleton';
   }, [location.pathname]);
 
-  const activeTabGroup = TABS.find((t) => t.id === activeTab)?.group || 'overview';
-  const activeShopSubTab: ShopSubTab = TABS.find((t) => t.id === activeTab)?.subTab || 'equipment';
+  const activeTabGroup: TabGroup =
+    activeTab === 'shop' ? 'shop' : (TABS.find((t) => t.id === activeTab)?.group || 'overview');
   const [companyId, setCompanyId] = useState<string | null>(searchParams.get('company') || null);
   const [actuatorType, setActuatorType] = useState<'linear' | 'rotary'>('linear');
   const [chainFocus, setChainFocus] = useState<string | null>(null);
@@ -1186,28 +1160,6 @@ export default function App() {
   const [cutCompanies, setCutCompanies] = useState<Set<string>>(new Set());
   const [activeScenarios, setActiveScenarios] = useState<Set<string>>(new Set());
   const [viewCount, setViewCount] = useState<number | null>(null);
-  const [clerkSignedIn, setClerkSignedIn] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const nowSignedIn = (e as CustomEvent).detail?.isSignedIn ?? false;
-      setClerkSignedIn((prev: boolean) => {
-        if (!prev && nowSignedIn) {
-          const path = window.location.pathname;
-          if (path.startsWith('/data/')) {
-            // Already on a data page - re-navigate to ensure tab stays active
-            navigate(path);
-          } else {
-            // Not on a data page - redirect to Sell Data
-            navigate('/data/sell');
-          }
-        }
-        return nowSignedIn;
-      });
-    };
-    window.addEventListener('clerk-auth-change', handler);
-    return () => window.removeEventListener('clerk-auth-change', handler);
-  }, [navigate]);
 
   // Skeleton interactive state
   const [skeletonRegion, setSkeletonRegion] = useState<string | null>(null);
@@ -2351,17 +2303,27 @@ export default function App() {
   }
 
   // ==================== MAIN VIEW (tabs) ====================
-  const tabMeta = TAB_META[activeTab] || TAB_META.skeleton;
+  const shopCategory = shopCategorySlug ? categoryBySlug(shopCategorySlug) : undefined;
+  const tabMeta =
+    activeTab === 'shop'
+      ? {
+          title: shopCategory ? `${shopCategory.label} | Atlas Shop` : 'Atlas Shop',
+          description: shopCategory
+            ? `Source ${shopCategory.label} for humanoid robotics programs. Atlas brokers supplier introductions and pricing.`
+            : 'NDAA-conscious humanoid components sourced through Atlas supplier partnerships.',
+        }
+      : TAB_META[activeTab] || TAB_META.skeleton;
+  const canonicalPath = activeTab === 'shop' ? location.pathname : TAB_TO_PATH[activeTab] || '/';
 
   return (
     <div className="app">
       <Helmet>
         <title>{tabMeta.title}</title>
         <meta name="description" content={tabMeta.description} />
-        <link rel="canonical" href={`https://www.humanoids.fyi${TAB_TO_PATH[activeTab] || '/'}`} />
+        <link rel="canonical" href={`https://www.humanoids.fyi${canonicalPath}`} />
         <meta property="og:title" content={tabMeta.title} />
         <meta property="og:description" content={tabMeta.description} />
-        <meta property="og:url" content={`https://www.humanoids.fyi${TAB_TO_PATH[activeTab] || '/'}`} />
+        <meta property="og:url" content={`https://www.humanoids.fyi${canonicalPath}`} />
       </Helmet>
       <header className="header">
         <span className="header-title">Humanoid Atlas</span>
@@ -2483,6 +2445,12 @@ export default function App() {
                 className={`tab-group-pill ${activeTabGroup === g.id ? 'tab-group-pill--active' : ''}`}
                 style={g.id === 'shop' ? { position: 'relative', paddingRight: 22 } : undefined}
                 onClick={() => {
+                  if (g.id === 'shop') {
+                    const first = shopCategories[0];
+                    navigate(first ? `/shop/${first.slug}` : '/shop');
+                    setChainFocus(null);
+                    return;
+                  }
                   const firstTab = TABS.find((t) => t.group === g.id);
                   if (firstTab) { navigate(TAB_TO_PATH[firstTab.id] || '/'); setChainFocus(null); }
                 }}
@@ -2492,15 +2460,15 @@ export default function App() {
         </div>
       </div>
 
-      {activeTabGroup === 'shop' && (
+      {activeTabGroup === 'shop' && shopCategories.length > 0 && (
       <nav className="component-nav">
-        {SHOP_SUB_TABS.map((s) => (
+        {shopCategories.map((c) => (
           <button
-            key={s.id}
-            className={`component-btn ${activeShopSubTab === s.id ? 'component-btn--active' : ''}`}
-            onClick={() => { navigate(s.defaultPath); setChainFocus(null); }}
+            key={c.id}
+            className={`component-btn ${shopCategorySlug === c.slug ? 'component-btn--active' : ''}`}
+            onClick={() => { navigate(`/shop/${c.slug}`); setChainFocus(null); }}
           >
-            {s.label}
+            {c.label}
           </button>
         ))}
       </nav>
@@ -2523,21 +2491,6 @@ export default function App() {
       )}
 
       <main className={activeTabGroup === 'shop' ? 'component-view' : activeTabGroup === 'cli' ? 'component-view' : activeTabGroup === 'api' ? 'component-view' : activeTabGroup === 'arena' ? 'component-view' : activeTab === 'skeleton' ? 'skeleton-view' : activeTab === 'network' ? 'skeleton-view' : activeTab === 'timeline' ? 'geo-view' : activeTab === 'geopolitics' ? 'geo-view' : activeTab === 'funding' ? 'geo-view' : activeTab === 'factories' ? 'geo-view' : 'component-view'}>
-        {/* Inline Buy/Sell/Collect/Account selector inside the Data sub-section */}
-        {activeTabGroup === 'shop' && activeShopSubTab === 'data' && (
-          <nav className="component-nav">
-            {TABS.filter((t) => t.subTab === 'data' && !t.hidden).filter((t) => t.id !== 'account' || clerkSignedIn).map((t) => (
-              <button
-                key={t.id}
-                className={`component-btn ${activeTab === t.id ? 'component-btn--active' : ''}`}
-                onClick={() => { navigate(TAB_TO_PATH[t.id] || '/'); setChainFocus(null); }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        )}
-
         {/* Skeleton tab */}
         {activeTab === 'skeleton' && (
           <div className={`skeleton-interactive${skeletonRegion && skeletonSidebarOpen && !isMobile ? ' skeleton-interactive--sidebar-open' : ''}`}>
@@ -4506,16 +4459,8 @@ export default function App() {
           <Arena activeSubTab={activeTab} />
         )}
 
-        {activeTabGroup === 'shop' && activeShopSubTab === 'data' && (
-          <DataBrokerage activeSubTab={activeTab} viewCount={viewCount} />
-        )}
-
-        {activeTabGroup === 'shop' && activeShopSubTab === 'equipment' && (
-          <EquipmentPage />
-        )}
-
-        {activeTabGroup === 'shop' && activeShopSubTab === 'components' && (
-          <div className="shop-coming-soon">COMING SOON</div>
+        {activeTabGroup === 'shop' && (
+          <ShopCategoryView categorySlug={shopCategorySlug} productSlug={shopProductSlug} />
         )}
 
         {activeTabGroup === 'cli' && (
