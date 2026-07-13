@@ -656,7 +656,8 @@ function getComponentChain(componentId: string) {
     keywords.some((kw) => r.component.toLowerCase().includes(kw))
   );
   const supplierIds = [...new Set(rels.map((r) => r.from))];
-  const oemIds = [...new Set(rels.map((r) => r.to))];
+  // Exclude self-referential edges (supplier with no mapped OEM customer) from the OEM column.
+  const oemIds = [...new Set(rels.filter((r) => r.to !== r.from).map((r) => r.to))];
   const upstreamRels = relationships.filter(
     (r) => supplierIds.includes(r.to) && !supplierIds.includes(r.from)
   );

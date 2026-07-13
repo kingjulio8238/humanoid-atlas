@@ -1720,6 +1720,14 @@ export const companies: Company[] = [
     plyModel: '/models/end-effector.ply',
   },
   {
+    id: 'tesollo',
+    name: 'Tesollo',
+    type: 'component_maker',
+    country: 'KR',
+    description: 'South Korean maker of the Delto dexterous gripper line - the DG-3F (3-finger) and DG-5F (5-finger anthropomorphic) adaptive hands, with integrated actuators and force sensing for research and industrial manipulation.',
+    plyModel: '/models/end-effector.ply',
+  },
+  {
     id: 'cubemars',
     name: 'CubeMars',
     type: 'component_maker',

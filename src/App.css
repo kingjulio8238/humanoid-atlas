@@ -721,6 +721,16 @@ body {
   display: block;
 }
 
+/* Single still hero image: float the (often transparent, tall) render, don't crop. */
+.eq-hero__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6%;
+  box-sizing: border-box;
+  display: block;
+}
+
 .eq-hero__placeholder {
   position: absolute;
   inset: 0;
@@ -796,12 +806,31 @@ body {
   text-underline-offset: 3px;
 }
 
+.eq-hero__ship {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
 .eq-hero__pricing-note {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.72rem;
   letter-spacing: 0.14em;
   color: var(--text-dim);
   margin-top: 0.6rem;
+}
+
+.db-form-lead-note {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+  margin: -0.4rem 0 0.2rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 2px solid var(--border);
+  background: var(--bg-muted);
 }
 
 /* ---------- CTA ---------- */
@@ -874,6 +903,127 @@ body {
 .eq-spec__value {
   font-size: 0.92rem;
   color: var(--text);
+}
+
+/* ---------- control modes ---------- */
+.eq-modes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(14px, 2vw, 24px);
+}
+@media (max-width: 700px) { .eq-modes { grid-template-columns: 1fr; } }
+.eq-mode {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: var(--bg-muted);
+}
+.eq-mode__name {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.eq-mode__desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+/* ---------- connector / pinout ---------- */
+.eq-pinout {
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.eq-pinout__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.eq-pinout__table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  font-weight: 400;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+}
+.eq-pinout__table td {
+  padding: 0.5rem 0.9rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+.eq-pinout__table tr:last-child td { border-bottom: none; }
+.eq-pinout__table td:first-child {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-secondary);
+  width: 3rem;
+}
+.eq-pinout__note {
+  margin-top: 0.9rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+/* ---------- in the box ---------- */
+.eq-inbox {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem 1.6rem;
+  max-width: 720px;
+}
+@media (max-width: 560px) { .eq-inbox { grid-template-columns: 1fr; } }
+.eq-inbox__item {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.eq-inbox__item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+/* ---------- in use gallery ---------- */
+.eq-inuse {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 820px) { .eq-inuse { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px) { .eq-inuse { grid-template-columns: repeat(2, 1fr); } }
+.eq-inuse__tile {
+  aspect-ratio: 3 / 4;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-muted);
+}
+.eq-inuse__tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ---------- software ---------- */
@@ -5163,8 +5313,9 @@ input[type="number"] { -moz-appearance: textfield; }
 .db-program-apply-btn:hover { opacity: 0.85; }
 
 /* ─── MODAL ──────────────────────────────────────────── */
-.db-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.db-modal { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px; max-width: 420px; width: 90%; }
+.db-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.62); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.db-modal { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 28px; max-width: 420px; width: 100%; max-height: calc(100vh - 48px); overflow-y: auto; box-shadow: 0 24px 70px rgba(0,0,0,0.35); scrollbar-width: none; -ms-overflow-style: none; }
+.db-modal::-webkit-scrollbar { width: 0; height: 0; display: none; }
 .db-modal-title { font-family: 'Share Tech Mono', monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
 .db-form-field { margin-bottom: 12px; }
 .db-form-field label { display: block; margin-bottom: 4px; }
@@ -7008,9 +7159,83 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
 .shop-card__media video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
 }
+/* Product renders (often transparent, tall full-body figures) must show fully,
+   not crop — contain on the muted card bg. Video heroes stay cover. */
+.shop-card__media img {
+  object-fit: contain;
+  padding: 7%;
+  box-sizing: border-box;
+  background: var(--bg-muted);
+}
+/* Photo/video posters fill the card; transparent product renders float (contain). */
+.shop-card__media img.is-cover {
+  object-fit: cover;
+  padding: 0;
+  background: none;
+}
+.shop-card__media video {
+  object-fit: cover;
+}
+
+/* ---------- card mini-carousel ---------- */
+.shop-card-carousel {
+  position: absolute;
+  inset: 0;
+}
+.shop-card-carousel__img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.shop-card-carousel__img.is-active { opacity: 1; }
+.shop-card-carousel__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 160ms ease, color 160ms ease;
+  z-index: 2;
+}
+.shop-card:hover .shop-card-carousel__nav { opacity: 1; }
+.shop-card-carousel__nav:hover { color: var(--text); }
+.shop-card-carousel__nav--prev { left: 2px; }
+.shop-card-carousel__nav--next { right: 2px; }
+.shop-card-carousel__dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  z-index: 2;
+}
+.shop-card-carousel__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+  transition: background 160ms ease, transform 160ms ease;
+}
+.shop-card-carousel__dot.is-active { background: var(--text); transform: scale(1.2); }
 
 .shop-card__media-fallback {
   position: absolute;
@@ -7086,4 +7311,527 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
 .shop-card__cta:hover {
   background: var(--text);
   color: var(--bg);
+}
+
+/* ============================================================
+   SHOP — SERIES PRODUCTS (HPJM comparison table + configurator)
+   ============================================================ */
+
+.hpjm-custom {
+  margin-top: 1.6rem;
+}
+.hpjm-custom__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  color: var(--text-dim);
+  margin-bottom: 0.7rem;
+}
+.hpjm-custom__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.hpjm-custom__chip {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-muted);
+  white-space: nowrap;
+}
+
+/* small always-visible sort toggle in sortable headers */
+.hpjm-sort-ind {
+  margin-left: 5px;
+  font-size: 0.85em;
+  opacity: 0.3;
+}
+.hpjm-sort-ind.is-active { opacity: 1; }
+.hpjm-th--sort:hover .hpjm-sort-ind { opacity: 0.7; }
+.hpjm-th--sort:hover .hpjm-sort-ind.is-active { opacity: 1; }
+
+.hpjm-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.hpjm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 720px;
+}
+
+.hpjm-table thead th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-muted);
+  white-space: nowrap;
+}
+.hpjm-table thead th:first-child,
+.hpjm-table tbody td:first-child { text-align: left; }
+
+.hpjm-th--sort { cursor: pointer; user-select: none; }
+.hpjm-th--sort:hover { color: var(--text); }
+
+.hpjm-table tbody td {
+  padding: 0.6rem 0.9rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.hpjm-table tbody tr:last-child td { border-bottom: none; }
+.hpjm-table tbody tr:hover td { background: var(--bg-muted); }
+
+.hpjm-table__code {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+}
+.hpjm-table__ratios { color: var(--text-secondary); }
+
+/* Variant-table (RFQ family) rows: thumbnail + model id. Rows with detail are
+   clickable (inherit .hpjm-table__row pointer); spec-only rows stay static. */
+.ct-variant-table .ct-variant__row--static { cursor: default; }
+.ct-variant-table .ct-variant__row--static:hover td { background: transparent; }
+/* MODEL is the 2nd column (after the caret); left-align its header + cell so the
+   "MODEL" label sits above the thumbnail/name instead of floating right. */
+.ct-variant-table thead th:nth-child(2),
+.ct-variant-table tbody td:nth-child(2) { text-align: left; }
+/* Center the expand caret glyph in its column (overrides the :first-child left rule). */
+.ct-variant-table tbody td.hpjm-table__caret { text-align: center; }
+.ct-variant__id { display: flex; align-items: center; gap: 0.6rem; }
+.ct-variant__thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: 0 0 auto;
+  background: var(--bg-muted);
+  border-radius: 6px;
+  padding: 3px;
+}
+.ct-variant__model {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+}
+.ct-variant__sub {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.ct-variant__note {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Expanded per-model detail spec sheet: wider columns + wrapping so long values
+   (e.g. the full Modbus protocol string) never overlap their neighbours. */
+.ct-detail__specs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem 1.8rem;
+  margin: 0;
+  width: 100%;
+}
+@media (max-width: 900px) {
+  .ct-detail__specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .ct-detail__specs { grid-template-columns: 1fr; }
+}
+.ct-detail__spec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* allow the cell to shrink so its value wraps instead of overflowing */
+}
+.ct-detail__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.ct-detail__value {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  /* override the .hpjm-table td { white-space: nowrap } inherited from the
+     enclosing detail-row cell, so long size/mounting strings wrap in their column */
+  white-space: normal;
+}
+.ct-detail__label { white-space: normal; }
+
+.hpjm-table__docs { text-align: right; }
+.hpjm-table__docs a {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-left: 0.6rem;
+}
+.hpjm-table__docs a:first-child { margin-left: 0; }
+.hpjm-table__docs a:hover { color: var(--text-dim); }
+
+/* configurator price box (inside request modal) */
+.hpjm-price-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  background: var(--bg-muted);
+  margin: 0.4rem 0 1.5rem;
+}
+.hpjm-price-box__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.hpjm-price-box__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.hpjm-price-box__label em {
+  font-style: normal;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  letter-spacing: 0.04em;
+}
+.hpjm-price-box__unit {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+.hpjm-price-box__per {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-left: 1px;
+}
+.hpjm-price-box__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.7rem 0;
+}
+.hpjm-price-box__row--total .hpjm-price-box__label { color: var(--text-secondary); }
+.hpjm-price-box__total {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ---------- hero carousel (series product photos) ---------- */
+.eq-carousel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.eq-carousel__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;   /* background-removed product floats fully visible */
+  padding: 6%;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  pointer-events: none;
+}
+.eq-carousel__img.is-active { opacity: 1; }
+
+.eq-carousel__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-dim);
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 160ms ease;
+  z-index: 2;
+}
+.eq-carousel__nav:hover { color: var(--text); }
+.eq-carousel__nav--prev { left: 4px; }
+.eq-carousel__nav--next { right: 4px; }
+
+.eq-carousel__dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  z-index: 2;
+}
+.eq-carousel__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--text) 35%, transparent);
+  transition: background 160ms ease, transform 160ms ease;
+}
+.eq-carousel__dot.is-active {
+  background: var(--text);
+  transform: scale(1.25);
+}
+
+/* ---------- expandable frame rows ---------- */
+.hpjm-table__caret {
+  width: 26px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+}
+.hpjm-table__row { cursor: pointer; }
+.hpjm-table__row.is-open td { background: var(--bg-muted); }
+
+.hpjm-table__detail-row > td {
+  padding: 0;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.hpjm-detail {
+  display: flex;
+  gap: 1.6rem;
+  padding: 1.3rem 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.hpjm-detail__media { flex: 0 0 190px; max-width: 190px; }
+.hpjm-detail__media img {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  display: block;
+}
+.hpjm-detail__media-fallback {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+}
+.hpjm-detail__docs { display: flex; gap: 1rem; margin-top: 0.7rem; }
+.hpjm-detail__docs a {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.hpjm-detail__docs a:hover { color: var(--text-dim); }
+
+.hpjm-detail__body {
+  flex: 1 1 340px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.hpjm-detail__specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 0.6rem 1.2rem;
+}
+.hpjm-detail__spec { display: flex; flex-direction: column; gap: 2px; }
+.hpjm-detail__spec-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.hpjm-detail__spec-value { font-size: 0.85rem; color: var(--text); }
+
+.hpjm-detail__ratios-wrap { overflow-x: auto; }
+.hpjm-ratio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  min-width: 460px;
+}
+.hpjm-ratio-table th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: right;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.hpjm-ratio-table th:first-child,
+.hpjm-ratio-table td:first-child { text-align: left; }
+.hpjm-ratio-table td {
+  text-align: right;
+  padding: 0.45rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.hpjm-ratio-table tbody tr:last-child td { border-bottom: none; }
+
+/* ---------- delivery / lead-time + ordering guide ---------- */
+.hpjm-lead-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.8rem;
+}
+.hpjm-lead {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  background: var(--bg-muted);
+}
+.hpjm-lead__qty {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.3rem;
+}
+.hpjm-lead__time {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.hpjm-qc {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.hpjm-order__format {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-muted);
+  margin-bottom: 1.2rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 640px;
+}
+.hpjm-order__legend {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 640px;
+}
+.hpjm-order__seg {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.hpjm-order__seg:last-child { border-bottom: none; }
+.hpjm-order__seg dt {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+.hpjm-order__seg dd {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+@media (max-width: 520px) {
+  .hpjm-order__seg { grid-template-columns: 1fr; gap: 0.25rem; }
+}
+.hpjm-order__note {
+  margin-top: 1.2rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  max-width: 70ch;
+}
+
+.hpjm-price-box__sku {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* per-frame mounting + interface rows (in FrameDetail) */
+.hpjm-detail__mount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.hpjm-detail__mount-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0.8rem;
+  align-items: baseline;
+}
+.hpjm-detail__mount-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.hpjm-detail__mount-value {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+@media (max-width: 620px) {
+  .hpjm-detail__mount-row { grid-template-columns: 1fr; gap: 0.2rem; }
 }
