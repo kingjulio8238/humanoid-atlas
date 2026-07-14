@@ -737,6 +737,279 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
       ],
     },
   },
+  {
+    // Virdyn VDSuit Full — full-body inertial mocap suit. Specs from the Virdyn
+    // product page (virdynm.com). Price + shipping per Virdyn's supplied listing
+    // sheet. Origin China.
+    id: 'virdyn-vdsuit-full',
+    slug: 'virdyn-vdsuit-full',
+    category: 'mocap_suit',
+    group: 'capture',
+    name: 'Virdyn VDSuit Full',
+    vendor: 'Virdyn',
+    vendorOrigin: 'CN',
+    vendorOriginLabel: 'China',
+    tagline:
+      'Full-body inertial motion-capture suit with 27 sensor nodes for film, ' +
+      'animation, VR, and robotics teleoperation.',
+    description:
+      'A professional full-body inertial motion-capture suit. 27 sensor nodes ' +
+      'stream 360-degree full-body motion at up to 96 Hz with a self-developed ' +
+      'anti-magnetic calibration, exporting to BVH, FBX, and CSV for Unity, ' +
+      'Unreal, MotionBuilder, and Blender. Wired or wireless, with up to five ' +
+      'performers captured at once.',
+    imageUrl: '/shop/virdyn/vdsuit-full/front.png',
+    gallery: [
+      '/shop/virdyn/vdsuit-full/front.png',
+      '/shop/virdyn/vdsuit-full/rear.png',
+      '/shop/virdyn/vdsuit-full/sensor-detail.png',
+    ],
+    listPrice: 2720,
+    currency: 'USD',
+    shippingUsd: 250,
+    specs: [
+      { label: 'Sensor nodes', value: '27 nodes · 28 sensors' },
+      { label: 'Sensor type', value: 'Gyro + accelerometer + magnetometer' },
+      { label: 'Internal refresh', value: '500 Hz' },
+      { label: 'Output rate', value: '60 / 72 / 80 / 96 Hz' },
+      { label: 'Latency', value: 'Wired <16 ms · wireless 10-20 ms' },
+      { label: 'Wireless', value: '2.4 GHz · 30 m range' },
+      { label: 'Wired', value: 'USB 2.0 · 3 m' },
+      { label: 'Battery', value: '6 h runtime · <2 h charge' },
+      { label: 'Capture range', value: '360°, no angle limit' },
+      { label: 'Accuracy', value: 'Roll/pitch <0.5° · yaw <1.5°' },
+      { label: 'Weight', value: '0.5 kg (suit)' },
+      { label: 'Wear time', value: '<5 min' },
+      { label: 'Output formats', value: 'BVH · FBX · CSV · Euler · Quaternion' },
+      { label: 'Software / SDK', value: 'Unity · Unreal 4.26-5.3 · Maya · MotionBuilder · Blender · C++ · Python' },
+      { label: 'Multi-person', value: 'Up to 5 (Unity)' },
+    ],
+    inBox: [
+      'VDSuit Full mocap suit',
+      '28 sensor nodes',
+      'Controller',
+      'Wireless receiver',
+      '3 m USB cable',
+      '5 V charger',
+      '30 silicone rings',
+    ],
+    vendorUrl: 'https://www.virdynm.com/virdyn-vdsuit-full-for-full-body-function-inertia-motion-capture-suit-product/',
+  },
+  {
+    // Virdyn VDSuitMini Flex — half/upper-body inertial mocap for robotics
+    // teleoperation + data collection (the Flex config adds data gloves).
+    // Specs from the Virdyn product page. Origin China.
+    id: 'virdyn-vdsuitmini-flex',
+    slug: 'virdyn-vdsuitmini-flex',
+    category: 'mocap_suit',
+    group: 'capture',
+    name: 'Virdyn VDSuitMini Flex',
+    vendor: 'Virdyn',
+    vendorOrigin: 'CN',
+    vendorOriginLabel: 'China',
+    tagline:
+      'Half-body inertial mocap for humanoid teleoperation and robot data ' +
+      'collection, with ROS/ROS2 output and finger tracking.',
+    description:
+      'An upper-body inertial motion-capture system built for robotics. The Flex ' +
+      'configuration adds data gloves for finger, wrist, and hand articulation, ' +
+      'driving 1:1 real-time humanoid teleoperation and high-quality datasets for ' +
+      'imitation and reinforcement learning. Sub-20 ms latency over Wi-Fi 6, with ' +
+      'native ROS, ROS2, MATLAB, and Python integration.',
+    imageUrl: '/shop/virdyn/vdsuitmini-flex/front.png',
+    gallery: [
+      '/shop/virdyn/vdsuitmini-flex/front.png',
+      '/shop/virdyn/vdsuitmini-flex/back.png',
+    ],
+    photos: ['/shop/virdyn/vdsuitmini-flex/worn.png'],
+    listPrice: 1789,
+    currency: 'USD',
+    shippingUsd: 250,
+    specs: [
+      { label: 'Configuration', value: 'Upper body + data gloves (Flex)' },
+      { label: 'IMUs', value: '17 total · 12 in gloves' },
+      { label: 'Sensor refresh', value: '≥1000 Hz' },
+      { label: 'Data rate', value: '90 Hz' },
+      { label: 'Latency', value: '≤20 ms' },
+      { label: 'Wireless', value: 'Wi-Fi 6 · ≥80 m range' },
+      { label: 'Battery', value: '2500 mAh · ≥6 h' },
+      { label: 'Weight', value: '≤0.35 kg' },
+      { label: 'Angular velocity resolution', value: '<0.02°' },
+      { label: 'Calibration', value: 'Dual pose (A-pose / P-pose)' },
+      { label: 'Robot control', value: '1:1 teleop · IL/RL datasets · dual-arm' },
+      { label: 'Output formats', value: 'BVH · FBX · CSV' },
+      { label: 'Robotics SDK', value: 'ROS · ROS2 · MATLAB · Python' },
+      { label: 'Plugins', value: 'Unity · Unreal · MotionBuilder · Blender' },
+      { label: 'Anti-magnetic', value: 'Yes (industrial environments)' },
+    ],
+    vendorUrl: 'https://www.virdynm.com/vdmocco-half-body-mocap-system-robot-data-collection-teleoperation-free-software-product/',
+  },
+  {
+    // Virdyn mHand Pro — inertial motion-capture gloves. Specs from the Virdyn
+    // product page. Origin China.
+    id: 'virdyn-mhand-pro',
+    slug: 'virdyn-mhand-pro',
+    category: 'mocap_glove',
+    group: 'capture',
+    name: 'Virdyn mHand Pro',
+    vendor: 'Virdyn',
+    vendorOrigin: 'CN',
+    vendorOriginLabel: 'China',
+    tagline:
+      'Inertial motion-capture gloves with 16 sensors, 800 Hz sampling, gesture ' +
+      'recognition, and haptic feedback.',
+    description:
+      'A pair of inertial motion-capture gloves with 16 nine-axis sensors and a ' +
+      'dual-chip architecture sampling up to 800 Hz. Built-in gesture recognition ' +
+      'covers 15 or more gestures, with vibration feedback and broad plugin ' +
+      'support across Unity, Unreal, Maya, Blender, and MotionBuilder. Ships with ' +
+      'the free lifetime mHand Studio engine.',
+    imageUrl: '/shop/virdyn/mhand-pro/glove.png',
+    gallery: [
+      '/shop/virdyn/mhand-pro/glove.png',
+      '/shop/virdyn/mhand-pro/pair.png',
+    ],
+    listPrice: 1399,
+    currency: 'USD',
+    shippingUsd: 200,
+    specs: [
+      { label: 'Sensors', value: '16 · 8 per hand' },
+      { label: 'Sensor type', value: '9-axis IMU (gyro + accel + mag)' },
+      { label: 'Capture range', value: '±180°' },
+      { label: 'Accuracy', value: 'Roll/pitch <0.5° · yaw <15°' },
+      { label: 'Output rate', value: '60 / 96 / 120 Hz' },
+      { label: 'Internal sampling', value: 'Up to 800 Hz' },
+      { label: 'Wireless', value: '2.4 GHz · 20 m indoor / 40 m outdoor' },
+      { label: 'Battery', value: '≈1050 mAh · ≥8 h' },
+      { label: 'Sizing', value: 'S / M / L' },
+      { label: 'Feedback', value: 'Vibration, multi-mode' },
+      { label: 'Gesture recognition', value: '15+ gestures' },
+      { label: 'Output formats', value: 'BVH · Euler · Quaternion · Raw' },
+      { label: 'Software / SDK', value: 'mHand Studio (free) · C++ · C# · Unity · Unreal 4.24-5.3 · Maya · Blender · MotionBuilder · 3DS Max · iClone' },
+    ],
+    inBox: [
+      '1 pair mHand Pro gloves',
+      '2 USB cables',
+      'USB-to-USB adapter',
+      '2 tracker holders',
+      'Toolkit',
+      'Charger',
+      'Receiver',
+    ],
+    vendorUrl: 'https://www.virdynm.com/virdyn-mhand-pro-a-smart-motion-capture-gloves-for-virtual-reality-product/',
+  },
+  {
+    // Virdyn DreamsCap X1-R — flagship performance-capture kit (body suit +
+    // gloves + face helmet + software). Specs from the Virdyn product page.
+    // NOTE: Virdyn's listing sheet gives $8,500; the public product page shows
+    // $9,500 — listing the $8,500 Virdyn told us to use. Origin China.
+    id: 'virdyn-dreamscap-x1r',
+    slug: 'virdyn-dreamscap-x1r',
+    category: 'mocap_suit',
+    group: 'capture',
+    name: 'Virdyn DreamsCap X1-R',
+    vendor: 'Virdyn',
+    vendorOrigin: 'CN',
+    vendorOriginLabel: 'China',
+    tagline:
+      'Professional performance-capture kit: full-body suit, data gloves, and ' +
+      'facial capture for animation and humanoid robot data collection.',
+    description:
+      "Virdyn's flagship performance-capture kit combines a 31-node full-body " +
+      'suit, 16-sensor data gloves, and a dual-camera facial capture helmet with ' +
+      '52 expression points, all driven by DreamsCap Studio. Under 16 ms latency ' +
+      'over adaptive 2.4 GHz wireless, exporting BVH, FBX, CSV, and VAB for film, ' +
+      'game, and humanoid robot data collection and teleoperation.',
+    imageUrl: '/shop/virdyn/dreamscap-x1r/front.png',
+    gallery: ['/shop/virdyn/dreamscap-x1r/front.png'],
+    photos: ['/shop/virdyn/dreamscap-x1r/software.png'],
+    listPrice: 8500,
+    currency: 'USD',
+    shippingUsd: 450,
+    specs: [
+      { label: 'Kit includes', value: 'Body suit · data gloves · face helmet · Studio software' },
+      { label: 'Body', value: '31 nodes · 15 sensors' },
+      { label: 'Gloves', value: '16 sensors · 10+ gestures' },
+      { label: 'Face', value: 'Dual 1080p RGB · 52 expressions · 60 fps' },
+      { label: 'Output rate', value: '60 / 72 / 80 / 96 / 120 Hz' },
+      { label: 'Sensor refresh', value: '≥800 Hz' },
+      { label: 'Latency', value: '<16 ms' },
+      { label: 'Wireless', value: 'Adaptive 2.4 GHz · body 100 m / gloves 40 m' },
+      { label: 'Battery', value: '≥8 h' },
+      { label: 'Weight', value: 'Suit ≤500 g · gloves ≤170 g · helmet 320 g' },
+      { label: 'Output formats', value: 'BVH · FBX · CSV · VAB' },
+      { label: 'Software / SDK', value: 'DreamsCap Studio · Unity · Unreal · MotionBuilder · Blender · C++' },
+      { label: 'Multi-person', value: 'Up to 5' },
+    ],
+    inBox: [
+      'Full-body mocap suit',
+      'Hand mocap gloves',
+      'Face capture helmet',
+      'DreamsCap Studio software',
+      '7-port expander',
+      '64 GB drive',
+      'Software keys',
+      'User manual',
+      'Storage box',
+    ],
+    vendorUrl: 'https://www.virdynm.com/dreamscap-x1-full-performance-capture-professional-motion-capture-kits-for-animators-and-film-and-game-producers-product/',
+  },
+  {
+    // Virdyn VDEgo-C2 — egocentric first-person capture rig for VLA / world-model
+    // training data. Specs from Virdyn's VDEgo-C2 parameter sheet + product page.
+    // Origin China.
+    id: 'virdyn-vdego-c2',
+    slug: 'virdyn-vdego-c2',
+    category: 'egocentric_capture',
+    group: 'capture',
+    name: 'Virdyn VDEgo-C2',
+    vendor: 'Virdyn',
+    vendorOrigin: 'CN',
+    vendorOriginLabel: 'China',
+    tagline:
+      'Egocentric first-person capture rig for VLA and world-model training data, ' +
+      'with binocular fisheye cameras, IMU, and open data output.',
+    description:
+      "A lightweight head-worn rig that captures true first-person vision-action " +
+      'data for embodied-AI training. Binocular global-shutter fisheye cameras ' +
+      '(3840 × 1200 up to 60 fps, 175° FOV) are hardware-synchronized with a ' +
+      '6-axis IMU and audio, recording an open, self-contained data package ' +
+      '(video, timestamps, IMU, trajectory, calibration, audio) for VLA and ' +
+      'world-model training. Offline capture with encrypted storage and Wi-Fi 6 upload.',
+    imageUrl: '/shop/virdyn/vdego-c2/front.png',
+    gallery: [
+      '/shop/virdyn/vdego-c2/front.png',
+      '/shop/virdyn/vdego-c2/side.png',
+      '/shop/virdyn/vdego-c2/back.png',
+      '/shop/virdyn/vdego-c2/perspective.png',
+    ],
+    listPrice: 1100,
+    currency: 'USD',
+    shippingUsd: 200,
+    specs: [
+      { label: 'Cameras', value: 'Binocular global shutter' },
+      { label: 'Resolution', value: '3840 × 1200 @ 30/60 fps' },
+      { label: 'Lens FOV', value: 'Fisheye · 175° diagonal' },
+      { label: 'Sync', value: 'Hardware frame sync · binocular ≤1 µs · IMU <50 µs' },
+      { label: 'IMU', value: '6-axis · ±16 g / ±2000 dps · 300-600 Hz' },
+      { label: 'Interface', value: 'USB 3.0' },
+      { label: 'Compute', value: '8-core · 4 GB RAM · 128 GB storage' },
+      { label: 'Wireless', value: 'Wi-Fi 6 · Bluetooth 5.4' },
+      { label: 'Battery', value: '5000 mAh · 3.5-4 h capture' },
+      { label: 'Weight', value: '≈330 g' },
+      { label: 'Dimensions', value: '275 × 190 × 130 mm' },
+      { label: 'System', value: 'Linux · open data format' },
+      { label: 'Output data', value: 'Video · IMU · trajectory · calibration · audio' },
+    ],
+    inBox: [
+      'VDEgo-C2 unit (camera, board, battery, carrier, cable)',
+      'Type-C charging cable (2 m)',
+      'Product manual',
+      'Warranty card',
+      'Optional: spare battery module + charging adapter',
+    ],
+    vendorUrl: 'https://www.virdynm.com/vdego-egocentric-video-data-collection-service-at-scale-first-person-vision-product/',
+  },
 ];
 
 // ---------------- Helpers ----------------
