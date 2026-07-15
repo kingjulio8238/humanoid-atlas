@@ -900,9 +900,11 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
   },
   {
     // Virdyn DreamsCap X1-R — flagship performance-capture kit (body suit +
-    // gloves + face helmet + software). Specs from the Virdyn product page.
+    // gloves + software). Specs from the Virdyn product page.
     // NOTE: Virdyn's listing sheet gives $8,500; the public product page shows
     // $9,500 — listing the $8,500 Virdyn told us to use. Origin China.
+    // Per Virdyn (2026-07-15): kit is body + gloves only (no face helmet); body
+    // has 15 nodes, not 31.
     id: 'virdyn-dreamscap-x1r',
     slug: 'virdyn-dreamscap-x1r',
     category: 'mocap_suit',
@@ -912,14 +914,14 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     vendorOrigin: 'CN',
     vendorOriginLabel: 'China',
     tagline:
-      'Professional performance-capture kit: full-body suit, data gloves, and ' +
-      'facial capture for animation and humanoid robot data collection.',
+      'Professional performance-capture kit: full-body suit and data gloves ' +
+      'for animation and humanoid robot data collection.',
     description:
-      "Virdyn's flagship performance-capture kit combines a 31-node full-body " +
-      'suit, 16-sensor data gloves, and a dual-camera facial capture helmet with ' +
-      '52 expression points, all driven by DreamsCap Studio. Under 16 ms latency ' +
-      'over adaptive 2.4 GHz wireless, exporting BVH, FBX, CSV, and VAB for film, ' +
-      'game, and humanoid robot data collection and teleoperation.',
+      "Virdyn's flagship performance-capture kit combines a 15-node full-body " +
+      'suit and 16-sensor data gloves, all driven by DreamsCap Studio. Under ' +
+      '16 ms latency over adaptive 2.4 GHz wireless, exporting BVH, FBX, CSV, ' +
+      'and VAB for film, game, and humanoid robot data collection and ' +
+      'teleoperation.',
     imageUrl: '/shop/virdyn/dreamscap-x1r/front.png',
     gallery: ['/shop/virdyn/dreamscap-x1r/front.png'],
     photos: ['/shop/virdyn/dreamscap-x1r/software.png'],
@@ -927,16 +929,15 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     currency: 'USD',
     shippingUsd: 450,
     specs: [
-      { label: 'Kit includes', value: 'Body suit · data gloves · face helmet · Studio software' },
-      { label: 'Body', value: '31 nodes · 15 sensors' },
+      { label: 'Kit includes', value: 'Body suit · data gloves · Studio software' },
+      { label: 'Body', value: '15 nodes · 15 sensors' },
       { label: 'Gloves', value: '16 sensors · 10+ gestures' },
-      { label: 'Face', value: 'Dual 1080p RGB · 52 expressions · 60 fps' },
       { label: 'Output rate', value: '60 / 72 / 80 / 96 / 120 Hz' },
       { label: 'Sensor refresh', value: '≥800 Hz' },
       { label: 'Latency', value: '<16 ms' },
       { label: 'Wireless', value: 'Adaptive 2.4 GHz · body 100 m / gloves 40 m' },
       { label: 'Battery', value: '≥8 h' },
-      { label: 'Weight', value: 'Suit ≤500 g · gloves ≤170 g · helmet 320 g' },
+      { label: 'Weight', value: 'Suit ≤500 g · gloves ≤170 g' },
       { label: 'Output formats', value: 'BVH · FBX · CSV · VAB' },
       { label: 'Software / SDK', value: 'DreamsCap Studio · Unity · Unreal · MotionBuilder · Blender · C++' },
       { label: 'Multi-person', value: 'Up to 5' },
@@ -944,7 +945,6 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     inBox: [
       'Full-body mocap suit',
       'Hand mocap gloves',
-      'Face capture helmet',
       'DreamsCap Studio software',
       '7-port expander',
       '64 GB drive',
