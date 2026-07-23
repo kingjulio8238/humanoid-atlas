@@ -112,7 +112,9 @@ function Hero({ product, onRequest }: { product: ShopProduct; onRequest: () => v
             <dd>
               {product.series
                 ? `From ${formatPrice(product.series.fromPrice, product.series.currency)}`
-                : formatPrice(product.listPrice, product.currency)}
+                : product.variants && product.listPrice != null
+                  ? `From ${formatPrice(product.listPrice, product.currency)}`
+                  : formatPrice(product.listPrice, product.currency)}
               {product.shippingUsd != null && (
                 <span className="eq-hero__ship">+ ${product.shippingUsd.toLocaleString('en-US')} shipping</span>
               )}

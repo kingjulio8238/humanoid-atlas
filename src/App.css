@@ -194,10 +194,19 @@ body {
 .component-nav {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 2px;
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.component-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .component-btn {
@@ -215,6 +224,8 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .component-btn:hover {
@@ -225,6 +236,20 @@ body {
 .component-btn--active {
   color: var(--text);
   border-bottom-color: var(--text);
+}
+
+/* Shop nav "back to groups" control (shown while drilled into a group) */
+.component-btn--back {
+  color: var(--text-secondary);
+  font-weight: bold;
+  border-right: 1px solid var(--border);
+  margin-right: 6px;
+  padding-right: 16px;
+}
+
+.component-btn--back:hover {
+  color: var(--text);
+  border-bottom-color: transparent;
 }
 
 .component-btn__warn {
@@ -708,7 +733,7 @@ body {
 .eq-hero__media {
   position: relative;
   aspect-ratio: 16 / 10;
-  background: var(--bg-muted);
+  background: transparent;
   border: 1px solid var(--border);
   overflow: hidden;
   border-radius: 10px;
@@ -7047,6 +7072,7 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
   position: relative;
   flex: 1 1 240px;
   min-width: 200px;
+  max-width: 560px;
   display: flex;
   align-items: center;
 }
@@ -7065,7 +7091,7 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.82rem;
   padding: 0.6rem 0.7rem 0.6rem 2rem;
-  background: var(--bg-muted);
+  background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
@@ -7079,8 +7105,14 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
 .shop-select {
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.78rem;
-  padding: 0.6rem 0.8rem;
-  background: var(--bg-muted);
+  padding: 0.6rem 2.6rem 0.6rem 0.8rem;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' fill='none'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23999' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 6px;
@@ -7133,7 +7165,7 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg-muted);
+  background: transparent;
   cursor: pointer;
   transition: border-color 160ms ease, transform 160ms ease;
 }
@@ -7151,7 +7183,7 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
 .shop-card__media {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: var(--bg);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -7167,7 +7199,7 @@ body:has(.se-page)::-webkit-scrollbar { display: none; }
   object-fit: contain;
   padding: 7%;
   box-sizing: border-box;
-  background: var(--bg-muted);
+  background: transparent;
 }
 /* Photo/video posters fill the card; transparent product renders float (contain). */
 .shop-card__media img.is-cover {

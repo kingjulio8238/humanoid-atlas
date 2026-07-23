@@ -10,7 +10,7 @@ import ApiDocs from './components/ApiDocs';
 import CliDocs from './components/CliDocs';
 // DataBrokerage kept dormant (Data tab removed from Shop) — no longer rendered.
 import ShopCategoryView from './components/ShopCategoryView';
-import { liveCategories, categoryBySlug } from './data/shopCatalog';
+import { liveCategories, categoryBySlug, SHOP_GROUP_LABELS } from './data/shopCatalog';
 import SampleExplorer from './components/SampleExplorer';
 import Arena from './components/Arena';
 import './App.css';
@@ -1135,6 +1135,14 @@ export default function App() {
   const shopCategories = liveCategories();
   const shopCategorySlug = shopMatch ? (shopMatch[1] || shopCategories[0]?.slug || '') : '';
   const shopProductSlug = shopMatch ? (shopMatch[2] || null) : null;
+  // Shop nav is a single row that drills down: it shows the parent component
+  // groups (Actuation, End Effectors, ...) until one is pressed, then it swaps
+  // to that group's categories (with a back control), keeping ~14 categories from
+  // overflowing while showing only one row at a time.
+  const shopGroups = Array.from(new Set(shopCategories.map((c) => c.group)))
+    .map((id) => ({ id, label: SHOP_GROUP_LABELS[id] }));
+  const activeShopGroup = categoryBySlug(shopCategorySlug)?.group ?? shopGroups[0]?.id;
+  const [shopNavGroup, setShopNavGroup] = useState<string | null>(null);
 
   // Derive activeTab from URL path
   const activeTab = useMemo(() => {
@@ -1603,6 +1611,9 @@ export default function App() {
 
   const handleBackFromCompany = () => {
     setCompanyId(null);
+    // Return to the originating tab (e.g. All OEMs) and drop the stale
+    // ?company= query param so a refresh/share of that URL doesn't reopen the detail.
+    navigate(TAB_TO_PATH[activeTab] || '/', { replace: true });
   };
 
   // ==================== COMPARISON VIEW ====================
@@ -2463,15 +2474,40 @@ export default function App() {
 
       {activeTabGroup === 'shop' && shopCategories.length > 0 && (
       <nav className="component-nav">
-        {shopCategories.map((c) => (
-          <button
-            key={c.id}
-            className={`component-btn ${shopCategorySlug === c.slug ? 'component-btn--active' : ''}`}
-            onClick={() => { navigate(`/shop/${c.slug}`); setChainFocus(null); }}
-          >
-            {c.label}
-          </button>
-        ))}
+        {shopNavGroup === null ? (
+          shopGroups.map((g) => (
+            <button
+              key={g.id}
+              className={`component-btn ${activeShopGroup === g.id ? 'component-btn--active' : ''}`}
+              onClick={() => {
+                const firstCat = shopCategories.find((c) => c.group === g.id);
+                setShopNavGroup(g.id);
+                if (firstCat) { navigate(`/shop/${firstCat.slug}`); setChainFocus(null); }
+              }}
+            >
+              {g.label}
+            </button>
+          ))
+        ) : (
+          <>
+            <button
+              className="component-btn component-btn--back"
+              onClick={() => setShopNavGroup(null)}
+              aria-label="Back to component groups"
+            >
+              ‹ {shopGroups.find((g) => g.id === shopNavGroup)?.label}
+            </button>
+            {shopCategories.filter((c) => c.group === shopNavGroup).map((c) => (
+              <button
+                key={c.id}
+                className={`component-btn ${shopCategorySlug === c.slug ? 'component-btn--active' : ''}`}
+                onClick={() => { navigate(`/shop/${c.slug}`); setChainFocus(null); }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </>
+        )}
       </nav>
       )}
 
