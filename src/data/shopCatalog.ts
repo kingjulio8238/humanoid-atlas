@@ -408,6 +408,216 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
     vendorUrl: 'https://en.tesollo.com',
   },
   {
+    // Tesollo Delto DG-5F-M — human-scale 5-finger dexterous hand. Specs and
+    // product copy from the Tesollo company overview deck
+    // (Tesollo_company_overview.pdf, product page for DG-5F-M). No standalone
+    // hardware manual, pricing, connector pinout, or in-box list was supplied
+    // for this model, so only deck-level fields are listed (RFQ, listPrice null).
+    // imageUrl is a PLACEHOLDER extracted from the deck render — replace with an
+    // official Tesollo image when available.
+    id: 'tesollo-dg-5f-m',
+    slug: 'tesollo-dg-5f-m',
+    category: 'gripper',
+    group: 'end-effectors',
+    name: 'Tesollo DG-5F-M',
+    vendor: 'Tesollo',
+    vendorOrigin: 'KR',
+    vendorOriginLabel: 'South Korea',
+    tagline:
+      'Human-scale 5-finger robotic hand with 20 DoF for human-level grasping ' +
+      'and manipulation, tool handling, and object assembly/disassembly.',
+    description:
+      "A robot hand capable of human-level grasping and manipulation. Similar in " +
+      "size to an adult male's hand, it is composed of 20 independently controlled " +
+      'joints across five fingers. It suits tasks such as tool handling and object ' +
+      'assembly/disassembly, making it applicable to research institutions and a ' +
+      'wide range of industries.',
+    imageUrl: '/shop/tesollo/gallery/dg-5f-m.png',
+    gallery: ['/shop/tesollo/gallery/dg-5f-m.png'],
+    listPrice: null,
+    currency: 'USD',
+    specs: [
+      { label: 'Configuration', value: '5 fingers · 20 DoF (4 per finger)' },
+      { label: 'Pinching payload', value: '2.5 kg rated · 5 kg max' },
+      { label: 'Envelope payload', value: '10 kg rated · 20 kg max' },
+      { label: 'Weight', value: '1,763 g' },
+      { label: 'Motor', value: 'BLDC' },
+      { label: 'Supply voltage', value: '24 V DC' },
+      { label: 'Max current', value: '10 A' },
+      { label: 'Joint torque', value: '0.4 Nm rated · 2 Nm stall' },
+      { label: 'No-load speed', value: '75 rpm per joint' },
+      { label: 'Encoder', value: 'Absolute, per joint' },
+      { label: 'Communication', value: 'Modbus RTU/TCP · EtherNet TCP/IP' },
+      { label: 'Control cycle', value: '250 Hz' },
+    ],
+    vendorUrl: 'https://en.tesollo.com',
+  },
+  {
+    // Tesollo Delto DG-5F-S — compact, lightweight (<1 kg) high-DoF 5-finger
+    // hand. Specs/copy from the company overview deck (DG-5F-S product page).
+    // imageUrl is a PLACEHOLDER extracted from the deck render — replace with an
+    // official Tesollo image when available.
+    id: 'tesollo-dg-5f-s',
+    slug: 'tesollo-dg-5f-s',
+    category: 'gripper',
+    group: 'end-effectors',
+    name: 'Tesollo DG-5F-S',
+    vendor: 'Tesollo',
+    vendorOrigin: 'KR',
+    vendorOriginLabel: 'South Korea',
+    tagline:
+      'Compact, lightweight (<1 kg) 5-finger robotic hand with 20 DoF for ' +
+      'humanoid robots and advanced manipulation research.',
+    description:
+      'A compact, lightweight high-DoF robotic hand that combines a human-scale ' +
+      'form factor with a sub-1 kg design, making it well-suited for humanoid ' +
+      'robots and manipulation research. It serves as a high-performance research ' +
+      'platform capable of reliably handling advanced tasks such as deformable ' +
+      'object manipulation, tool use, and precision assembly and fastening.',
+    imageUrl: '/shop/tesollo/gallery/dg-5f-s.png',
+    gallery: ['/shop/tesollo/gallery/dg-5f-s.png'],
+    listPrice: null,
+    currency: 'USD',
+    specs: [
+      { label: 'Configuration', value: '5 fingers · 20 DoF (4 per finger)' },
+      { label: 'Pinching payload', value: '1 kg rated · 2 kg max' },
+      { label: 'Envelope payload', value: '7 kg rated · 12 kg max' },
+      { label: 'Weight', value: '880 g' },
+      { label: 'Motor', value: 'DC' },
+      { label: 'Supply voltage', value: '24 V DC' },
+      { label: 'Max current', value: '10 A' },
+      { label: 'Joint torque', value: '0.11 Nm rated · 0.65 Nm stall' },
+      { label: 'No-load speed', value: '85 rpm per joint' },
+      { label: 'Encoder', value: 'Absolute, per joint' },
+      { label: 'Communication', value: 'EtherNet TCP/IP · Modbus TCP' },
+      { label: 'Control cycle', value: '500 Hz' },
+    ],
+    vendorUrl: 'https://en.tesollo.com',
+  },
+  {
+    // Tesollo Delto DG-4F — 4-finger hybrid hand/gripper. Specs/copy from the
+    // company overview deck (DG-4F product page). imageUrl is a PLACEHOLDER
+    // extracted from the deck render — replace with an official image later.
+    id: 'tesollo-dg-4f',
+    slug: 'tesollo-dg-4f',
+    category: 'gripper',
+    group: 'end-effectors',
+    name: 'Tesollo DG-4F',
+    vendor: 'Tesollo',
+    vendorOrigin: 'KR',
+    vendorOriginLabel: 'South Korea',
+    tagline:
+      'Shape-shifting 4-finger gripper with 18 DoF that combines humanoid-hand ' +
+      'and gripper functions for mixed picking and assembly.',
+    description:
+      'A gripper that combines both humanoid-hand and gripper functions. Its ' +
+      'flexible design can transform its shape and includes the functions of a ' +
+      'left hand, right hand, and gripper. It can securely grasp objects of ' +
+      'various materials and shapes and is also capable of tool-handling tasks, ' +
+      'making it suitable for automating processes that mix picking and assembly ' +
+      'operations.',
+    imageUrl: '/shop/tesollo/gallery/dg-4f.png',
+    gallery: ['/shop/tesollo/gallery/dg-4f.png'],
+    listPrice: null,
+    currency: 'USD',
+    specs: [
+      { label: 'Configuration', value: '4 fingers · 18 DoF (4-5 per finger)' },
+      { label: 'Pinching payload', value: '3 kg rated · 5 kg max' },
+      { label: 'Envelope payload', value: '10 kg rated · 20 kg max' },
+      { label: 'Weight', value: '1,494 g' },
+      { label: 'Motor', value: 'BLDC' },
+      { label: 'Supply voltage', value: '24 V DC' },
+      { label: 'Max current', value: '10 A' },
+      { label: 'Joint torque', value: '0.4 Nm rated · 2 Nm stall' },
+      { label: 'No-load speed', value: '75 rpm per joint' },
+      { label: 'Encoder', value: 'Absolute, per joint' },
+      { label: 'Communication', value: 'Modbus RTU/TCP · EtherNet TCP/IP' },
+      { label: 'Control cycle', value: '333 Hz' },
+    ],
+    vendorUrl: 'https://en.tesollo.com',
+  },
+  {
+    // Tesollo Delto DG-2F — 2-finger precision gripper. Specs/copy from the
+    // company overview deck (DG-2F product page). imageUrl is a PLACEHOLDER
+    // extracted from the deck render — replace with an official image later.
+    id: 'tesollo-dg-2f',
+    slug: 'tesollo-dg-2f',
+    category: 'gripper',
+    group: 'end-effectors',
+    name: 'Tesollo DG-2F',
+    vendor: 'Tesollo',
+    vendorOrigin: 'KR',
+    vendorOriginLabel: 'South Korea',
+    tagline:
+      'Multi-joint 2-finger gripper with 6 DoF for precise handling of diverse ' +
+      'objects in repetitive industrial automation.',
+    description:
+      'A multi-joint two-finger gripper engineered for precise handling of diverse ' +
+      'objects. It is optimized for repetitive precision tasks and can securely ' +
+      'lift up to 4 kg with a pinching grasp. Its 6-DoF structure adapts easily to ' +
+      'various object shapes, making it ideal for industrial automation.',
+    imageUrl: '/shop/tesollo/gallery/dg-2f.png',
+    gallery: ['/shop/tesollo/gallery/dg-2f.png'],
+    listPrice: null,
+    currency: 'USD',
+    specs: [
+      { label: 'Configuration', value: '2 fingers · 6 DoF (3 per finger)' },
+      { label: 'Pinching payload', value: '2.5 kg rated · 4 kg max' },
+      { label: 'Envelope payload', value: '5 kg rated · 10 kg max' },
+      { label: 'Weight', value: '770 g' },
+      { label: 'Motor', value: 'BLDC' },
+      { label: 'Supply voltage', value: '24 V DC' },
+      { label: 'Max current', value: '10 A' },
+      { label: 'Joint torque', value: '0.4 Nm rated · 2 Nm stall' },
+      { label: 'No-load speed', value: '75 rpm per joint' },
+      { label: 'Encoder', value: 'Absolute, per joint' },
+      { label: 'Communication', value: 'Modbus RTU/TCP · EtherNet TCP/IP' },
+      { label: 'Control cycle', value: '500 Hz' },
+    ],
+    vendorUrl: 'https://en.tesollo.com',
+  },
+  {
+    // Tesollo Delto DG-1F — vacuum/suction gripper with articulated pad. Specs/
+    // copy from the company overview deck (DG-1F product page). No payload
+    // figures were given in the deck for this model (vacuum gripper). imageUrl is
+    // a PLACEHOLDER extracted from the deck render — replace with an official
+    // image later.
+    id: 'tesollo-dg-1f',
+    slug: 'tesollo-dg-1f',
+    category: 'gripper',
+    group: 'end-effectors',
+    name: 'Tesollo DG-1F',
+    vendor: 'Tesollo',
+    vendorOrigin: 'KR',
+    vendorOriginLabel: 'South Korea',
+    tagline:
+      'Vacuum gripper with 3-DoF articulated suction fingertip for stable ' +
+      'picking on uneven or awkward surfaces.',
+    description:
+      'A vacuum gripper designed with extra pad freedom to reduce environmental ' +
+      'interference. Combining 3-DoF motion with a suction fingertip enables ' +
+      'stable gripping even on uneven or awkward surfaces. It offers an efficient ' +
+      'solution for vacuum handling, piece-picking, and other precision tasks.',
+    imageUrl: '/shop/tesollo/gallery/dg-1f.png',
+    gallery: ['/shop/tesollo/gallery/dg-1f.png'],
+    listPrice: null,
+    currency: 'USD',
+    specs: [
+      { label: 'Configuration', value: 'Vacuum gripper · 3 DoF articulated pad' },
+      { label: 'Weight', value: '710 g' },
+      { label: 'Motor', value: 'BLDC' },
+      { label: 'Supply voltage', value: '24 V DC' },
+      { label: 'Max current', value: '6 A' },
+      { label: 'Joint torque', value: '0.4 Nm rated · 2 Nm stall' },
+      { label: 'No-load speed', value: '75 rpm per joint' },
+      { label: 'Encoder', value: 'Absolute, per joint' },
+      { label: 'Communication', value: 'Modbus RTU/TCP · EtherNet TCP/IP' },
+      { label: 'Control cycle', value: '1,000 Hz' },
+    ],
+    vendorUrl: 'https://en.tesollo.com',
+  },
+
+  {
     // HONPINE HPJM PRO Series — integrated harmonic joint motors. Data sourced
     // from the vendor package: specification EN.xlsx (electricals + per-ratio
     // torque/speed/backlash), price and delivery.xlsx (USD/pc matrix), and the
