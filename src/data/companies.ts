@@ -549,8 +549,8 @@ export const companies: Company[] = [
     name: 'UBTECH (Walker S2)',
     type: 'oem',
     country: 'CN',
-    description: 'One of the few humanoid companies already in production with 1,000 units planned for 2025. UBTECH has the longest track record in Chinese humanoids, with Walker lineage going back several generations. Their dual hot-swap battery system (48V, 3-5 kWh) is the highest-capacity power system in the industry, though runtime is still limited to 2 hours. At $80K they sit in the mid-range - affordable enough for Chinese government procurement but expensive enough to fund real R&D. Listed in Hong Kong as UBXG.HK.',
-    ticker: 'UBXG.HK',
+    description: 'One of the few humanoid companies already in production with 1,000 units planned for 2025. UBTECH has the longest track record in Chinese humanoids, with Walker lineage going back several generations. Their dual hot-swap battery system (48V, 3-5 kWh) is the highest-capacity power system in the industry, though runtime is still limited to 2 hours. At $80K they sit in the mid-range - affordable enough for Chinese government procurement but expensive enough to fund real R&D. Listed in Hong Kong as 9880.HK since December 2023.',
+    ticker: '9880.HK',
     plyModel: '/models/skeleton.ply',
     robotImage: '/models/robo14_ubtech.webp',
     robotSpecs: {
