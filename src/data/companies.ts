@@ -1994,3 +1994,163 @@ export const companies: Company[] = [
     plyModel: '/models/bldc-motor.ply',
   },
 ];
+{
+  id: 'galbot',
+  name: 'Galbot (G1)',
+  type: 'oem',
+  country: 'CN',
+
+  description:
+    'Beijing-based embodied AI and robotics company founded in 2023. ' +
+    'Galbot G1 is a human-scale wheeled mobile manipulator designed for general-purpose ' +
+    'real-world operation, combining dual 7-DOF arms, a height-adjustable body, and a ' +
+    '4-wheel omnidirectional mobile base. The platform provides a 5 kg payload per arm, ' +
+    'up to 8 hours of operating time, NVIDIA AGX Orin compute, and interchangeable end ' +
+    'effectors. Galbot develops its proprietary AstraBrain embodied AI stack and AstraData ' +
+    'training infrastructure, and reports commercial deployments across retail, logistics, ' +
+    'industrial manufacturing, healthcare, and service applications.',
+
+  website: 'https://www.galbot.com/',
+
+  robotSpecs: {
+    status: 'In Production',
+    launchDate: 'Jun 2024',
+
+    targetUse: [
+      'Retail',
+      'Industrial',
+      'Logistics',
+      'Healthcare',
+      'Service',
+    ],
+
+    mass: '92.5 kg',
+    height: '173 cm',
+    speed: '1.5 m/s',
+
+    totalDOF: '21 (excluding chassis and end effector)',
+
+    operatingTime: 'Up to 8 hrs',
+
+    payloadCapacity: '5 kg per arm, 10 kg total',
+
+    endEffector:
+      'Interchangeable dexterous hand, parallel gripper, or suction cup',
+
+    tactileSensing: null,
+
+    locomotion: '4-wheel omnidirectional wheeled base',
+
+    materials: 'Not disclosed',
+
+    motor: 'Not disclosed',
+
+    actuatorBody: 'Not disclosed',
+
+    actuatorHand: 'Not disclosed',
+
+    transmission: 'Not disclosed',
+
+    externalSensors:
+      '1x stereo head camera, 4x torso RGB cameras, 2x wrist depth cameras, ' +
+      '1x 3D LiDAR, 8x ultrasonic sensors',
+
+    internalSensors:
+      '2x wrist 6-axis force/torque sensors, torso IMU, chassis IMU',
+
+    compute: 'NVIDIA AGX Orin 64GB (275 TOPS)',
+
+    battery: '48V 30Ah',
+
+    charging:
+      '54.6V 10A wired charging; approximately 3.5 hrs; wireless charging dock optional',
+
+    aiPartner: 'Proprietary (AstraBrain)',
+
+    software:
+      'AstraBrain embodied AI; Galbot SDK with Python and C++ interfaces',
+
+    dataCollection:
+      'AstraData virtual-real training pipeline: human few-shot demonstrations, ' +
+      'simulation synthesis, reinforcement learning, and real-world fine-tuning',
+  },
+},
+{
+  id: 'galbot_s1',
+  name: 'Galbot (S1)',
+  type: 'oem',
+  country: 'CN',
+
+  description:
+    'Galbot S1 is an industrial heavy-duty embodied robot developed for ' +
+    'manufacturing, warehousing, logistics, material handling, loading and ' +
+    'unloading applications. Powered by Galbot’s proprietary AstraBrain ' +
+    'embodied AI system, S1 combines autonomous path planning, dual-arm ' +
+    'coordination, a vertically adjustable torso, and a 4-wheel omnidirectional ' +
+    'mobile base. The platform is designed for continuous industrial operation ' +
+    'with hot-swappable batteries and an operating workspace extending from ' +
+    'floor level to high shelving.',
+
+  website: 'https://www.galbot.com/s1/',
+
+  robotSpecs: {
+    status: 'In Production',
+    launchDate: 'Jan 2026',
+
+    targetUse: [
+      'Industrial',
+      'Manufacturing',
+      'Warehousing',
+      'Logistics',
+      'Material Handling',
+    ],
+
+    mass: '320 kg',
+    height: '179.3 cm',
+    speed: '1.5 m/s',
+
+    totalDOF: '17 (excluding chassis and end effector)',
+
+    operatingTime: '8 hrs',
+
+    payloadCapacity: 'Up to 50 kg dual-arm',
+
+    endEffector:
+      'Industrial gripper / interchangeable end effector',
+
+    tactileSensing: null,
+
+    locomotion: '4-wheel omnidirectional mobile base',
+
+    materials: 'Not disclosed',
+
+    motor: 'Not disclosed',
+
+    actuatorBody: 'Industrial-grade dual-arm actuators',
+
+    actuatorHand: 'Not disclosed',
+
+    transmission: 'Not disclosed',
+
+    externalSensors:
+      'Stereo camera x1, depth cameras x2, 3D LiDAR sensors, safety edge',
+
+    internalSensors:
+      '6-axis force/torque sensors x2',
+
+    compute: 'NVIDIA AGX Orin 64GB (275 TOPS)',
+
+    battery: '48V 30Ah x2, hot-swappable',
+
+    charging:
+      'Approximately 2 hrs per battery with adapter; hot-swappable battery supported',
+
+    aiPartner: 'Proprietary (AstraBrain)',
+
+    software:
+      'AstraBrain embodied AI; Galbot SDK with Python and C++ interfaces',
+
+    dataCollection:
+      'AstraData virtual-real embodied AI training infrastructure',
+  },
+},
