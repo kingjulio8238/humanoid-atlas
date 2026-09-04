@@ -256,3 +256,13 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r412', from: 'feetech', to: 'vibe', component: 'Servo Actuators', componentCategoryId: 'actuators_rotary', description: 'Low-cost embedded servo actuators for joint control' },
   { id: 'r413', from: 'adafruit', to: 'vibe', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis IMU for balance and orientation' },
 ];
+
+// === GALBOT (G1) ===
+{ id: 'r420',
+  from: 'nvidia',
+  to: 'galbot',
+  component: 'Jetson AGX Orin',
+  componentCategoryId: 'compute',
+  description:
+    'Primary onboard compute: NVIDIA AGX Orin 64GB, 275 TOPS. ' +
+    'Source: https://www.galbot.com/g1/',},
