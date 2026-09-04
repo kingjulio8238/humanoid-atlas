@@ -256,3 +256,32 @@ export const relationships: SupplyRelationship[] = [
   { id: 'r412', from: 'feetech', to: 'vibe', component: 'Servo Actuators', componentCategoryId: 'actuators_rotary', description: 'Low-cost embedded servo actuators for joint control' },
   { id: 'r413', from: 'adafruit', to: 'vibe', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis IMU for balance and orientation' },
 ];
+  // === VIBE ROBOTICS ===
+  { id: 'r410', from: 'nvidia', to: 'vibe', component: 'Jetson Orin Nano', componentCategoryId: 'compute', description: 'Primary compute for AI inference' },
+  { id: 'r411', from: 'intel', to: 'vibe', component: 'Depth Cameras', componentCategoryId: 'sensors_general', description: 'RealSense D435i depth camera' },
+  { id: 'r412', from: 'feetech', to: 'vibe', component: 'Servo Actuators', componentCategoryId: 'actuators_rotary', description: 'Low-cost embedded servo actuators for joint control' },
+  { id: 'r413', from: 'adafruit', to: 'vibe', component: 'IMU', componentCategoryId: 'sensors_general', description: '9-axis IMU for balance and orientation' },
+
+  // === GALBOT ===
+
+  // Galbot G1
+  {
+    id: 'r420',
+    from: 'nvidia',
+    to: 'galbot_g1',
+    component: 'Jetson AGX Orin 64GB',
+    componentCategoryId: 'compute',
+    description: 'Primary onboard AI compute platform, 275 TOPS',
+  },
+
+  // Galbot S1
+  {
+    id: 'r421',
+    from: 'nvidia',
+    to: 'galbot_s1',
+    component: 'Jetson AGX Orin 64GB',
+    componentCategoryId: 'compute',
+    description: 'Primary onboard AI compute platform, 275 TOPS',
+  },
+
+];
